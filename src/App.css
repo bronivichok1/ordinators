@@ -13,16 +13,25 @@
 }
 
 .div-input{
-  margin: 50px
+  margin: 50px;
 }
 
-.input-aut{
+.input-auth{
   width: 15vw;
   height: 3vh;
   font-size: 20px;
+  margin-bottom: 0;
 }
 
-.p-aut{
+.p-auth{
+  font-size: 22px;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.button-auth{
   font-size: 20px;
   text-align: center;
+  display: flex;
+  margin: 0 auto;
 }

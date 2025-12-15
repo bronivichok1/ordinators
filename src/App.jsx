@@ -6,15 +6,16 @@ function App() {
     <div className='App'>
       <div className='div-app'>
         <div className='div-input'>
-          <p className='p-aut'>Логин</p>
-            <input className='input-aut'>
+          <p className='p-auth'>Логин</p>
+            <input className='input-auth'>
 
             </input>
-          <p className='p-aut'>Пароль</p>
-            <input className='input-aut'>
+          <p className='p-auth'>Пароль</p>
+            <input className='input-auth'>
 
             </input>
-            <button>
+            <p></p>
+            <button className='button-auth'>
               Войти
             </button>
           </div>
