@@ -1,14 +1,11 @@
-/* Контейнер для всей страницы */
+
 .table-page {
-  width: 100%;
   min-height: 100vh;
-  background-color: #f5f7fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .table-container {
   padding: 20px;
-  min-width: 1000px;
 }
 
 .table-container h1 {
@@ -18,13 +15,15 @@
   text-align: center;
 }
 
-/* Панель поиска */
 .search-panel {
   background-color: white;
   padding: 20px;
   border-radius: 10px;
   margin-bottom: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  z-index: 100;
+  left: 10%;
 }
 
 .search-input-group {
@@ -38,7 +37,7 @@
 .search-label {
   font-weight: 600;
   color: #333;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .search-input {
@@ -47,7 +46,7 @@
   padding: 12px 15px;
   border: 2px solid #e0e0e0;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   transition: all 0.3s;
 }
 
@@ -61,7 +60,7 @@
   padding: 12px 15px;
   border: 2px solid #e0e0e0;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   background-color: white;
   min-width: 200px;
   cursor: pointer;
@@ -83,6 +82,7 @@
   cursor: pointer;
   transition: all 0.3s;
   white-space: nowrap;
+  font-size: 16px;
 }
 
 .reset-search-button:hover {
@@ -98,7 +98,6 @@
   border-top: 1px solid #eee;
 }
 
-/* Кнопки управления */
 .controls {
   margin-bottom: 20px;
 }
@@ -123,18 +122,18 @@
   box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
 }
 
-/* Таблица */
 .table-wrapper {
   border: 1px solid #ddd;
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: inline-block;
+  margin-top: 8%;
 }
 
 .editable-table {
   border-collapse: collapse;
-  min-width: 1600px; /* Добавляем место для колонки действий */
+  min-width: 1600px; 
 }
 
 .editable-table th,
@@ -143,8 +142,8 @@
   padding: 10px;
   text-align: left;
   font-size: 14px;
-  min-width: 150px;
-  max-width: 200px;
+  /*min-width: 150px;*/
+  /*max-width: 200px;*/
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -170,6 +169,7 @@
   left: 0;
   z-index: 5;
   min-width: 50px;
+  width: 50px;
 }
 
 .action-header {
@@ -187,6 +187,12 @@
   position: sticky;
   right: 0;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  gap: 5px;
 }
 
 .editable-table tbody tr:nth-child(even) {
@@ -210,7 +216,6 @@ mark {
   font-weight: 600;
 }
 
-/* Кнопка редактирования строки */
 .edit-row-button {
   padding: 8px 16px;
   background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
@@ -225,6 +230,7 @@ mark {
   display: flex;
   align-items: center;
   gap: 5px;
+  width: 100%;
 }
 
 .edit-row-button:hover {
@@ -233,6 +239,29 @@ mark {
   box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
 }
 
+.delete-row-button {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.delete-row-button:hover {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+}
 .no-results {
   text-align: center;
   padding: 40px;
@@ -351,7 +380,7 @@ mark {
 }
 
 .column-editor-item {
-  display: flex;
+  display: grid;
   align-items: center;
   gap: 15px;
   margin-bottom: 15px;
@@ -468,6 +497,27 @@ mark {
 .table-page::-webkit-scrollbar-thumb:hover,
 .columns-editor::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.create-row-button {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #36d1dc 0%, #5be562 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.create-row-button:hover {
+  background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
+  box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
 }
 
 /* Адаптивность */

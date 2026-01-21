@@ -11,6 +11,46 @@ const EditableTable = () => {
     return obj;
   });
 
+
+  const ColumnName=[
+    '',
+    'ФИО',
+    'ФИО(EN)',
+    'Год рождения',
+    'Пол',
+    'Страна',
+    'Дата зачисления',
+    'Дата отчисления',
+    'Причина отчисления',
+    'Социальный отпуск',
+    'Срок нахождения в социальном отпуске',
+    'Мобильный телефон',
+    'ВУЗ',
+    'Год окончания',
+    'Кафедра',
+    'Профиль специальности',
+    'Специальность',
+    'Форма подготовки',
+    'Документ, удостоверяющий личность',
+    'Идентификационный номер',
+    'Местро проживания, регистрации',
+    'Срок окончания регистрации',
+    'Номер, дата приказа о зачислении',
+    'Номер, дата приказа об отчислении',
+    'Договор, дополнительное соглошение',
+    'Мед. справка',
+    'Текущий контроль',
+    'Логин',
+    'Пароль',
+    'Руководитель ординатора',
+    'Дата сессии(циклов), начало, окончание',
+    'Дата установки надбавки',
+    'Дата окончания надбавки',
+    'Наличие сертификата РИВШ',
+    'Въезд по приглашению',
+    'ДРаспределение клинических ординаторов',
+
+  ]
   const [data, setData] = useState(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
@@ -42,7 +82,7 @@ const EditableTable = () => {
       index: rowIndex,
       originalIndex: data.indexOf(row)
     });
-    
+
     // Преобразуем данные строки для редактирования
     const rowValues = Object.entries(row).map(([columnName, value], colIndex) => ({
       id: colIndex,
@@ -54,6 +94,15 @@ const EditableTable = () => {
     setRowData(rowValues);
     setIsModalOpen(true);
   };
+
+  const handleDeleteRow = (rowIndex, row) => {
+    if (window.confirm(`Вы уверены, что хотите удалить строку ${rowIndex + 1}?`)) {
+      const originalIndex = data.indexOf(row);
+      const newData = [...data];
+      newData.splice(originalIndex, 1);
+      setData(newData);
+    }
+  };  
 
   // Обработчик изменения значения в модальном окне
   const handleModalChange = (colIndex, newValue) => {
@@ -97,9 +146,7 @@ const EditableTable = () => {
   return (
     <div className="table-page">
       <div className="table-container">
-        <h1>Редактируемая таблица (30 строк × 30 колонок)</h1>
         
-        {/* Панель поиска */}
         <div className="search-panel">
           <div className="search-input-group">
             <div className="search-label">
@@ -120,7 +167,7 @@ const EditableTable = () => {
               <option value="all">Все колонки</option>
               {columns.map((col, index) => (
                 <option key={col} value={col}>
-                  Колонка {index + 1}
+                  {ColumnName[index + 1]}
                 </option>
               ))}
             </select>
@@ -129,6 +176,13 @@ const EditableTable = () => {
               className="reset-search-button"
             >
               Сбросить поиск
+            </button>
+            <button 
+                        
+                        className="create-row-button"
+                        title="Редактировать эту строку"
+                      >
+                        📋 Создать
             </button>
           </div>
           <div className="search-info">
@@ -141,7 +195,6 @@ const EditableTable = () => {
           </div>
         </div>
         
-        {/* Таблица */}
         <div className="table-wrapper">
           <table className="editable-table">
             <thead>
@@ -149,7 +202,7 @@ const EditableTable = () => {
                 <th className="row-header">#</th>
                 {columns.map((col, index) => (
                   <th key={col} className="column-header">
-                    Колонка {index + 1}
+                    {ColumnName[index + 1]}
                   </th>
                 ))}
                 <th className="action-header">Действия</th>
@@ -181,6 +234,13 @@ const EditableTable = () => {
                       >
                         ✏️ Редактировать
                       </button>
+                      <button 
+                        onClick={() => handleDeleteRow(originalIndex, row)}
+                        className="delete-row-button"
+                        title="Удалить эту строку"
+                      >
+                        🗑️ Удалить
+                      </button>
                     </td>
                   </tr>
                 );
@@ -196,7 +256,6 @@ const EditableTable = () => {
         )}
       </div>
 
-      {/* Модальное окно для редактирования строки */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal">
@@ -209,15 +268,13 @@ const EditableTable = () => {
               <div className="row-editor">
                 <div className="editor-info">
                   <p>Редактируете строку <strong>#{selectedRow.index + 1}</strong></p>
-                  <p>Всего колонок: {rowData.length}</p>
                 </div>
                 
                 <div className="columns-editor">
                   {rowData.map((item, index) => (
                     <div key={item.id} className="column-editor-item">
                       <div className="column-label">
-                        <span className="column-number">Колонка {item.columnNumber}:</span>
-                        <span className="column-name">{item.columnName}</span>
+                        <span className="column-number">{ColumnName[item.columnNumber]}:</span>
                       </div>
                       <input
                         type="text"
