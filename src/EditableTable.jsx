@@ -50,7 +50,6 @@ const EditableTable = () => {
     'Распределение клинических ординаторов',
   ];
 
-  // Опции для селектов
   const selectOptions = {
     gender: ['М', 'Ж'],
     dismissalReason: [
@@ -105,6 +104,11 @@ const EditableTable = () => {
   const [selectedPreparationForm, setSelectedPreparationForm] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchColumn, setSearchColumn] = useState('all');
+  
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'ascending', // 'ascending' или 'descending'
+  });
 
   // Генерация заголовков колонок
   const columns = Array.from({ length: 35 }, (_, i) => `column${i + 1}`);
@@ -116,7 +120,6 @@ const EditableTable = () => {
       const columnNumber = parseInt(col.replace('column', ''));
       const fieldName = ColumnName[columnNumber];
       
-      // Устанавливаем значения по умолчанию для специальных полей
       switch(fieldName) {
         case 'Пол':
           initialRowData[col] = 'М';
@@ -160,7 +163,37 @@ const EditableTable = () => {
     setIsModalOpenCreate(true);
   };
 
-  // Поиск данных
+  const handleSort = (columnKey) => {
+    let direction = 'ascending';
+    
+    // Если уже сортируем по этой колонке, меняем направление
+    if (sortConfig.key === columnKey && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    
+    setSortConfig({ key: columnKey, direction });
+  };
+
+  const getSortedData = (dataToSort) => {
+    if (!sortConfig.key) return dataToSort;
+    
+    return [...dataToSort].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      
+      const aStr = String(aValue || '').toLowerCase();
+      const bStr = String(bValue || '').toLowerCase();
+      
+      if (aStr < bStr) {
+        return sortConfig.direction === 'ascending' ? -1 : 1;
+      }
+      if (aStr > bStr) {
+        return sortConfig.direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
   const filteredData = data.filter(row => {
     if (!searchTerm.trim()) return true;
     
@@ -172,6 +205,15 @@ const EditableTable = () => {
       return row[searchColumn].toString().toLowerCase().includes(searchTerm.toLowerCase());
     }
   });
+
+  const sortedFilteredData = getSortedData(filteredData);
+
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.key !== columnKey) {
+      return '↕️'; 
+    }
+    return sortConfig.direction === 'ascending' ? '↑' : '↓';
+  };
 
   // Обработчик клика по строке для редактирования
   const handleRowClick = (rowIndex, row) => {
@@ -248,7 +290,6 @@ const EditableTable = () => {
     setSelectedPreparationForm([]);
   };
 
-  // Отмена редактирования
   const handleCancel = () => {
     setIsModalOpen(false);
     setIsModalOpenCreate(false);
@@ -260,13 +301,12 @@ const EditableTable = () => {
     setSelectedPreparationForm([]);
   };
 
-  // Сброс поиска
   const handleResetSearch = () => {
     setSearchTerm('');
     setSearchColumn('all');
+    setSortConfig({ key: null, direction: 'ascending' });
   };
 
-  // Рендер поля ввода в зависимости от типа колонки
   const renderCreateField = (columnName, columnNumber) => {
     const fieldName = ColumnName[columnNumber];
     const columnKey = `column${columnNumber}`;
@@ -523,7 +563,7 @@ const EditableTable = () => {
               onClick={handleResetSearch} 
               className="reset-search-button"
             >
-              Сброс поиска
+              Сброс поиска и сортировки
             </button>
             <button 
               onClick={initCreateRow}
@@ -540,6 +580,12 @@ const EditableTable = () => {
                 {searchColumn !== 'all' && ` (поиск в колонке ${parseInt(searchColumn.replace('column', ''))})`}
               </p>
             )}
+            {sortConfig.key && (
+              <p className="sort-info">
+                Сортировка по: <strong>{ColumnName[parseInt(sortConfig.key.replace('column', ''))]}</strong> 
+                ({sortConfig.direction === 'ascending' ? 'по возрастанию' : 'по убыванию'})
+              </p>
+            )}
           </div>
         </div>
         
@@ -547,21 +593,38 @@ const EditableTable = () => {
           <table className="editable-table">
             <thead>
               <tr>
-                <th className="row-header sticky-left">#</th>
+                <th className="row-header sticky-top-left">
+                  <div className="id-header">ID</div>
+                </th>
+                
                 {columns.map((col, index) => (
-                  <th key={col} className="column-header sticky-top">
-                    {ColumnName[index + 1]}
+                  <th 
+                    key={col} 
+                    className="column-header sticky-top sortable-header"
+                    onClick={() => handleSort(col)}
+                    title={`Сортировать по ${ColumnName[index + 1]}`}
+                  >
+                    <div className="header-content">
+                      <span className="header-text">{ColumnName[index + 1]}</span>
+                      <span className="sort-icon">
+                        {getSortIcon(col)}
+                      </span>
+                    </div>
                   </th>
                 ))}
-                <th className="action-header sticky-right sticky-top">Действия</th>
+                
+                <th className="action-header sticky-top-right">Действия</th>
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((row, rowIndex) => {
+              {sortedFilteredData.map((row, rowIndex) => {
                 const originalIndex = data.indexOf(row);
                 return (
                   <tr key={`row-${originalIndex}`} className="table-row">
-                    <td className="row-header sticky-left">{originalIndex + 1}</td>
+                    <td className="row-header sticky-left">
+                      <div className="id-cell">{originalIndex + 1}</div>
+                    </td>
+                    
                     {columns.map((column) => (
                       <td key={`cell-${originalIndex}-${column}`}>
                         <span className="cell-value">
@@ -574,6 +637,7 @@ const EditableTable = () => {
                         </span>
                       </td>
                     ))}
+                    
                     <td className="action-cell sticky-right">
                       <button 
                         onClick={() => handleRowClick(originalIndex, row)}
@@ -597,14 +661,13 @@ const EditableTable = () => {
           </table>
         </div>
         
-        {filteredData.length === 0 && searchTerm && (
+        {sortedFilteredData.length === 0 && searchTerm && (
           <div className="no-results">
             <p>По запросу "{searchTerm}" ничего не найдено</p>
           </div>
         )}
       </div>
 
-      {/* Модальное окно создания */}
       {isModalOpenCreate && (
         <div className="modal-overlay">
           <div className="modal create-modal">
