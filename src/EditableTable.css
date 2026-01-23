@@ -1,4 +1,4 @@
-
+/* EditableTable.css */
 .table-page {
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -15,15 +15,18 @@
   text-align: center;
 }
 
+/* Панель поиска - закреплена сверху */
 .search-panel {
   background-color: white;
   padding: 20px;
   border-radius: 10px;
   margin-bottom: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  position: fixed;
+  position: sticky;
+  top: 0;
   z-index: 100;
-  left: 10%;
+  left: 0;
+  right: 0;
 }
 
 .search-input-group {
@@ -90,6 +93,27 @@
   border-color: #ccc;
 }
 
+.create-row-button {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #36d1dc 0%, #5be562 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.create-row-button:hover {
+  background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
+  box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
+}
+
 .search-info p {
   margin: 0;
   color: #666;
@@ -98,42 +122,22 @@
   border-top: 1px solid #eee;
 }
 
-.controls {
-  margin-bottom: 20px;
-}
-
-.reset-button {
-  padding: 14px 28px;
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.3s;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.reset-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-}
-
+/* Контейнер таблицы с прокруткой */
 .table-wrapper {
   border: 1px solid #ddd;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: auto;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  display: inline-block;
-  margin-top: 8%;
+  max-height: calc(100vh - 250px);
+  position: relative;
 }
 
+/* Таблица */
 .editable-table {
-  border-collapse: collapse;
-  min-width: 1600px; 
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1600px;
+  position: relative;
 }
 
 .editable-table th,
@@ -142,51 +146,62 @@
   padding: 10px;
   text-align: left;
   font-size: 14px;
-  /*min-width: 150px;*/
-  /*max-width: 200px;*/
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.editable-table thead {
-  background-color: #f5f5f5;
+/* Закрепленные заголовки */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
+.sticky-left {
+  position: sticky;
+  left: 0;
+  z-index: 15;
+  box-shadow: 2px 0 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.sticky-right {
+  position: sticky;
+  right: 0;
+  box-shadow: -2px 0 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Заголовок колонок */
 .column-header {
   background-color: #4a6fa5;
   color: white;
   font-weight: 600;
   text-align: center;
   padding: 14px 10px;
+  min-width: 150px;
 }
 
+/* Первая колонка с номерами строк */
 .row-header {
   background-color: #f8f9fa;
   font-weight: 600;
   text-align: center;
-  position: sticky;
-  left: 0;
-  z-index: 5;
   min-width: 50px;
   width: 50px;
 }
 
+/* Колонка действий */
 .action-header {
   background-color: #2c3e50;
   color: white;
   font-weight: 600;
   text-align: center;
   min-width: 120px;
-  position: sticky;
-  right: 0;
 }
 
 .action-cell {
   background-color: #f8f9fa;
-  position: sticky;
-  right: 0;
-  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -195,6 +210,7 @@
   gap: 5px;
 }
 
+/* Стили для строк таблицы */
 .editable-table tbody tr:nth-child(even) {
   background-color: #f8f9fa;
 }
@@ -209,6 +225,7 @@
   line-height: 24px;
 }
 
+/* Подсветка найденных результатов */
 mark {
   background-color: #fff9c4;
   padding: 2px 4px;
@@ -216,6 +233,7 @@ mark {
   font-weight: 600;
 }
 
+/* Кнопки редактирования и удаления */
 .edit-row-button {
   padding: 8px 16px;
   background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
@@ -262,6 +280,8 @@ mark {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
 }
+
+/* Сообщение о пустом результате поиска */
 .no-results {
   text-align: center;
   padding: 40px;
@@ -366,10 +386,6 @@ mark {
   color: #666;
 }
 
-.editor-info strong {
-  color: #333;
-}
-
 .columns-editor {
   max-height: 50vh;
   overflow-y: auto;
@@ -413,12 +429,6 @@ mark {
   font-size: 14px;
 }
 
-.column-name {
-  font-size: 12px;
-  color: #666;
-  font-family: monospace;
-}
-
 .modal-input {
   flex: 1;
   padding: 10px 15px;
@@ -436,7 +446,7 @@ mark {
 
 .modal-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 15px;
   padding-top: 20px;
   border-top: 1px solid #e0e0e0;
@@ -475,49 +485,82 @@ mark {
   box-shadow: 0 4px 12px rgba(54, 209, 220, 0.3);
 }
 
+/* Стили для модального окна создания */
+.create-modal {
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.modal-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.university-select-container,
+.document-select-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.other-input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  margin-top: 4px;
+}
+
 /* Скроллбар */
 .table-page::-webkit-scrollbar,
-.columns-editor::-webkit-scrollbar {
+.columns-editor::-webkit-scrollbar,
+.table-wrapper::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .table-page::-webkit-scrollbar-track,
-.columns-editor::-webkit-scrollbar-track {
+.columns-editor::-webkit-scrollbar-track,
+.table-wrapper::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
 
 .table-page::-webkit-scrollbar-thumb,
-.columns-editor::-webkit-scrollbar-thumb {
+.columns-editor::-webkit-scrollbar-thumb,
+.table-wrapper::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
 }
 
 .table-page::-webkit-scrollbar-thumb:hover,
-.columns-editor::-webkit-scrollbar-thumb:hover {
+.columns-editor::-webkit-scrollbar-thumb:hover,
+.table-wrapper::-webkit-scrollbar-thumb:hover {
   background: #555;
-}
-
-.create-row-button {
-  padding: 12px 20px;
-  background: linear-gradient(135deg, #36d1dc 0%, #5be562 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 500;
-  transition: all 0.3s;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.create-row-button:hover {
-  background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
-  box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
 }
 
 /* Адаптивность */
@@ -562,5 +605,14 @@ mark {
   .edit-row-button {
     padding: 6px 12px;
     font-size: 12px;
+  }
+  
+  .create-modal {
+    max-width: 95%;
+  }
+  
+  .checkbox-group {
+    flex-wrap: wrap;
+    flex-direction: row;
   }
 }
