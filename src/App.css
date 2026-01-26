@@ -137,23 +137,27 @@
 .password-toggle {
   position: absolute;
   right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
   color: #a0aec0;
   cursor: pointer;
   padding: 4px;
   transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
 }
 
 .password-toggle:hover {
   color: #667eea;
 }
 
-.password-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
+.password-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .remember-me {
@@ -254,5 +258,607 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+}
+
+/* Сообщения */
+.message {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  animation: slideUp 0.3s ease-out;
+}
+
+.message.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.message.info {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+/* Кнопка "Назад" */
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: 2px solid #667eea;
+  color: #667eea;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.back-button:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.back-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Контейнер для кнопок в футере регистрации */
+.register-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.register-actions button {
+  flex: 1;
+}
+
+/* Кнопка выхода */
+.logout-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: 2px solid #f44336;
+  color: #f44336;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.logout-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Отключение кнопок при загрузке */
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Анимация для сообщений */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Стили для disabled полей */
+.input-field:disabled {
+  background-color: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Мобильная адаптация */
+@media (max-width: 480px) {
+  .register-actions {
+    flex-direction: column;
+  }
+  
+  .back-button,
+  .logout-button {
+    padding: 12px;
+  }
+}
+
+/* Структура как в ВК для полей с паролем */
+.password-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field-wrapper .input-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+/* Кнопка переключения видимости пароля - отдельно как в ВК */
+.password-toggle-button {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 8px;
+  color: #a0aec0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.password-toggle-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #667eea;
+}
+
+.password-toggle-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Увеличиваем padding-right для полей с паролем */
+.password-field-wrapper .input-field {
+  padding-right: 48px !important;
+}
+
+/* Убираем старый стиль password-toggle */
+.password-toggle {
+  display: none;
+}
+/* Панель администратора */
+.admin-controls {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+}
+
+.admin-search-filter {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-box, .filter-box {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+/* ИСПРАВЛЕНО: убрал display: contents */
+.search-box {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 15px;
+}
+
+/* ИСПРАВЛЕНО: убрал иконку лупы, добавил нормальный padding */
+.search-input {
+  width: 95%;
+  padding: 12px 15px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #2d3748;
+}
+
+.search-input:focus {
+  outline: none;
+}
+
+.filter-box {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 15px;
+}
+
+.filter-box svg {
+  color: #a0aec0;
+  margin-right: 10px;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #2d3748;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: none;
+}
+
+.admin-stats {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #718096;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+/* Список пользователей */
+.users-list-container {
+  margin: 30px 0;
+}
+
+.users-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.users-list-header h3 {
+  font-size: 20px;
+  color: #2d3748;
+  margin: 0;
+}
+
+.add-user-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-user-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.add-user-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.loading-users, .no-users {
+  text-align: center;
+  padding: 40px;
+  color: #718096;
+  font-size: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px dashed #e2e8f0;
+}
+
+/* Таблица пользователей - ИСПРАВЛЕНО для адаптивности */
+.users-table {
+  background: white;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  overflow-x: auto; /* Добавляем горизонтальный скролл если не помещается */
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 60px minmax(150px, 1fr) minmax(120px, 1fr) minmax(100px, 120px) minmax(180px, 1fr);
+  background: #f1f5f9;
+  padding: 15px 20px;
+  font-weight: 600;
+  color: #4a5568;
+  border-bottom: 2px solid #e2e8f0;
+  min-width: 700px; /* Минимальная ширина чтобы не ломалась */
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 60px minmax(150px, 1fr) minmax(120px, 1fr) minmax(100px, 120px) minmax(180px, 1fr);
+  padding: 15px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+  min-width: 700px;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row:hover {
+  background: #f8fafc;
+}
+
+/* ИСПРАВЛЕНО: Увеличил padding и добавил обработку длинного текста */
+.table-cell {
+  padding: 10px 12px;
+  min-width: 0; /* Важно для корректной работы text-overflow */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap; /* Кнопки не переносятся */
+}
+
+/* ИСПРАВЛЕНО: Убрал фиксированную ширину у кнопок */
+.edit-button {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+  min-width: 120px; /* Минимальная ширина вместо фиксированной */
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-button:hover {
+  background: #ffeaa7;
+}
+
+.save-button {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  min-width: 100px;
+}
+
+.save-button:hover {
+  background: #c3e6cb;
+}
+
+.delete-button {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  min-width: 120px;
+}
+
+.delete-button:hover {
+  background: #f5c6cb;
+}
+
+.cancel-button {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  min-width: 100px;
+}
+
+.cancel-button:hover {
+  background: #e2e6ea;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-left: 10%;
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ИСПРАВЛЕНО: Поля редактирования - ограничиваем ширину */
+.edit-input, .edit-select {
+  width: 100%;
+  max-width: 180px; /* Ограничиваем максимальную ширину */
+  padding: 8px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #2d3748;
+  background: white;
+  box-sizing: border-box;
+}
+
+.edit-input:focus, .edit-select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.edit-select {
+  cursor: pointer;
+  max-width: 150px; /* Селект уже чем инпут */
+}
+
+/* Бейджи ролей */
+.role-badge {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.role-admin {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.role-user {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.role-manager {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+/* Футер админ-панели */
+.admin-footer {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 2px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Адаптивность - ИСПРАВЛЕНО для мобильных */
+@media (max-width: 768px) {
+  .admin-search-filter {
+    flex-direction: column;
+  }
+  
+  .search-box, .filter-box {
+    min-width: 100%;
+  }
+  
+  .users-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .add-user-button {
+    align-self: stretch;
+    justify-content: center;
+  }
+  
+  .users-table {
+    margin: 0 -20px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .table-header, .table-row {
+    grid-template-columns: 50px minmax(120px, 1fr) minmax(100px, 1fr) minmax(80px, 100px) minmax(150px, 1fr);
+    min-width: 600px;
+    padding: 12px 15px;
+  }
+  
+  .table-cell {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  
+  .action-button {
+    padding: 6px 10px;
+    font-size: 11px;
+    min-width: 100px;
+  }
+  
+  .edit-input, .edit-select {
+    max-width: 140px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 20px 15px;
+  }
+  
+  .admin-controls {
+    padding: 15px;
+  }
+  
+  .table-header, .table-row {
+    grid-template-columns: 40px minmax(100px, 1fr) minmax(80px, 1fr) minmax(70px, 90px) minmax(120px, 1fr);
+    min-width: 500px;
+    padding: 10px 12px;
+  }
+  
+  .action-button {
+    min-width: 90px;
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+  
+  .edit-button, .delete-button {
+    min-width: 90px;
   }
 }
