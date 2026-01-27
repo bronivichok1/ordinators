@@ -1,5 +1,6 @@
 import './App.css';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // Добавь этот импорт
 import { 
   User, Lock, Eye, EyeOff, LogIn, UserPlus,
   Key, Mail, Users, Shield, ArrowLeft, LogOut,
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react';
 
 function App() {
+  const navigate = useNavigate(); // Добавь этот хук
   const [showPassword, setShowPassword] = useState(false);
   const [currentPage, setCurrentPage] = useState('login');
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -180,7 +182,7 @@ function App() {
     (user.login && user.login.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Обработчики форм
+  // Обработчики форм - ОСНОВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -198,17 +200,12 @@ function App() {
       if (response.ok) {
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
-        setMessage({ text: 'Вход выполнен!', type: 'success' });
+        setMessage({ text: 'Вход выполнен! Перенаправление...', type: 'success' });
         
-        // ВСЕГДА показываем панель админа если вошел админ
-        if (data.user.role === 'admin') {
-          setTimeout(() => {
-            setCurrentPage('admin-panel');
-            loadUsers();
-          }, 1000);
-        } else {
-          setMessage({ text: `Добро пожаловать, ${data.user.fio}!`, type: 'success' });
-        }
+        // ВСЕГДА перенаправляем на /main после успешного входа
+        setTimeout(() => {
+          navigate('/main'); // ← ВОТ ЭТА СТРОЧКА ДЕЛАЕТ ПЕРЕХОД
+        }, 1000);
       } else {
         setMessage({ text: data.message || 'Ошибка входа', type: 'error' });
       }
@@ -596,7 +593,7 @@ function App() {
                 className="logout-button" 
                 onClick={() => { 
                   localStorage.clear(); 
-                  setCurrentPage('login'); 
+                  navigate('/'); // Используй navigate вместо setCurrentPage
                   setMessage({ text: 'Вы вышли из системы', type: 'success' });
                 }}
                 disabled={loading}
@@ -676,12 +673,12 @@ function App() {
                 <div>ID</div>
                 <div>ФИО</div>
                 <div>Логин</div>
-                <div>Роль</div>
-                <div>Действия</div>
+                <div className='div-role'>Роль</div>
+                <div className='div-action'>Действия</div>
               </div>
               
               {filteredUsers.map(user => (
-                <div key={user.id} className="table-row">
+                <div key={user.id} className="table-row-app">
                   {editingUser === user.id ? (
                     // Редактирование
                     <>
@@ -779,7 +776,7 @@ function App() {
             className="logout-button" 
             onClick={() => { 
               localStorage.clear(); 
-              setCurrentPage('login'); 
+              navigate('/'); // Используй navigate
               setMessage({ text: 'Вы вышли из системы', type: 'success' });
             }}
             disabled={loading || editingUser !== null}

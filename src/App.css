@@ -1,3 +1,18 @@
+/* Убрать желтый фон автозаполнения в Chrome */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px white inset !important;
+  box-shadow: 0 0 0 1000px white inset !important;
+  -webkit-text-fill-color: #2d3748 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Убрать синий/желтый контур в Firefox */
+input:-moz-ui-invalid {
+  box-shadow: none;
+}
 
 .body-div {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -625,7 +640,7 @@
   min-width: 700px; /* Минимальная ширина чтобы не ломалась */
 }
 
-.table-row {
+.table-row-app {
   display: grid;
   grid-template-columns: 60px minmax(150px, 1fr) minmax(120px, 1fr) minmax(100px, 120px) minmax(180px, 1fr);
   padding: 15px 20px;
@@ -634,11 +649,11 @@
   min-width: 700px;
 }
 
-.table-row:last-child {
+.table-row-app:last-child {
   border-bottom: none;
 }
 
-.table-row:hover {
+.table-row-app:hover {
   background: #f8fafc;
 }
 
@@ -687,6 +702,7 @@
   color: #721c24;
   border: 1px solid #f5c6cb;
   min-width: 120px;
+  justify-content: center;
 }
 
 .delete-button:hover {
@@ -715,7 +731,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-left: 10%;
+  margin-left: 20%;
 }
 
 .action-button:disabled {
@@ -756,6 +772,15 @@
   font-weight: 600;
   text-transform: uppercase;
   white-space: nowrap;
+
+}
+
+.div-role{
+margin-left: 30%;
+}
+
+.div-action{
+  margin-left: 30%;
 }
 
 .role-admin {
@@ -813,7 +838,7 @@
     border-right: none;
   }
   
-  .table-header, .table-row {
+  .table-header, .table-row-app {
     grid-template-columns: 50px minmax(120px, 1fr) minmax(100px, 1fr) minmax(80px, 100px) minmax(150px, 1fr);
     min-width: 600px;
     padding: 12px 15px;
@@ -846,7 +871,7 @@
     padding: 15px;
   }
   
-  .table-header, .table-row {
+  .table-header, .table-row-app {
     grid-template-columns: 40px minmax(100px, 1fr) minmax(80px, 1fr) minmax(70px, 90px) minmax(120px, 1fr);
     min-width: 500px;
     padding: 10px 12px;
