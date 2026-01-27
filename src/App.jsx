@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   User, Lock, Eye, EyeOff, LogIn, UserPlus,
   Key, Mail, Users, Shield, ArrowLeft, LogOut,
-  Edit, Trash2, Save, X, Search
+  Edit, Trash2, Save, X, Search, Table
 } from 'lucide-react';
 
 function App() {
@@ -175,6 +175,11 @@ function App() {
     (user.fio && user.fio.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (user.login && user.login.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Функция для перехода к таблице
+  const goToTable = () => {
+    navigate('/main');
+  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -754,18 +759,28 @@ function App() {
         </div>
 
         <div className="admin-footer">
-          <button 
-            className="logout-button" 
-            onClick={() => { 
-              localStorage.clear(); 
-              navigate('/'); // Используй navigate
-              window.location.reload()
-              setMessage({ text: 'Вы вышли из системы', type: 'success' });
-            }}
-            disabled={loading || editingUser !== null}
-          >
-            <LogOut size={16} /><span>Выйти из системы</span>
-          </button>
+          <div className="admin-footer-actions">
+            <button 
+              className="table-button" 
+              onClick={goToTable}
+              disabled={loading || editingUser !== null}
+            >
+              <Table size={16} /><span>Перейти к таблице</span>
+            </button>
+            
+            <button 
+              className="logout-button" 
+              onClick={() => { 
+                localStorage.clear(); 
+                navigate('/');
+                window.location.reload()
+                setMessage({ text: 'Вы вышли из системы', type: 'success' });
+              }}
+              disabled={loading || editingUser !== null}
+            >
+              <LogOut size={16} /><span>Выйти из системы</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

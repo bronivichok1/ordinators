@@ -864,3 +864,66 @@ margin-left: 30%;
     min-width: 90px;
   }
 }
+
+/* Кнопка перехода к таблице */
+.admin-footer-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.table-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 180px;
+}
+
+.table-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(54, 209, 220, 0.4);
+}
+
+.table-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Адаптивность для футера */
+@media (max-width: 768px) {
+  .admin-footer-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .table-button,
+  .logout-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-footer-actions {
+    gap: 8px;
+  }
+  
+  .table-button,
+  .logout-button {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
