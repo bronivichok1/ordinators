@@ -1,4 +1,3 @@
-/* Убрать желтый фон автозаполнения в Chrome */
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus,
@@ -9,7 +8,6 @@ input:-webkit-autofill:active {
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Убрать синий/желтый контур в Firefox */
 input:-moz-ui-invalid {
   box-shadow: none;
 }
@@ -276,7 +274,6 @@ input:-moz-ui-invalid {
   }
 }
 
-/* Сообщения */
 .message {
   padding: 12px 16px;
   border-radius: 8px;
@@ -305,7 +302,6 @@ input:-moz-ui-invalid {
   border: 1px solid #bee5eb;
 }
 
-/* Кнопка "Назад" */
 .back-button {
   display: flex;
   align-items: center;
@@ -332,7 +328,6 @@ input:-moz-ui-invalid {
   cursor: not-allowed;
 }
 
-/* Контейнер для кнопок в футере регистрации */
 .register-actions {
   display: flex;
   gap: 10px;
@@ -343,7 +338,6 @@ input:-moz-ui-invalid {
   flex: 1;
 }
 
-/* Кнопка выхода */
 .logout-button {
   display: flex;
   align-items: center;
@@ -369,7 +363,6 @@ input:-moz-ui-invalid {
   cursor: not-allowed;
 }
 
-/* Отключение кнопок при загрузке */
 .submit-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -377,7 +370,6 @@ input:-moz-ui-invalid {
   box-shadow: none !important;
 }
 
-/* Анимация для сообщений */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -393,14 +385,12 @@ input:-moz-ui-invalid {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* Стили для disabled полей */
 .input-field:disabled {
   background-color: #f1f5f9;
   cursor: not-allowed;
   opacity: 0.7;
 }
 
-/* Мобильная адаптация */
 @media (max-width: 480px) {
   .register-actions {
     flex-direction: column;
@@ -412,7 +402,6 @@ input:-moz-ui-invalid {
   }
 }
 
-/* Структура как в ВК для полей с паролем */
 .password-field-wrapper {
   position: relative;
   display: flex;
@@ -424,7 +413,6 @@ input:-moz-ui-invalid {
   position: relative;
 }
 
-/* Кнопка переключения видимости пароля - отдельно как в ВК */
 .password-toggle-button {
   position: absolute;
   right: 12px;
@@ -453,16 +441,14 @@ input:-moz-ui-invalid {
   cursor: not-allowed;
 }
 
-/* Увеличиваем padding-right для полей с паролем */
 .password-field-wrapper .input-field {
   padding-right: 48px !important;
 }
 
-/* Убираем старый стиль password-toggle */
 .password-toggle {
   display: none;
 }
-/* Панель администратора */
+
 .admin-controls {
   margin-bottom: 30px;
   padding: 20px;
@@ -484,7 +470,6 @@ input:-moz-ui-invalid {
   position: relative;
 }
 
-/* ИСПРАВЛЕНО: убрал display: contents */
 .search-box {
   display: flex;
   align-items: center;
@@ -494,7 +479,6 @@ input:-moz-ui-invalid {
   padding: 0 15px;
 }
 
-/* ИСПРАВЛЕНО: убрал иконку лупы, добавил нормальный padding */
 .search-input {
   width: 95%;
   padding: 12px 15px;
@@ -621,12 +605,11 @@ input:-moz-ui-invalid {
   border: 2px dashed #e2e8f0;
 }
 
-/* Таблица пользователей - ИСПРАВЛЕНО для адаптивности */
 .users-table {
   background: white;
   border-radius: 12px;
   border: 2px solid #e2e8f0;
-  overflow-x: auto; /* Добавляем горизонтальный скролл если не помещается */
+  overflow-x: auto; 
 }
 
 .table-header {
@@ -637,7 +620,7 @@ input:-moz-ui-invalid {
   font-weight: 600;
   color: #4a5568;
   border-bottom: 2px solid #e2e8f0;
-  min-width: 700px; /* Минимальная ширина чтобы не ломалась */
+  min-width: 700px; 
 }
 
 .table-row-app {
@@ -657,10 +640,9 @@ input:-moz-ui-invalid {
   background: #f8fafc;
 }
 
-/* ИСПРАВЛЕНО: Увеличил padding и добавил обработку длинного текста */
 .table-cell {
   padding: 10px 12px;
-  min-width: 0; /* Важно для корректной работы text-overflow */
+  min-width: 0; 
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -669,15 +651,14 @@ input:-moz-ui-invalid {
 .table-cell.actions {
   display: flex;
   gap: 8px;
-  flex-wrap: nowrap; /* Кнопки не переносятся */
+  flex-wrap: nowrap; 
 }
 
-/* ИСПРАВЛЕНО: Убрал фиксированную ширину у кнопок */
 .edit-button {
   background: #fff3cd;
   color: #856404;
   border: 1px solid #ffeaa7;
-  min-width: 120px; /* Минимальная ширина вместо фиксированной */
+  min-width: 120px; 
   align-items: center;
   justify-content: center;
 }
@@ -740,10 +721,9 @@ input:-moz-ui-invalid {
   transform: none !important;
 }
 
-/* ИСПРАВЛЕНО: Поля редактирования - ограничиваем ширину */
 .edit-input, .edit-select {
   width: 100%;
-  max-width: 180px; /* Ограничиваем максимальную ширину */
+  max-width: 180px; 
   padding: 8px 12px;
   border: 2px solid #e2e8f0;
   border-radius: 6px;
@@ -760,10 +740,9 @@ input:-moz-ui-invalid {
 
 .edit-select {
   cursor: pointer;
-  max-width: 150px; /* Селект уже чем инпут */
+  max-width: 150px; 
 }
 
-/* Бейджи ролей */
 .role-badge {
   display: inline-block;
   padding: 5px 12px;
@@ -801,7 +780,6 @@ margin-left: 30%;
   border: 1px solid #c3e6cb;
 }
 
-/* Футер админ-панели */
 .admin-footer {
   margin-top: 30px;
   padding-top: 20px;
@@ -810,7 +788,6 @@ margin-left: 30%;
   justify-content: flex-end;
 }
 
-/* Адаптивность - ИСПРАВЛЕНО для мобильных */
 @media (max-width: 768px) {
   .admin-search-filter {
     flex-direction: column;

@@ -262,22 +262,17 @@ const EditableTable = () => {
     });
   };
 
-  // Сохранение новой строки
   const handleSaveNewRow = () => {
-    // Обработка специальных полей
     const processedData = { ...newRowData };
     
-    // Если выбран "другое" для ВУЗа
     if (processedData['column12'] === 'другое' && otherUniversity) {
       processedData['column12'] = otherUniversity;
     }
     
-    // Если выбран "иное" для документа
     if (processedData['column18'] === 'иное' && otherDocument) {
       processedData['column18'] = otherDocument;
     }
     
-    // Сохраняем форму подготовки как JSON строку
     processedData['column17'] = JSON.stringify(selectedPreparationForm);
     
     const newRow = { ...processedData };
