@@ -1,0 +1,4 @@
+REACT_APP_API_URL=http://localhost:3000
+REACT_APP_TOKEN_KEY=your-super-secret-key-change-this-in-production
+REACT_APP_ADMIN_LOGIN=admin
+REACT_APP_ADMIN_PASSWORD=admin123
