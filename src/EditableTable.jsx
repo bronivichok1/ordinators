@@ -1,7 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './EditableTable.css';
+import { 
+  LogOut, 
+  User, 
+  Shield, 
+  Menu,
+  X
+} from 'lucide-react';
 
 const EditableTable = () => {
+  const navigate = useNavigate();
+  const [userData, setUserData] = useState(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Исходные данные (35 объектов по 35 строк каждый)
   const initialData = Array.from({ length: 35 }, (_, rowIndex) => {
     const obj = {};
@@ -107,13 +120,42 @@ const EditableTable = () => {
   
   const [sortConfig, setSortConfig] = useState({
     key: null,
-    direction: 'ascending', // 'ascending' или 'descending'
+    direction: 'ascending',
   });
+
+  // Проверяем авторизацию при загрузке
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    const userDataStr = localStorage.getItem('user_data');
+    
+    if (!token || !userDataStr) {
+      navigate('/');
+      return;
+    }
+    
+    try {
+      const user = JSON.parse(userDataStr);
+      setUserData(user);
+    } catch (error) {
+      console.error('Ошибка парсинга user_data:', error);
+      navigate('/');
+    }
+  }, [navigate]);
 
   // Генерация заголовков колонок
   const columns = Array.from({ length: 35 }, (_, i) => `column${i + 1}`);
 
-  // Инициализация данных для создания новой записи
+  // Выход из системы
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    navigate('/');
+  };
+
+  const goToAdminPanel = () => {
+    navigate('/');
+  };
+
   const initCreateRow = () => {
     const initialRowData = {};
     columns.forEach((col, index) => {
@@ -166,7 +208,6 @@ const EditableTable = () => {
   const handleSort = (columnKey) => {
     let direction = 'ascending';
     
-    // Если уже сортируем по этой колонке, меняем направление
     if (sortConfig.key === columnKey && sortConfig.direction === 'ascending') {
       direction = 'descending';
     }
@@ -215,7 +256,6 @@ const EditableTable = () => {
     return sortConfig.direction === 'ascending' ? '↑' : '↓';
   };
 
-  // Обработчик клика по строке для редактирования
   const handleRowClick = (rowIndex, row) => {
     setSelectedRow({
       index: rowIndex,
@@ -242,7 +282,6 @@ const EditableTable = () => {
     }
   };
 
-  // Обработчик изменения чекбоксов формы подготовки
   const handlePreparationFormChange = (option) => {
     const newSelection = [...selectedPreparationForm];
     if (newSelection.includes(option)) {
@@ -254,7 +293,6 @@ const EditableTable = () => {
     setSelectedPreparationForm(newSelection);
   };
 
-  // Обработчик изменения значения в модальном окне создания
   const handleCreateModalChange = (column, value) => {
     setNewRowData({
       ...newRowData,
@@ -527,8 +565,132 @@ const EditableTable = () => {
     }
   };
 
+  if (!userData) {
+    return (
+      <div className="table-page">
+        <div className="loading-users">Загрузка...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="table-page">
+      <header className="user-header">
+        <div className="header-left">
+          <div 
+            className="user-profile-button" 
+            onClick={() => setShowUserMenu(!showUserMenu)}
+          >
+            <div className="user-avatar">
+              <User size={20} />
+            </div>
+            <div className="user-details">
+              <div className="user-name">{userData.fio || userData.login}</div>
+              <div className="user-role">
+                <span className={`role-badge role-${userData.role}`}>
+                  {userData.role === 'admin' ? 'Администратор' : 
+                   userData.role === 'manager' ? 'Менеджер' : 'Пользователь'}
+                </span>
+              </div>
+            </div>
+            
+            {showUserMenu && (
+              <div className="user-menu">
+                <div className="menu-section">
+                  <div className="menu-header">Управление</div>
+                  <div className="menu-item" onClick={() => setShowUserMenu(false)}>
+                    <User size={16} />
+                    <span>Мой профиль</span>
+                  </div>
+                  {userData.role === 'admin' && (
+                    <div className="menu-item" onClick={goToAdminPanel}>
+                      <Shield size={16} />
+                      <span>Панель администратора</span>
+                    </div>
+                  )}
+                </div>
+                <div className="menu-divider"></div>
+                <div className="menu-section">
+                  <div className="menu-item logout-item" onClick={handleLogout}>
+                    <LogOut size={16} />
+                    <span>Выйти из системы</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <button 
+            className="mobile-menu-button"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+
+        <div className="header-center">
+          <div className="app-title">
+            <h1>Система управления ординаторами</h1>
+            <p>Таблица данных клинических ординаторов</p>
+          </div>
+        </div>
+
+        <div className="header-right">
+          <div className="header-actions">
+            {userData.role === 'admin' && (
+              <button className="admin-panel-button" onClick={goToAdminPanel}>
+                <Shield size={18} />
+                <span>Админ-панель</span>
+              </button>
+            )}
+            <button className="logout-button" onClick={handleLogout}>
+              <LogOut size={18} />
+              <span>Выйти</span>
+            </button>
+          </div>
+        </div>
+
+        {isMobileMenuOpen && (
+          <div className="mobile-menu">
+            <div className="mobile-user-info">
+              <div className="user-avatar">
+                <User size={24} />
+              </div>
+              <div className="user-details">
+                <div className="user-name">{userData.fio || userData.login}</div>
+                <div className="user-role">
+                  <span className={`role-badge role-${userData.role}`}>
+                    {userData.role === 'admin' ? 'Администратор' : 
+                     userData.role === 'manager' ? 'Менеджер' : 'Пользователь'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mobile-menu-items">
+              <div className="mobile-menu-item" onClick={() => setIsMobileMenuOpen(false)}>
+                <User size={20} />
+                <span>Мой профиль</span>
+              </div>
+              
+              {userData.role === 'admin' && (
+                <div className="mobile-menu-item" onClick={goToAdminPanel}>
+                  <Shield size={20} />
+                  <span>Панель администратора</span>
+                </div>
+              )}
+              
+              <div className="menu-divider"></div>
+              
+              <div className="mobile-menu-item logout-item" onClick={handleLogout}>
+                <LogOut size={20} />
+                <span>Выйти из системы</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
+
       <div className="table-container">
         <div className="search-panel">
           <div className="search-input-group">

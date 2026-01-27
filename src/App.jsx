@@ -1,6 +1,6 @@
 import './App.css';
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Добавь этот импорт
+import { useNavigate } from 'react-router-dom'; 
 import { 
   User, Lock, Eye, EyeOff, LogIn, UserPlus,
   Key, Mail, Users, Shield, ArrowLeft, LogOut,
@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 function App() {
-  const navigate = useNavigate(); // Добавь этот хук
+  const navigate = useNavigate(); 
   const [showPassword, setShowPassword] = useState(false);
   const [currentPage, setCurrentPage] = useState('login');
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -34,7 +34,6 @@ function App() {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
-  // Получить токен админа
   const getAdminToken = async () => {
     try {
       console.log('Пытаюсь получить токен админа...');
@@ -53,7 +52,6 @@ function App() {
       }
       
       console.log('Админ не найден, пытаюсь создать...');
-      // Если админа нет - создаем
       const registerResponse = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,7 +79,6 @@ function App() {
     return null;
   };
 
-  // Загрузка пользователей
   const loadUsers = async () => {
     setLoading(true);
     try {
@@ -119,7 +116,6 @@ function App() {
     }
   };
 
-  // Редактирование пользователя
   const saveEditUser = async (userId) => {
     setLoading(true);
     try {
@@ -147,7 +143,6 @@ function App() {
     }
   };
 
-  // Удаление пользователя
   const deleteUser = async (userId) => {
     if (!window.confirm('Удалить пользователя?')) return;
     
@@ -175,14 +170,12 @@ function App() {
     }
   };
 
-  // Фильтрация пользователей
   const filteredUsers = users.filter(user => 
     !searchTerm || 
     (user.fio && user.fio.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (user.login && user.login.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Обработчики форм - ОСНОВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -202,9 +195,8 @@ function App() {
         localStorage.setItem('user_data', JSON.stringify(data.user));
         setMessage({ text: 'Вход выполнен! Перенаправление...', type: 'success' });
         
-        // ВСЕГДА перенаправляем на /main после успешного входа
         setTimeout(() => {
-          navigate('/main'); // ← ВОТ ЭТА СТРОЧКА ДЕЛАЕТ ПЕРЕХОД
+          navigate('/main'); 
         }, 1000);
       } else {
         setMessage({ text: data.message || 'Ошибка входа', type: 'error' });
@@ -220,7 +212,6 @@ function App() {
     e.preventDefault();
     setLoading(true);
     
-    // Проверяем через API, а не локально
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
@@ -237,7 +228,6 @@ function App() {
         localStorage.setItem('user_data', JSON.stringify(data.user));
         setMessage({ text: 'Доступ подтвержден!', type: 'success' });
         
-        // Сразу показываем панель админа
         setTimeout(() => {
           setCurrentPage('admin-panel');
           loadUsers();
@@ -294,7 +284,6 @@ function App() {
         setMessage({ text: `Пользователь ${data.user.fio} зарегистрирован!`, type: 'success' });
         setRegisterData({ fio: '', login: '', password: '', confirmPassword: '', role: 'user' });
         await loadUsers();
-        // Возвращаемся к списку после регистрации
         setTimeout(() => {
           setCurrentPage('admin-panel');
         }, 1500);
@@ -308,7 +297,6 @@ function App() {
     }
   };
 
-  // Проверяем авторизацию при загрузке
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     const userData = localStorage.getItem('user_data');
@@ -322,7 +310,6 @@ function App() {
     }
   }, []);
 
-  // Страница авторизации
   const renderLoginPage = () => (
     <div className="auth-container">
       <div className="auth-card">
@@ -395,7 +382,6 @@ function App() {
     </div>
   );
 
-  // Страница авторизации администратора
   const renderAdminAuthPage = () => (
     <div className="auth-container">
       <div className="auth-card">
@@ -460,7 +446,6 @@ function App() {
     </div>
   );
 
-  // Страница регистрации новых пользователей
   const renderRegisterPage = () => (
     <div className="auth-container">
       <div className="auth-card">
@@ -593,7 +578,7 @@ function App() {
                 className="logout-button" 
                 onClick={() => { 
                   localStorage.clear(); 
-                  navigate('/'); // Используй navigate вместо setCurrentPage
+                  navigate('/'); 
                   setMessage({ text: 'Вы вышли из системы', type: 'success' });
                 }}
                 disabled={loading}
@@ -607,7 +592,6 @@ function App() {
     </div>
   );
 
-  // Панель администратора
   const renderAdminPanel = () => (
     <div className="auth-container">
       <div className="auth-card">
@@ -680,7 +664,6 @@ function App() {
               {filteredUsers.map(user => (
                 <div key={user.id} className="table-row-app">
                   {editingUser === user.id ? (
-                    // Редактирование
                     <>
                       <div>{user.id}</div>
                       <div>
@@ -733,7 +716,6 @@ function App() {
                       </div>
                     </>
                   ) : (
-                    // Просмотр
                     <>
                       <div>{user.id}</div>
                       <div>{user.fio}</div>
@@ -777,6 +759,7 @@ function App() {
             onClick={() => { 
               localStorage.clear(); 
               navigate('/'); // Используй navigate
+              window.location.reload()
               setMessage({ text: 'Вы вышли из системы', type: 'success' });
             }}
             disabled={loading || editingUser !== null}
