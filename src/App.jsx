@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   User, Lock, Eye, EyeOff, LogIn, UserPlus,
   Key, Mail, Users, Shield, ArrowLeft, LogOut,
-  Edit, Trash2, Save, X, Search, Table
+  Edit, Trash2, Save, X, Search, Table, KeyRound, XCircle
 } from 'lucide-react';
 
 function App() {
@@ -25,7 +25,15 @@ function App() {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState(null);
-  const [editFormData, setEditFormData] = useState({ fio: '', login: '', role: 'user' });
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({ 
+    fio: '', 
+    login: '', 
+    role: 'user',
+    password: '',
+    confirmPassword: ''
+  });
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   const ADMIN_CREDENTIALS = {
     login: process.env.REACT_APP_ADMIN_LOGIN || 'admin',
@@ -116,28 +124,71 @@ function App() {
     }
   };
 
-  const saveEditUser = async (userId) => {
+  const openEditModal = (user) => {
+    setEditingUser(user.id);
+    setEditFormData({
+      fio: user.fio || '',
+      login: user.login || '',
+      role: user.role || 'user',
+      password: '',
+      confirmPassword: ''
+    });
+    setEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setEditModalOpen(false);
+    setEditingUser(null);
+    setEditFormData({ fio: '', login: '', role: 'user', password: '', confirmPassword: '' });
+    setShowEditPassword(false);
+  };
+
+  const saveEditUser = async () => {
+    if (editFormData.password && editFormData.password !== editFormData.confirmPassword) {
+      setMessage({ text: 'Пароли не совпадают', type: 'error' });
+      return;
+    }
+
+    if (editFormData.password && editFormData.password.length < 6) {
+      setMessage({ text: 'Пароль должен быть не менее 6 символов', type: 'error' });
+      return;
+    }
+
     setLoading(true);
     try {
       const adminToken = await getAdminToken();
       if (!adminToken) return;
 
-      const response = await fetch(`${API_URL}/users/${userId}`, {
+      const updateData = {
+        fio: editFormData.fio,
+        login: editFormData.login,
+        role: editFormData.role
+      };
+
+      if (editFormData.password) {
+        updateData.password = editFormData.password;
+      }
+
+      const response = await fetch(`${API_URL}/users/${editingUser}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(editFormData)
+        body: JSON.stringify(updateData)
       });
 
       if (response.ok) {
         await loadUsers();
-        setEditingUser(null);
+        closeEditModal();
         setMessage({ text: 'Пользователь обновлен', type: 'success' });
+      } else {
+        const errorText = await response.text();
+        setMessage({ text: 'Ошибка обновления пользователя', type: 'error' });
       }
     } catch (error) {
       console.error('Ошибка обновления:', error);
+      setMessage({ text: 'Ошибка соединения', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -176,7 +227,6 @@ function App() {
     (user.login && user.login.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Функция для перехода к таблице
   const goToTable = () => {
     navigate('/main');
   };
@@ -668,90 +718,31 @@ function App() {
               
               {filteredUsers.map(user => (
                 <div key={user.id} className="table-row-app">
-                  {editingUser === user.id ? (
-                    <>
-                      <div>{user.id}</div>
-                      <div>
-                        <input 
-                          type="text" 
-                          className="edit-input" 
-                          value={editFormData.fio} 
-                          onChange={(e) => setEditFormData({...editFormData, fio: e.target.value})}
-                          disabled={loading}
-                          placeholder="ФИО"
-                        />
-                      </div>
-                      <div>
-                        <input 
-                          type="text" 
-                          className="edit-input" 
-                          value={editFormData.login} 
-                          onChange={(e) => setEditFormData({...editFormData, login: e.target.value})}
-                          disabled={loading}
-                          placeholder="Логин"
-                        />
-                      </div>
-                      <div>
-                        <select 
-                          className="edit-select" 
-                          value={editFormData.role}
-                          onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
-                          disabled={loading}
-                        >
-                          <option value="user">Пользователь</option>
-                          <option value="admin">Администратор</option>
-                          <option value="manager">Менеджер</option>
-                        </select>
-                      </div>
-                      <div className="actions">
-                        <button 
-                          className="action-button save-button" 
-                          onClick={() => saveEditUser(user.id)}
-                          disabled={loading}
-                        >
-                          <Save size={16} /> Сохранить
-                        </button>
-                        <button 
-                          className="action-button cancel-button" 
-                          onClick={() => setEditingUser(null)}
-                          disabled={loading}
-                        >
-                          <X size={16} /> Отмена
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>{user.id}</div>
-                      <div>{user.fio}</div>
-                      <div>{user.login}</div>
-                      <div className='role-div'>
-                        <span className={`role-badge role-${user.role}`}>
-                          {user.role === 'admin' ? 'Администратор' : 
-                           user.role === 'manager' ? 'Менеджер' : 'Пользователь'}
-                        </span>
-                      </div>
-                      <div className="actions">
-                        <button 
-                          className="action-button edit-button" 
-                          onClick={() => {
-                            setEditingUser(user.id);
-                            setEditFormData({ fio: user.fio, login: user.login, role: user.role });
-                          }}
-                          disabled={loading || editingUser !== null}
-                        >
-                          <Edit size={16} /> Изменить
-                        </button>
-                        <button 
-                          className="action-button delete-button" 
-                          onClick={() => deleteUser(user.id)}
-                          disabled={loading || editingUser !== null}
-                        >
-                          <Trash2 size={16} /> Удалить
-                        </button>
-                      </div>
-                    </>
-                  )}
+                  <div>{user.id}</div>
+                  <div>{user.fio}</div>
+                  <div>{user.login}</div>
+                  <div className='role-div'>
+                    <span className={`role-badge role-${user.role}`}>
+                      {user.role === 'admin' ? 'Администратор' : 
+                       user.role === 'manager' ? 'Менеджер' : 'Пользователь'}
+                    </span>
+                  </div>
+                  <div className="actions">
+                    <button 
+                      className="action-button edit-button" 
+                      onClick={() => openEditModal(user)}
+                      disabled={loading}
+                    >
+                      <Edit size={16} /> Изменить
+                    </button>
+                    <button 
+                      className="action-button delete-button" 
+                      onClick={() => deleteUser(user.id)}
+                      disabled={loading}
+                    >
+                      <Trash2 size={16} /> Удалить
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -763,7 +754,7 @@ function App() {
             <button 
               className="table-button" 
               onClick={goToTable}
-              disabled={loading || editingUser !== null}
+              disabled={loading}
             >
               <Table size={16} /><span>Перейти к таблице</span>
             </button>
@@ -776,7 +767,7 @@ function App() {
                 window.location.reload()
                 setMessage({ text: 'Вы вышли из системы', type: 'success' });
               }}
-              disabled={loading || editingUser !== null}
+              disabled={loading}
             >
               <LogOut size={16} /><span>Выйти из системы</span>
             </button>
@@ -796,9 +787,146 @@ function App() {
   }
 
   return (
-    <div className='body-div'>
-      <div className='App'>{page}</div>
-    </div>
+    <>
+      <div className='body-div'>
+        <div className='App'>{page}</div>
+      </div>
+
+      {/* Модальное окно редактирования пользователя */}
+      {editModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal edit-user-modal">
+            <div className="modal-header">
+              <h2>Редактирование пользователя</h2>
+              <button onClick={closeEditModal} className="close-button">
+                <XCircle size={24} />
+              </button>
+            </div>
+            
+            <div className="modal-content">
+              {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
+
+              <form className="auth-form">
+                <div className="input-group">
+                  <label className="input-label"><Users size={18} /><span>ФИО</span></label>
+                  <div className="password-field-wrapper">
+                    <div className="input-wrapper">
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder="ФИО полностью"
+                        value={editFormData.fio} 
+                        onChange={(e) => setEditFormData({...editFormData, fio: e.target.value})}
+                        required 
+                        disabled={loading} 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label"><Mail size={18} /><span>Логин</span></label>
+                  <div className="password-field-wrapper">
+                    <div className="input-wrapper">
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        placeholder="Логин"
+                        value={editFormData.login} 
+                        onChange={(e) => setEditFormData({...editFormData, login: e.target.value})}
+                        required 
+                        disabled={loading} 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label"><Shield size={18} /><span>Роль</span></label>
+                  <div className="password-field-wrapper">
+                    <div className="input-wrapper">
+                      <select 
+                        className="input-field" 
+                        value={editFormData.role} 
+                        onChange={(e) => setEditFormData({...editFormData, role: e.target.value})} 
+                        disabled={loading}
+                      >
+                        <option value="user">Пользователь</option>
+                        <option value="admin">Администратор</option>
+                        <option value="manager">Менеджер</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <div className="password-change-header">
+                    <label className="input-label"><KeyRound size={18} /><span>Сменить пароль</span></label>
+                    <button 
+                      type="button" 
+                      className="toggle-password-button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                    >
+                      {showEditPassword ? 'Скрыть' : 'Изменить пароль'}
+                    </button>
+                  </div>
+                  
+                  {showEditPassword && (
+                    <>
+                      <div className="password-field-wrapper">
+                        <div className="input-wrapper">
+                          <input 
+                            type="password" 
+                            className="input-field" 
+                            placeholder="Новый пароль (оставьте пустым, чтобы не менять)"
+                            value={editFormData.password} 
+                            onChange={(e) => setEditFormData({...editFormData, password: e.target.value})}
+                            disabled={loading} 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="password-field-wrapper">
+                        <div className="input-wrapper">
+                          <input 
+                            type="password" 
+                            className="input-field" 
+                            placeholder="Подтвердите новый пароль"
+                            value={editFormData.confirmPassword} 
+                            onChange={(e) => setEditFormData({...editFormData, confirmPassword: e.target.value})}
+                            disabled={loading} 
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="modal-actions">
+                  <button 
+                    type="button" 
+                    className="cancel-button" 
+                    onClick={closeEditModal}
+                    disabled={loading}
+                  >
+                    <X size={16} /> Отмена
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    className="submit-button" 
+                    onClick={saveEditUser}
+                    disabled={loading}
+                  >
+                    <Save size={16} /> {loading ? 'Сохранение...' : 'Сохранить изменения'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
