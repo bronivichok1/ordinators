@@ -421,7 +421,7 @@ function App() {
             </div>
           </div>
           
-          <button type="submit" className="submit-button" disabled={loading}>
+          <button type="submit" className="submitauth-button" disabled={loading}>
             <LogIn size={20} /><span>{loading ? 'Вход...' : 'Войти'}</span>
           </button>
           
@@ -908,21 +908,20 @@ function App() {
 
                 <div className="modal-actions">
                   <button 
+                      type="button" 
+                      className="submit-button" 
+                      onClick={saveEditUser}
+                      disabled={loading}
+                    >
+                    <Save size={16} /> {loading ? 'Сохранение...' : 'Сохранить изменения'}
+                  </button>
+                  <button 
                     type="button" 
                     className="cancel-button" 
                     onClick={closeEditModal}
                     disabled={loading}
                   >
-                    <X size={16} /> Отмена
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    className="submit-button" 
-                    onClick={saveEditUser}
-                    disabled={loading}
-                  >
-                    <Save size={16} /> {loading ? 'Сохранение...' : 'Сохранить изменения'}
+                    Отмена
                   </button>
                 </div>
               </form>

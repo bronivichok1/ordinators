@@ -203,33 +203,6 @@ input:-moz-ui-invalid {
   text-decoration: underline;
 }
 
-.submit-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  width: 100%;
-  padding: 18px;
-  background: linear-gradient(135deg, #667eea 0%, #61a8d8 100%);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 16px;
-}
-
-.submit-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-}
-
-.submit-button:active {
-  transform: translateY(0);
-}
-
 .auth-footer {
   text-align: center;
   margin-top: 24px;
@@ -679,17 +652,6 @@ input:-moz-ui-invalid {
   background: #f5c6cb;
 }
 
-.cancel-button {
-  background: #f8f9fa;
-  color: #6c757d;
-  border: 1px solid #dee2e6;
-  min-width: 100px;
-}
-
-.cancel-button:hover {
-  background: #e2e6ea;
-}
-
 .action-button {
   display: flex;
   align-items: center;
@@ -963,7 +925,6 @@ margin-left: 30%;
   justify-content: space-between;
   align-items: center;
   background: linear-gradient(135deg, #667eea 0%, #5fbedb 100%);
-  border-radius: 20px 20px 0 0;
   color: white;
 }
 
@@ -1045,7 +1006,8 @@ margin-left: 30%;
 }
 
 .modal-actions .cancel-button:hover {
-  background: rgba(102, 126, 234, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
 }
 
 .modal-actions .cancel-button:disabled {
@@ -1157,4 +1119,31 @@ margin-left: 30%;
   background: #e2e3e5;
   color: #383d41;
   border: 1px solid #d6d8db;
+}
+
+.submitauth-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg, #667eea 0%, #61a8d8 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+}
+
+.submitauth-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+
+.submitauth-button:active {
+  transform: translateY(0);
 }
