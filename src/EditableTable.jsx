@@ -107,23 +107,26 @@ const EditableTable = () => {
   };
 
   const [data, setData] = useState(initialData);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isModalOpenCreate, setIsModalOpenCreate] = useState(false);
-  const [selectedRow, setSelectedRow] = useState(null);
-  const [rowData, setRowData] = useState([]);
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    mode: 'create',
+    selectedRow: null,
+    rowData: [],
+    otherUniversity: '',
+    otherDocument: '',
+    selectedPreparationForm: ['очная']
+  });
   const [newRowData, setNewRowData] = useState({});
-  const [otherUniversity, setOtherUniversity] = useState('');
-  const [otherDocument, setOtherDocument] = useState('');
-  const [selectedPreparationForm, setSelectedPreparationForm] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchColumn, setSearchColumn] = useState('all');
-  
   const [sortConfig, setSortConfig] = useState({
     key: null,
     direction: 'ascending',
   });
 
-  // Проверяем авторизацию при загрузке
+  // Генерация заголовков колонок
+  const columns = Array.from({ length: 35 }, (_, i) => `column${i + 1}`);
+
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     const userDataStr = localStorage.getItem('user_data');
@@ -135,6 +138,13 @@ const EditableTable = () => {
     
     try {
       const user = JSON.parse(userDataStr);
+      
+      const allowedRoles = ['admin', 'dispatcher', 'passportist', 'supervisor'];
+      if (!allowedRoles.includes(user.role)) {
+        navigate('/');
+        return;
+      }
+      
       setUserData(user);
     } catch (error) {
       console.error('Ошибка парсинга user_data:', error);
@@ -142,10 +152,31 @@ const EditableTable = () => {
     }
   }, [navigate]);
 
-  // Генерация заголовков колонок
-  const columns = Array.from({ length: 35 }, (_, i) => `column${i + 1}`);
+  const canEditTable = () => {
+    if (!userData) return false;
+    return ['admin', 'dispatcher', 'passportist'].includes(userData.role);
+  };
+  
+  const canCreateRow = () => {
+    if (!userData) return false;
+    return ['admin', 'dispatcher'].includes(userData.role);
+  };
+  
+  const canEditRow = () => {
+    if (!userData) return false;
+    return ['admin', 'dispatcher', 'passportist'].includes(userData.role);
+  };
+  
+  const canDeleteRow = () => {
+    if (!userData) return false;
+    return ['admin', 'dispatcher'].includes(userData.role);
+  };
+  
+  const canViewTable = () => {
+    if (!userData) return false;
+    return ['admin', 'dispatcher', 'passportist', 'supervisor'].includes(userData.role);
+  };
 
-  // Выход из системы
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
@@ -157,6 +188,11 @@ const EditableTable = () => {
   };
 
   const initCreateRow = () => {
+    if (!canCreateRow()) {
+      alert('У вас нет прав для создания новой записи');
+      return;
+    }
+    
     const initialRowData = {};
     columns.forEach((col, index) => {
       const columnNumber = parseInt(col.replace('column', ''));
@@ -199,10 +235,176 @@ const EditableTable = () => {
     });
     
     setNewRowData(initialRowData);
-    setOtherUniversity('');
-    setOtherDocument('');
-    setSelectedPreparationForm(['очная']);
-    setIsModalOpenCreate(true);
+    setModalState({
+      isOpen: true,
+      mode: 'create',
+      selectedRow: null,
+      rowData: [],
+      otherUniversity: '',
+      otherDocument: '',
+      selectedPreparationForm: ['очная']
+    });
+  };
+
+  const handleRowClick = (rowIndex, row) => {
+    console.log('Клик по строке:', rowIndex, row);
+    
+    if (!canEditRow()) {
+      alert('У вас нет прав для редактирования');
+      return;
+    }
+    
+    const rowValues = Object.entries(row).map(([columnName, value], colIndex) => ({
+      id: colIndex,
+      columnName: columnName,
+      value: value,
+      columnNumber: parseInt(columnName.replace('column', ''))
+    }));
+    
+    // Извлекаем значения для полей "другое"
+    let otherUni = '';
+    let otherDoc = '';
+    let prepForm = ['очная'];
+    
+    try {
+      if (row['column12'] && !selectOptions.university.includes(row['column12'])) {
+        otherUni = row['column12'];
+      }
+      if (row['column18'] && !selectOptions.identityDocument.includes(row['column18'])) {
+        otherDoc = row['column18'];
+      }
+      if (row['column17']) {
+        prepForm = JSON.parse(row['column17']);
+      }
+    } catch (e) {
+      console.error('Ошибка парсинга данных:', e);
+    }
+    
+    setModalState({
+      isOpen: true,
+      mode: 'edit',
+      selectedRow: {
+        index: rowIndex,
+        originalIndex: data.indexOf(row)
+      },
+      rowData: rowValues,
+      otherUniversity: otherUni,
+      otherDocument: otherDoc,
+      selectedPreparationForm: prepForm
+    });
+    
+    setNewRowData({ ...row });
+  };
+
+  const handleDeleteRow = (rowIndex, row) => {
+    if (!canDeleteRow()) {
+      alert('У вас нет прав для удаления записей');
+      return;
+    }
+    
+    if (window.confirm(`Вы уверены, что хотите удалить строку ${rowIndex + 1}?`)) {
+      const originalIndex = data.indexOf(row);
+      const newData = [...data];
+      newData.splice(originalIndex, 1);
+      setData(newData);
+    }
+  };
+
+  const handlePreparationFormChange = (option) => {
+    const newSelection = [...modalState.selectedPreparationForm];
+    if (newSelection.includes(option)) {
+      const index = newSelection.indexOf(option);
+      newSelection.splice(index, 1);
+    } else {
+      newSelection.push(option);
+    }
+    
+    setModalState(prev => ({
+      ...prev,
+      selectedPreparationForm: newSelection
+    }));
+  };
+
+  const handleModalChange = (column, value) => {
+    if (modalState.mode === 'create') {
+      setNewRowData({
+        ...newRowData,
+        [column]: value
+      });
+    } else {
+      const updatedRowData = [...modalState.rowData];
+      const itemIndex = updatedRowData.findIndex(item => item.columnName === column);
+      
+      if (itemIndex !== -1) {
+        updatedRowData[itemIndex].value = value;
+        setModalState(prev => ({
+          ...prev,
+          rowData: updatedRowData
+        }));
+        
+        setNewRowData({
+          ...newRowData,
+          [column]: value
+        });
+      }
+    }
+  };
+
+  const handleSave = () => {
+    if (modalState.mode === 'create') {
+      // Сохранение новой строки
+      const processedData = { ...newRowData };
+      
+      if (processedData['column12'] === 'другое' && modalState.otherUniversity) {
+        processedData['column12'] = modalState.otherUniversity;
+      }
+      
+      if (processedData['column18'] === 'иное' && modalState.otherDocument) {
+        processedData['column18'] = modalState.otherDocument;
+      }
+      
+      processedData['column17'] = JSON.stringify(modalState.selectedPreparationForm);
+      
+      const newRow = { ...processedData };
+      const newData = [...data, newRow];
+      setData(newData);
+    } else {
+
+      const updatedData = [...data];
+      const updatedRow = {};
+      
+      modalState.rowData.forEach(item => {
+        updatedRow[item.columnName] = item.value;
+      });
+      
+      if (updatedRow['column12'] === 'другое' && modalState.otherUniversity) {
+        updatedRow['column12'] = modalState.otherUniversity;
+      }
+      
+      if (updatedRow['column18'] === 'иное' && modalState.otherDocument) {
+        updatedRow['column18'] = modalState.otherDocument;
+      }
+      
+      updatedRow['column17'] = JSON.stringify(modalState.selectedPreparationForm);
+      
+      updatedData[modalState.selectedRow.originalIndex] = updatedRow;
+      setData(updatedData);
+    }
+    
+    handleCancel();
+  };
+
+  const handleCancel = () => {
+    setModalState({
+      isOpen: false,
+      mode: 'create',
+      selectedRow: null,
+      rowData: [],
+      otherUniversity: '',
+      otherDocument: '',
+      selectedPreparationForm: ['очная']
+    });
+    setNewRowData({});
   };
 
   const handleSort = (columnKey) => {
@@ -256,101 +458,34 @@ const EditableTable = () => {
     return sortConfig.direction === 'ascending' ? '↑' : '↓';
   };
 
-  const handleRowClick = (rowIndex, row) => {
-    setSelectedRow({
-      index: rowIndex,
-      originalIndex: data.indexOf(row)
-    });
-
-    const rowValues = Object.entries(row).map(([columnName, value], colIndex) => ({
-      id: colIndex,
-      columnName: columnName,
-      value: value,
-      columnNumber: parseInt(columnName.replace('column', ''))
-    }));
-    
-    setRowData(rowValues);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteRow = (rowIndex, row) => {
-    if (window.confirm(`Вы уверены, что хотите удалить строку ${rowIndex + 1}?`)) {
-      const originalIndex = data.indexOf(row);
-      const newData = [...data];
-      newData.splice(originalIndex, 1);
-      setData(newData);
-    }
-  };
-
-  const handlePreparationFormChange = (option) => {
-    const newSelection = [...selectedPreparationForm];
-    if (newSelection.includes(option)) {
-      const index = newSelection.indexOf(option);
-      newSelection.splice(index, 1);
-    } else {
-      newSelection.push(option);
-    }
-    setSelectedPreparationForm(newSelection);
-  };
-
-  const handleCreateModalChange = (column, value) => {
-    setNewRowData({
-      ...newRowData,
-      [column]: value
-    });
-  };
-
-  const handleSaveNewRow = () => {
-    const processedData = { ...newRowData };
-    
-    if (processedData['column12'] === 'другое' && otherUniversity) {
-      processedData['column12'] = otherUniversity;
-    }
-    
-    if (processedData['column18'] === 'иное' && otherDocument) {
-      processedData['column18'] = otherDocument;
-    }
-    
-    processedData['column17'] = JSON.stringify(selectedPreparationForm);
-    
-    const newRow = { ...processedData };
-    const newData = [...data, newRow];
-    setData(newData);
-    setIsModalOpenCreate(false);
-    setNewRowData({});
-    setOtherUniversity('');
-    setOtherDocument('');
-    setSelectedPreparationForm([]);
-  };
-
-  const handleCancel = () => {
-    setIsModalOpen(false);
-    setIsModalOpenCreate(false);
-    setSelectedRow(null);
-    setRowData([]);
-    setNewRowData({});
-    setOtherUniversity('');
-    setOtherDocument('');
-    setSelectedPreparationForm([]);
-  };
-
   const handleResetSearch = () => {
     setSearchTerm('');
     setSearchColumn('all');
     setSortConfig({ key: null, direction: 'ascending' });
   };
 
-  const renderCreateField = (columnName, columnNumber) => {
+  const renderModalField = (columnName, columnNumber, isEditMode = false, currentValue = '') => {
     const fieldName = ColumnName[columnNumber];
     const columnKey = `column${columnNumber}`;
-    const value = newRowData[columnKey] || '';
+    const value = isEditMode ? currentValue : (newRowData[columnKey] || '');
+
+    const handleChange = (newValue) => {
+      if (isEditMode) {
+        handleModalChange(columnKey, newValue);
+      } else {
+        setNewRowData({
+          ...newRowData,
+          [columnKey]: newValue
+        });
+      }
+    };
 
     switch(fieldName) {
       case 'Пол':
         return (
           <select
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-select"
           >
             {selectOptions.gender.map(option => (
@@ -362,20 +497,20 @@ const EditableTable = () => {
       case 'Причина отчисления':
         return (
           <div className="university-select-container">
-          <select
-            value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
-            className="modal-select"
-          >
-            {selectOptions.dismissalReason.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-          {value === 'иное' && (
+            <select
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              className="modal-select"
+            >
+              {selectOptions.dismissalReason.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            {value === 'иное' && (
               <input
                 type="text"
-                value={otherUniversity}
-                onChange={(e) => setOtherUniversity(e.target.value)}
+                value={modalState.otherUniversity}
+                onChange={(e) => setModalState(prev => ({ ...prev, otherUniversity: e.target.value }))}
                 className="other-input"
                 placeholder="Введите причину отчисления"
               />
@@ -387,7 +522,7 @@ const EditableTable = () => {
         return (
           <select
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-select"
           >
             <option value="">Не выбрано</option>
@@ -402,7 +537,7 @@ const EditableTable = () => {
           <div className="university-select-container">
             <select
               value={value}
-              onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+              onChange={(e) => handleChange(e.target.value)}
               className="modal-select"
             >
               {selectOptions.university.map(option => (
@@ -412,8 +547,8 @@ const EditableTable = () => {
             {value === 'другое' && (
               <input
                 type="text"
-                value={otherUniversity}
-                onChange={(e) => setOtherUniversity(e.target.value)}
+                value={modalState.otherUniversity}
+                onChange={(e) => setModalState(prev => ({ ...prev, otherUniversity: e.target.value }))}
                 className="other-input"
                 placeholder="Введите название ВУЗа"
               />
@@ -428,7 +563,7 @@ const EditableTable = () => {
               <label key={option} className="checkbox-label">
                 <input
                   type="checkbox"
-                  checked={selectedPreparationForm.includes(option)}
+                  checked={modalState.selectedPreparationForm.includes(option)}
                   onChange={() => handlePreparationFormChange(option)}
                   className="modal-checkbox"
                 />
@@ -443,7 +578,7 @@ const EditableTable = () => {
           <div className="document-select-container">
             <select
               value={value}
-              onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+              onChange={(e) => handleChange(e.target.value)}
               className="modal-select"
             >
               {selectOptions.identityDocument.map(option => (
@@ -453,8 +588,8 @@ const EditableTable = () => {
             {value === 'иное' && (
               <input
                 type="text"
-                value={otherDocument}
-                onChange={(e) => setOtherDocument(e.target.value)}
+                value={modalState.otherDocument}
+                onChange={(e) => setModalState(prev => ({ ...prev, otherDocument: e.target.value }))}
                 className="other-input"
                 placeholder="Введите название документа"
               />
@@ -466,7 +601,7 @@ const EditableTable = () => {
         return (
           <select
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-select"
           >
             {selectOptions.residence.map(option => (
@@ -479,7 +614,7 @@ const EditableTable = () => {
         return (
           <select
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-select"
           >
             {selectOptions.medicalCertificate.map(option => (
@@ -492,7 +627,7 @@ const EditableTable = () => {
         return (
           <select
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-select"
           >
             {selectOptions.rivshCertificate.map(option => (
@@ -505,7 +640,7 @@ const EditableTable = () => {
         return (
           <select
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-select"
           >
             {selectOptions.entryByInvitation.map(option => (
@@ -520,7 +655,7 @@ const EditableTable = () => {
           <input
             type="date"
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
             placeholder="Введите год"
           />
@@ -536,7 +671,7 @@ const EditableTable = () => {
           <input
             type="date"
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
           />
         );
@@ -546,7 +681,7 @@ const EditableTable = () => {
           <input
             type="tel"
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
             placeholder="+375XXXXXXXXX"
           />
@@ -557,7 +692,7 @@ const EditableTable = () => {
           <input
             type="text"
             value={value}
-            onChange={(e) => handleCreateModalChange(columnKey, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
             placeholder="Введите значение..."
           />
@@ -589,7 +724,9 @@ const EditableTable = () => {
               <div className="user-role">
                 <span className={`role-badge role-${userData.role}`}>
                   {userData.role === 'admin' ? 'Администратор' : 
-                   userData.role === 'manager' ? 'Менеджер' : 'Пользователь'}
+                  userData.role === 'dispatcher' ? 'Диспетчер' :
+                  userData.role === 'passportist' ? 'Паспортист' :
+                  userData.role === 'supervisor' ? 'Руководитель' : 'Пользователь'}
                 </span>
               </div>
             </div>
@@ -637,7 +774,7 @@ const EditableTable = () => {
 
         <div className="header-right">
           <div className="header-actions">
-            {userData.role === 'admin' && (
+            {(userData.role === 'admin'||userData.role === 'dispatcher') && (
               <button className="admin-panel-button" onClick={goToAdminPanel}>
                 <Shield size={18} />
                 <span>Админ-панель</span>
@@ -660,8 +797,12 @@ const EditableTable = () => {
                 <div className="user-name">{userData.fio || userData.login}</div>
                 <div className="user-role">
                   <span className={`role-badge role-${userData.role}`}>
-                    {userData.role === 'admin' ? 'Администратор' : 
-                     userData.role === 'manager' ? 'Менеджер' : 'Пользователь'}
+                    <span className={`role-badge role-${userData.role}`}>
+                      {userData.role === 'admin' ? 'Администратор' : 
+                      userData.role === 'dispatcher' ? 'Диспетчер' :
+                      userData.role === 'passportist' ? 'Паспортист' :
+                      userData.role === 'supervisor' ? 'Руководитель' : 'Пользователь'}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -722,13 +863,15 @@ const EditableTable = () => {
             >
               Сброс поиска и сортировки
             </button>
-            <button 
-              onClick={initCreateRow}
-              className="create-row-button"
-              title="Создать новую запись"
-            >
-              📋 Создать
-            </button>
+            {canCreateRow() && (
+              <button 
+                onClick={initCreateRow}
+                className="create-row-button"
+                title="Создать новую запись"
+              >
+                📋 Создать
+              </button>
+            )}
           </div>
           <div className="search-info">
             {searchTerm && (
@@ -796,20 +939,27 @@ const EditableTable = () => {
                     ))}
                     
                     <td className="action-cell sticky-right">
-                      <button 
-                        onClick={() => handleRowClick(originalIndex, row)}
-                        className="edit-row-button"
-                        title="Редактировать эту строку"
-                      >
-                        ✏️ Редактировать
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteRow(originalIndex, row)}
-                        className="delete-row-button"
-                        title="Удалить эту строку"
-                      >
-                        🗑️ Удалить
-                      </button>
+                      {canEditRow() && (
+                        <button 
+                          onClick={() => handleRowClick(originalIndex, row)}
+                          className="edit-row-button"
+                          title="Редактировать эту строку"
+                        >
+                          ✏️ Редактировать
+                        </button>
+                      )}
+                      {canDeleteRow() && (
+                        <button 
+                          onClick={() => handleDeleteRow(originalIndex, row)}
+                          className="delete-row-button"
+                          title="Удалить эту строку"
+                        >
+                          🗑️ Удалить
+                        </button>
+                      )}
+                      {!canEditRow() && !canDeleteRow() && (
+                        <div className="no-actions">Только просмотр</div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -825,42 +975,62 @@ const EditableTable = () => {
         )}
       </div>
 
-      {isModalOpenCreate && (
+      {/* Универсальное модальное окно */}
+      {modalState.isOpen && (
         <div className="modal-overlay">
-          <div className="modal create-modal">
+          <div className="modal">
             <div className="modal-header">
-              <h2>Создание нового ординатора</h2>
+              <h2>
+                {modalState.mode === 'create' 
+                  ? 'Создание нового ординатора' 
+                  : `Редактирование ординатора #${modalState.selectedRow?.index + 1}`}
+              </h2>
               <button onClick={handleCancel} className="close-button">&times;</button>
             </div>
             
             <div className="modal-content">
               <div className="row-editor">
                 <div className="editor-info">
-                  <p>Заполните данные нового ординатора</p>
+                  <p>
+                    {modalState.mode === 'create' 
+                      ? 'Заполните данные нового ординатора' 
+                      : 'Редактирование данных ординатора'}
+                  </p>
+                  {modalState.mode === 'edit' && (
+                    <p className="editor-note">ID строки: {modalState.selectedRow?.index + 1}</p>
+                  )}
                 </div>
                 
                 <div className="columns-editor">
                   {columns.map((column, index) => {
                     const columnNumber = parseInt(column.replace('column', ''));
                     const fieldName = ColumnName[columnNumber];
+                    const currentValue = modalState.mode === 'edit' 
+                      ? modalState.rowData.find(item => item.columnName === column)?.value || ''
+                      : '';
                     
                     return (
                       <div key={column} className="column-editor-item">
                         <div className="column-label">
                           <span className="column-number">{fieldName}:</span>
                         </div>
-                        {renderCreateField(column, columnNumber)}
+                        {renderModalField(
+                          column, 
+                          columnNumber, 
+                          modalState.mode === 'edit', 
+                          currentValue
+                        )}
                       </div>
                     );
                   })}
                 </div>
                 
                 <div className="modal-actions">
-                  <button onClick={handleCancel} className="cancel-button">
-                    Отмена
+                  <button onClick={handleSave} className="save-button">
+                    {modalState.mode === 'create' ? 'Создать ординатора' : 'Сохранить изменения'}
                   </button>
-                  <button onClick={handleSaveNewRow} className="save-button">
-                    Создать ординатора
+                  <button onClick={handleCancel} className="cancel-button-modal">
+                    Отмена
                   </button>
                 </div>
               </div>

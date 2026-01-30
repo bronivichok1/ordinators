@@ -667,17 +667,6 @@ input:-moz-ui-invalid {
   background: #ffeaa7;
 }
 
-.save-button {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-  min-width: 100px;
-}
-
-.save-button:hover {
-  background: #c3e6cb;
-}
-
 .delete-button {
   background: #f8d7da;
   color: #721c24;
@@ -1144,4 +1133,28 @@ margin-left: 30%;
     width: 35px;
     height: 35px;
   }
+}
+
+.role-dispatcher {
+  background: #e8f4fd;
+  color: #0c63e4;
+  border: 1px solid #b6d4fe;
+}
+
+.role-passportist {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.role-supervisor {
+  background: #d1e7dd;
+  color: #0f5132;
+  border: 1px solid #badbcc;
+}
+
+.role-user {
+  background: #e2e3e5;
+  color: #383d41;
+  border: 1px solid #d6d8db;
 }

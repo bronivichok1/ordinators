@@ -276,9 +276,9 @@ function App() {
           password: adminFormData.adminPassword
         })
       });
-
+  
       const data = await response.json();
-      if (response.ok && data.user.role === 'admin') {
+      if (response.ok &&(data.user.role == 'dispatcher'||data.user.role == 'admin')) {
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
         setMessage({ text: 'Доступ подтвержден!', type: 'success' });
@@ -358,7 +358,7 @@ function App() {
     
     if (token && userData) {
       const user = JSON.parse(userData);
-      if (user.role === 'admin') {
+      if (user.role == 'admin'||user.role =='dispatcher') {
         setCurrentPage('admin-panel');
         loadUsers();
       }
@@ -601,15 +601,16 @@ function App() {
             <label className="input-label"><Shield size={18} /><span>Роль</span></label>
             <div className="password-field-wrapper">
               <div className="input-wrapper">
-                <select 
+              <select 
                   className="input-field" 
                   value={registerData.role} 
                   onChange={(e) => setRegisterData({...registerData, role: e.target.value})} 
                   disabled={loading}
                 >
-                  <option value="user">Пользователь</option>
                   <option value="admin">Администратор</option>
-                  <option value="manager">Менеджер</option>
+                  <option value="dispatcher">Диспетчер</option>
+                  <option value="passportist">Паспортист</option>
+                  <option value="supervisor">Руководитель</option>
                 </select>
               </div>
             </div>
@@ -724,7 +725,9 @@ function App() {
                   <div className='role-div'>
                     <span className={`role-badge role-${user.role}`}>
                       {user.role === 'admin' ? 'Администратор' : 
-                       user.role === 'manager' ? 'Менеджер' : 'Пользователь'}
+                      user.role === 'dispatcher' ? 'Диспетчер' :
+                      user.role === 'passportist' ? 'Паспортист' :
+                      user.role === 'supervisor' ? 'Руководитель' : 'Пользователь'}
                     </span>
                   </div>
                   <div className="actions">
@@ -845,16 +848,17 @@ function App() {
                   <label className="input-label"><Shield size={18} /><span>Роль</span></label>
                   <div className="password-field-wrapper">
                     <div className="input-wrapper">
-                      <select 
-                        className="input-field" 
-                        value={editFormData.role} 
-                        onChange={(e) => setEditFormData({...editFormData, role: e.target.value})} 
-                        disabled={loading}
-                      >
-                        <option value="user">Пользователь</option>
-                        <option value="admin">Администратор</option>
-                        <option value="manager">Менеджер</option>
-                      </select>
+                    <select 
+                      className="input-field" 
+                      value={editFormData.role} 
+                      onChange={(e) => setEditFormData({...editFormData, role: e.target.value})} 
+                      disabled={loading}
+                    >
+                      <option value="admin">Администратор</option>
+                      <option value="dispatcher">Диспетчер</option>
+                      <option value="passportist">Паспортист</option>
+                      <option value="supervisor">Руководитель</option>
+                    </select>
                     </div>
                   </div>
                 </div>
