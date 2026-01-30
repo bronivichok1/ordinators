@@ -428,7 +428,7 @@ function App() {
           <div className="auth-footer">
             <p className="register-link">
               <a href="#" onClick={(e) => { e.preventDefault(); setCurrentPage('admin-auth'); }}>
-                <Shield size={16} /> Регистрация новых пользователей (только для админа)
+                <Shield size={16} /> Регистрация новых пользователей (только для администратора)
               </a>
             </p>
           </div>
@@ -483,7 +483,7 @@ function App() {
             </div>
           </div>
           
-          <button type="submit" className="submit-button" disabled={loading}>
+          <button type="submit" className="submitauth-button" disabled={loading}>
             <Shield size={20} /><span>{loading ? 'Вход...' : 'Войти как админ'}</span>
           </button>
           
