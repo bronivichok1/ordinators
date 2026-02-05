@@ -36,11 +36,11 @@ function App() {
   const [showEditPassword, setShowEditPassword] = useState(false);
 
   const ADMIN_CREDENTIALS = {
-    login: process.env.REACT_APP_ADMIN_LOGIN || 'admin',
-    password: process.env.REACT_APP_ADMIN_PASSWORD || 'admin123'
+    login: process.env.REACT_APP_ADMIN_LOGIN,
+    password: process.env.REACT_APP_ADMIN_PASSWORD
   };
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const API_URL = process.env.REACT_APP_API_URL;
 
   const getAdminToken = async () => {
     try {
