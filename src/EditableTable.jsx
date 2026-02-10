@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 import './EditableTable.css';
 import { 
   LogOut, 
   User, 
   Shield, 
   Menu,
-  X,
-  ChevronDown,
-  ChevronUp
+  X
 } from 'lucide-react';
 
 const EditableTable = () => {
@@ -33,7 +33,8 @@ const EditableTable = () => {
     'Дата отчисления',
     'Причина отчисления',
     'Социальный отпуск',
-    'Срок нахождения в социальном отпуске',
+    'Дата начала соц. отпуска',
+    'Дата окончания соц. отпуска',
     'Мобильный телефон',
     'ВУЗ',
     'Год окончания',
@@ -42,11 +43,15 @@ const EditableTable = () => {
     'Специальность',
     'Форма подготовки',
     'Документ, удостоверяющий личность',
+    'Номер документа',
     'Идентификационный номер',
     'Место проживания, регистрации',
+    'Адрес проживания',
     'Срок окончания регистрации',
-    'Номер, дата приказа о зачислении',
-    'Номер, дата приказа об отчислении',
+    'Номер приказа о зачислении',
+    'Дата приказа о зачислении',
+    'Номер приказа об отчислении',
+    'Дата приказа об отчислении',
     'Договор, дополнительное соглашение',
     'Мед. справка',
     'Текущий контроль',
@@ -103,202 +108,30 @@ const EditableTable = () => {
     rivshCertificate: ['да', 'нет'],
     entryByInvitation: ['да', 'нет'],
     country: [
-      'Афганистан',
-      'Албания',
-      'Алжир',
-      'Андорра',
-      'Ангола',
-      'Антигуа и Барбуда',
-      'Аргентина',
-      'Армения',
-      'Австралия',
-      'Австрия',
-      'Азербайджан',
-      'Багамские Острова',
-      'Бахрейн',
-      'Бангладеш',
-      'Барбадос',
       'Беларусь',
-      'Бельгия',
-      'Белиз',
-      'Бенин',
-      'Бутан',
-      'Боливия',
-      'Босния и Герцеговина',
-      'Ботсвана',
-      'Бразилия',
-      'Бруней',
-      'Болгария',
-      'Буркина-Фасо',
-      'Бурунди',
-      'Кабо-Верде',
-      'Камбоджа',
-      'Камерун',
-      'Канада',
-      'Центральноафриканская Республика',
-      'Чад',
-      'Чили',
-      'Китай',
-      'Колумбия',
-      'Коморы',
-      'Конго',
-      'Коста-Рика',
-      'Хорватия',
-      'Куба',
-      'Кипр',
-      'Чехия',
-      'Дания',
-      'Джибути',
-      'Доминика',
-      'Доминиканская Республика',
-      'Восточный Тимор',
-      'Эквадор',
-      'Египет',
-      'Сальвадор',
-      'Экваториальная Гвинея',
-      'Эритрея',
-      'Эстония',
-      'Эсватини',
-      'Эфиопия',
-      'Фиджи',
-      'Финляндия',
-      'Франция',
-      'Габон',
-      'Гамбия',
-      'Грузия',
-      'Германия',
-      'Гана',
-      'Греция',
-      'Гренада',
-      'Гватемала',
-      'Гвинея',
-      'Гвинея-Бисау',
-      'Гайана',
-      'Гаити',
-      'Гондурас',
-      'Венгрия',
-      'Исландия',
-      'Индия',
-      'Индонезия',
-      'Иран',
-      'Ирак',
-      'Ирландия',
-      'Израиль',
-      'Италия',
-      'Кот-д\'Ивуар',
-      'Ямайка',
-      'Япония',
-      'Иордания',
-      'Казахстан',
-      'Кения',
-      'Кирибати',
-      'Корея Северная',
-      'Корея Южная',
-      'Косово',
-      'Кувейт',
-      'Кыргызстан',
-      'Лаос',
-      'Латвия',
-      'Ливан',
-      'Лесото',
-      'Либерия',
-      'Ливия',
-      'Лихтенштейн',
-      'Литва',
-      'Люксембург',
-      'Мадагаскар',
-      'Малави',
-      'Малайзия',
-      'Мальдивы',
-      'Мали',
-      'Мальта',
-      'Маршалловы Острова',
-      'Мавритания',
-      'Маврикий',
-      'Мексика',
-      'Микронезия',
-      'Молдова',
-      'Монако',
-      'Монголия',
-      'Черногория',
-      'Марокко',
-      'Мозамбик',
-      'Мьянма',
-      'Намибия',
-      'Науру',
-      'Непал',
-      'Нидерланды',
-      'Новая Зеландия',
-      'Никарагуа',
-      'Нигер',
-      'Нигерия',
-      'Северная Македония',
-      'Норвегия',
-      'Оман',
-      'Пакистан',
-      'Палау',
-      'Панама',
-      'Папуа — Новая Гвинея',
-      'Парагвай',
-      'Перу',
-      'Филиппины',
-      'Польша',
-      'Португалия',
-      'Катар',
-      'Румыния',
       'Россия',
-      'Руанда',
-      'Сент-Китс и Невис',
-      'Сент-Люсия',
-      'Сент-Винсент и Гренадины',
-      'Самоа',
-      'Сан-Марино',
-      'Сан-Томе и Принсипи',
-      'Саудовская Аравия',
-      'Сенегал',
-      'Сербия',
-      'Сейшелы',
-      'Сьерра-Леоне',
-      'Сингапур',
-      'Словакия',
-      'Словения',
-      'Соломоновы Острова',
-      'Сомали',
-      'ЮАР',
-      'Южный Судан',
-      'Испания',
-      'Шри-Ланка',
-      'Судан',
-      'Суринам',
-      'Швеция',
-      'Швейцария',
-      'Сирия',
-      'Таджикистан',
-      'Танзания',
-      'Таиланд',
-      'Того',
-      'Тонга',
-      'Тринидад и Тобаго',
-      'Тунис',
-      'Турция',
-      'Туркменистан',
-      'Тувалу',
-      'Уганда',
       'Украина',
-      'ОАЭ',
-      'Великобритания',
-      'США',
-      'Уругвай',
+      'Казахстан',
+      'Азербайджан',
+      'Армения',
+      'Грузия',
+      'Молдова',
+      'Таджикистан',
+      'Туркменистан',
       'Узбекистан',
-      'Вануату',
-      'Ватикан',
-      'Венесуэла',
-      'Вьетнам',
-      'Йемен',
-      'Замбия',
-      'Зимбабве'
+      'Литва',
+      'Латвия',
+      'Эстония',
+      'Польша',
+      'Другая'
     ]
   };
+
+  const [selectData, setSelectData] = useState({
+    departments: [],
+    specialtyProfiles: [],
+    countries: selectOptions.country
+  });
 
   const [data, setData] = useState([]);
   const [modalState, setModalState] = useState({
@@ -311,6 +144,7 @@ const EditableTable = () => {
     otherCountry: '',
     selectedPreparationForm: ['очная']
   });
+  
   const [newRowData, setNewRowData] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [searchColumn, setSearchColumn] = useState('all');
@@ -318,13 +152,7 @@ const EditableTable = () => {
     key: null,
     direction: 'ascending',
   });
-  const [sortNotification, setSortNotification] = useState({
-    show: false,
-    column: '',
-    count: 0
-  });
 
-  // Функция для выполнения запросов к API
   const apiRequest = async (endpoint, method = 'GET', data = null) => {
     const token = localStorage.getItem('auth_token');
     const headers = {
@@ -367,12 +195,10 @@ const EditableTable = () => {
     }
   };
 
-  // Функция для преобразования данных API в формат таблицы
   const transformApiDataToTable = (apiData) => {
     return apiData.map((ordinator) => {
       const row = {};
       
-      // Основные поля ординатора
       row.column1 = ordinator.fio || '';
       row.column2 = ordinator.fioEn || '';
       row.column3 = ordinator.birthYear ? new Date(ordinator.birthYear).toISOString().split('T')[0] : '';
@@ -382,49 +208,95 @@ const EditableTable = () => {
       row.column7 = ordinator.dismissalDate ? new Date(ordinator.dismissalDate).toISOString().split('T')[0] : '';
       row.column8 = ordinator.dismissalReason || '';
       row.column9 = ordinator.socialLeave || '';
-      row.column10 = ordinator.socialLeaveDuration || '';
-      row.column11 = ordinator.mobilePhone || '';
-      row.column18 = ordinator.identityDocument || 'паспорт';
-      row.column19 = ordinator.documentNumber || '';
-      row.column20 = ordinator.residenceAddress || 'общежитие';
-      row.column21 = ordinator.registrationExpiry ? new Date(ordinator.registrationExpiry).toISOString().split('T')[0] : '';
-      row.column22 = ordinator.enrollmentOrder || '';
-      row.column23 = ordinator.dismissalOrder || '';
-      row.column24 = ordinator.contractInfo || '';
-      row.column25 = ordinator.medicalCertificate || 'есть';
-      row.column27 = ordinator.login || '';
-      row.column28 = '••••••••'; // Маскируем пароль
-      row.column29 = ordinator.supervisorId ? String(ordinator.supervisorId) : '';
-      row.column33 = ordinator.rivshCertificate || 'нет';
-      row.column34 = ordinator.entryByInvitation || 'нет';
-      row.column35 = ordinator.distributionInfo || '';
       
-      // Поля из связанных таблиц
-      if (ordinator.university) {
-        row.column12 = ordinator.university.name || 'БГМУ';
-        row.column13 = ordinator.university.graduationYear ? new Date(ordinator.university.graduationYear).toISOString().split('T')[0] : '';
-        row.column14 = ordinator.university.department || '';
-        row.column15 = ordinator.university.specialtyProfile || '';
-        row.column16 = ordinator.university.specialty || '';
-        row.column17 = ordinator.university.preparationForm || JSON.stringify(['очная']);
+      if (ordinator.socialLeaveDuration) {
+        const [startDate, endDate] = ordinator.socialLeaveDuration.split(' - ');
+        row.column10 = startDate || '';
+        row.column11 = endDate || '';
+      } else {
+        row.column10 = '';
+        row.column11 = '';
       }
       
+      row.column12 = ordinator.mobilePhone || '';
+      row.column19 = ordinator.identityDocument || 'паспорт';
+      row.column20 = ordinator.documentNumber || '';
+      row.column21 = ordinator.identNumber || '';
+      row.column22 = ordinator.residenceAddress || 'общежитие';
+      row.column23 = ordinator.livingAddress || '';
+      row.column24 = ordinator.registrationExpiry ? new Date(ordinator.registrationExpiry).toISOString().split('T')[0] : '';
+      
+      if (ordinator.enrollmentOrder) {
+        const [orderNum, orderDate] = ordinator.enrollmentOrder.split(' от ');
+        row.column25 = orderNum || '';
+        row.column26 = orderDate || '';
+      } else {
+        row.column25 = '';
+        row.column26 = '';
+      }
+      
+      if (ordinator.dismissalOrder) {
+        const [orderNum, orderDate] = ordinator.dismissalOrder.split(' от ');
+        row.column27 = orderNum || '';
+        row.column28 = orderDate || '';
+      } else {
+        row.column27 = '';
+        row.column28 = '';
+      }
+      
+      row.column29 = ordinator.contractInfo || '';
+      row.column30 = ordinator.medicalCertificate || 'есть';
+      
       if (ordinator.currentControl) {
-        row.column26 = ordinator.currentControl.scores || '';
+        if (typeof ordinator.currentControl === 'object' && ordinator.currentControl.scores) {
+          row.column31 = ordinator.currentControl.scores || '';
+        } else {
+          row.column31 = String(ordinator.currentControl) || '';
+        }
+      } else {
+        row.column31 = '';
+      }
+      
+      row.column32 = ordinator.login || '';
+      row.column33 = '••••••••';
+      row.column34 = ordinator.supervisorId ? String(ordinator.supervisorId) : '';
+      row.column35 = ordinator.sessionDates || '';
+      row.column36 = ordinator.allowanceStartDate ? new Date(ordinator.allowanceStartDate).toISOString().split('T')[0] : '';
+      row.column37 = ordinator.allowanceEndDate ? new Date(ordinator.allowanceEndDate).toISOString().split('T')[0] : '';
+      row.column38 = ordinator.rivshCertificate || 'нет';
+      row.column39 = ordinator.entryByInvitation || 'нет';
+      row.column40 = ordinator.distributionInfo || '';
+      
+      if (ordinator.university) {
+        row.column13 = ordinator.university.name || 'БГМУ';
+        row.column14 = ordinator.university.graduationYear || '';
+        row.column15 = ordinator.university.department || '';
+        row.column16 = ordinator.university.specialtyProfile || '';
+        row.column17 = ordinator.university.specialty || '';
+        row.column18 = ordinator.university.preparationForm || JSON.stringify(['очная']);
+      } else {
+        row.column13 = 'БГМУ';
+        row.column14 = '';
+        row.column15 = '';
+        row.column16 = '';
+        row.column17 = '';
+        row.column18 = JSON.stringify(['очная']);
       }
       
       if (ordinator.money) {
-        row.column31 = ordinator.money.allowanceStartDate ? new Date(ordinator.money.allowanceStartDate).toISOString().split('T')[0] : '';
-        row.column32 = ordinator.money.allowanceEndDate ? new Date(ordinator.money.allowanceEndDate).toISOString().split('T')[0] : '';
+        row.column36 = ordinator.money.allowanceStartDate ? new Date(ordinator.money.allowanceStartDate).toISOString().split('T')[0] : '';
+        row.column37 = ordinator.money.allowanceEndDate ? new Date(ordinator.money.allowanceEndDate).toISOString().split('T')[0] : '';
       }
       
       if (ordinator.session) {
-        row.column30 = ordinator.session.sessionStart ? new Date(ordinator.session.sessionStart).toISOString().split('T')[0] : '';
-        if (ordinator.session.sessionEnd) {
-          // Если есть дата окончания, добавляем ее
-          const startDate = new Date(ordinator.session.sessionStart).toISOString().split('T')[0];
-          const endDate = new Date(ordinator.session.sessionEnd).toISOString().split('T')[0];
-          row.column30 = `${startDate} - ${endDate}`;
+        const startDate = ordinator.session.sessionStart ? new Date(ordinator.session.sessionStart).toISOString().split('T')[0] : '';
+        const endDate = ordinator.session.sessionEnd ? new Date(ordinator.session.sessionEnd).toISOString().split('T')[0] : '';
+        if (startDate && endDate) {
+          row.column35 = `${startDate} - ${endDate}`;
+        } else if (startDate) {
+          row.column35 = startDate;
+        } else {
+          row.column35 = '';
         }
       }
       
@@ -436,10 +308,8 @@ const EditableTable = () => {
     });
   };
 
-  // Функция для преобразования данных таблицы в формат API
   const transformTableDataToApi = (tableData, mode = 'create') => {
-    // Обработка даты сессии (может быть в формате "дата - дата")
-    let sessionStart = tableData.column30 || '';
+    let sessionStart = tableData.column35 || '';
     let sessionEnd = '';
     
     if (sessionStart && sessionStart.includes('-')) {
@@ -448,66 +318,128 @@ const EditableTable = () => {
       sessionEnd = dates[1] || dates[0];
     }
 
+    const socialLeaveStart = tableData.column10 || '';
+    const socialLeaveEnd = tableData.column11 || '';
+    const socialLeaveDuration = socialLeaveStart && socialLeaveEnd ? 
+      `${socialLeaveStart} - ${socialLeaveEnd}` : '';
+
+    const enrollmentOrderNum = tableData.column25 || '';
+    const enrollmentOrderDate = tableData.column26 || '';
+    const enrollmentOrder = enrollmentOrderNum && enrollmentOrderDate ? 
+      `${enrollmentOrderNum} от ${enrollmentOrderDate}` : '';
+
+    const dismissalOrderNum = tableData.column27 || '';
+    const dismissalOrderDate = tableData.column28 || '';
+    const dismissalOrder = dismissalOrderNum && dismissalOrderDate ? 
+      `${dismissalOrderNum} от ${dismissalOrderDate}` : '';
+
     const apiData = {
       fio: tableData.column1 || '',
       fioEn: tableData.column2 || '',
       birthYear: tableData.column3 || new Date().toISOString(),
       gender: tableData.column4 || 'М',
-      country: tableData.column5 === 'Другая' && modalState.otherCountry ? 
-                modalState.otherCountry : (tableData.column5 || 'Беларусь'),
+      country: tableData.column5 || 'Беларусь',
       enrollmentDate: tableData.column6 || new Date().toISOString(),
       dismissalDate: tableData.column7 || null,
       dismissalReason: tableData.column8 || '',
       socialLeave: tableData.column9 || '',
-      socialLeaveDuration: tableData.column10 || '',
-      mobilePhone: tableData.column11 || '',
-      identityDocument: tableData.column18 || 'паспорт',
-      documentNumber: tableData.column19 || '',
-      residenceAddress: tableData.column20 || 'общежитие',
-      registrationExpiry: tableData.column21 || null,
-      enrollmentOrder: tableData.column22 || '',
-      dismissalOrder: tableData.column23 || '',
-      contractInfo: tableData.column24 || '',
-      medicalCertificate: tableData.column25 || 'есть',
-      login: tableData.column27 || '',
-      supervisorId: tableData.column29 ? parseInt(tableData.column29) : null,
-      rivshCertificate: tableData.column33 || 'нет',
-      entryByInvitation: tableData.column34 || 'нет',
-      distributionInfo: tableData.column35 || '',
-      universityName: tableData.column12 || 'БГМУ',
-      graduationYear: tableData.column13 || new Date().toISOString(),
-      department: tableData.column14 || '',
-      specialtyProfile: tableData.column15 || '',
-      specialty: tableData.column16 || '',
+      socialLeaveDuration: socialLeaveDuration,
+      mobilePhone: tableData.column12 || '',
+      identityDocument: tableData.column19 || 'паспорт',
+      documentNumber: tableData.column20 || '',
+      identNumber: tableData.column21 || '',
+      residenceAddress: tableData.column22 || 'общежитие',
+      livingAddress: tableData.column23 || '',
+      registrationExpiry: tableData.column24 || null,
+      enrollmentOrder: enrollmentOrder,
+      dismissalOrder: dismissalOrder,
+      contractInfo: tableData.column29 || '',
+      medicalCertificate: tableData.column30 || 'есть',
+      login: tableData.column32 || '',
+      supervisorId: tableData.column34 ? parseInt(tableData.column34) : null,
+      rivshCertificate: tableData.column38 || 'нет',
+      entryByInvitation: tableData.column39 || 'нет',
+      distributionInfo: tableData.column40 || '',
+      universityName: tableData.column13 || 'БГМУ',
+      graduationYear: tableData.column14 || '',
+      department: tableData.column15 || '',
+      specialtyProfile: tableData.column16 || '',
+      specialty: tableData.column17 || '',
       preparationForm: JSON.stringify(modalState.selectedPreparationForm),
-      scores: tableData.column26 || '',
-      allowanceStartDate: tableData.column31 || null,
-      allowanceEndDate: tableData.column32 || null,
-      sessionStart: sessionStart || null,
-      sessionEnd: sessionEnd || null,
     };
 
-    // Если указано "другое" для университета
-    if (tableData.column12 === 'другое' && modalState.otherUniversity) {
+    if (tableData.column31) {
+      apiData.currentControl = {
+        scores: tableData.column31
+      };
+    }
+
+    if (tableData.column36 || tableData.column37) {
+      apiData.money = {
+        allowanceStartDate: tableData.column36 || null,
+        allowanceEndDate: tableData.column37 || null
+      };
+    }
+
+    if (sessionStart) {
+      apiData.session = {
+        sessionStart: sessionStart,
+        sessionEnd: sessionEnd || sessionStart
+      };
+    }
+
+    if (tableData.column13 === 'другое' && modalState.otherUniversity) {
       apiData.universityName = modalState.otherUniversity;
     }
 
-    // Если указано "иное" для документа
-    if (tableData.column18 === 'иное' && modalState.otherDocument) {
+    if (tableData.column19 === 'иное' && modalState.otherDocument) {
       apiData.identityDocument = modalState.otherDocument;
     }
 
-    // Если указано "иное" для причины отчисления
     if (tableData.column8 === 'иное' && modalState.otherUniversity) {
       apiData.dismissalReason = modalState.otherUniversity;
     }
 
-    // Для создания добавляем пароль
     if (mode === 'create') {
-      apiData.password = tableData.column28 || 'defaultPassword123';
+      apiData.password = tableData.column33 || 'defaultPassword123';
     }
 
     return apiData;
+  };
+
+  const loadSelectData = async () => {
+    try {
+      const mockDepartments = [
+        'Терапевтическая кафедра',
+        'Хирургическая кафедра',
+        'Педиатрическая кафедра',
+        'Стоматологическая кафедра',
+        'Неврологическая кафедра',
+        'Офтальмологическая кафедра',
+        'Отоларингологическая кафедра'
+      ];
+      
+      const mockSpecialtyProfiles = [
+        'Терапия',
+        'Хирургия',
+        'Педиатрия',
+        'Стоматология',
+        'Неврология',
+        'Офтальмология',
+        'Отоларингология',
+        'Кардиология',
+        'Гастроэнтерология',
+        'Эндокринология'
+      ];
+      
+      setSelectData(prev => ({
+        ...prev,
+        departments: mockDepartments,
+        specialtyProfiles: mockSpecialtyProfiles
+      }));
+    } catch (error) {
+      console.error('Error loading select data:', error);
+    }
   };
 
   useEffect(() => {
@@ -530,13 +462,13 @@ const EditableTable = () => {
       
       setUserData(user);
       fetchOrdinators();
+      loadSelectData();
     } catch (error) {
       console.error('Ошибка парсинга user_data:', error);
       navigate('/');
     }
   }, [navigate]);
 
-  // Функция загрузки данных
   const fetchOrdinators = async () => {
     try {
       setLoading(true);
@@ -595,7 +527,7 @@ const EditableTable = () => {
     }
     
     const initialRowData = {};
-    for (let i = 1; i <= 35; i++) {
+    for (let i = 1; i <= 40; i++) {
       const columnKey = `column${i}`;
       const fieldName = ColumnName[i];
       
@@ -652,20 +584,17 @@ const EditableTable = () => {
   };
 
   const handleRowClick = async (rowIndex, row) => {
-    console.log('Клик по строке:', rowIndex, row);
-    
     if (!canEditRow()) {
       alert('У вас нет прав для редактирования');
       return;
     }
     
     try {
-      // Получаем полные данные с сервера
       const response = await apiRequest(`/ordinators/${row.id}`);
       const ordinator = response;
       
       const rowValues = [];
-      for (let i = 1; i <= 35; i++) {
+      for (let i = 1; i <= 40; i++) {
         const columnKey = `column${i}`;
         const value = row[columnKey] || '';
         rowValues.push({
@@ -676,25 +605,20 @@ const EditableTable = () => {
         });
       }
       
-      // Извлекаем значения для полей "другое"
       let otherUni = '';
       let otherDoc = '';
-      let otherCountry = '';
       let prepForm = ['очная'];
       
-      if (row['column12'] && !selectOptions.university.includes(row['column12'])) {
-        otherUni = row['column12'];
+      if (row['column13'] && !selectOptions.university.includes(row['column13'])) {
+        otherUni = row['column13'];
       }
-      if (row['column18'] && !selectOptions.identityDocument.includes(row['column18'])) {
-        otherDoc = row['column18'];
-      }
-      if (row['column5'] && !selectOptions.country.includes(row['column5'])) {
-        otherCountry = row['column5'];
+      if (row['column19'] && !selectOptions.identityDocument.includes(row['column19'])) {
+        otherDoc = row['column19'];
       }
       
       try {
-        if (row['column17']) {
-          prepForm = JSON.parse(row['column17']);
+        if (row['column18']) {
+          prepForm = JSON.parse(row['column18']);
         }
       } catch (e) {
         console.error('Ошибка парсинга данных:', e);
@@ -711,7 +635,7 @@ const EditableTable = () => {
         rowData: rowValues,
         otherUniversity: otherUni,
         otherDocument: otherDoc,
-        otherCountry: otherCountry,
+        otherCountry: '',
         selectedPreparationForm: prepForm
       });
       
@@ -756,17 +680,21 @@ const EditableTable = () => {
   };
 
   const handleModalChange = (column, value) => {
+    const valueToSet = value && typeof value === 'object' && value.value !== undefined 
+      ? value.value 
+      : value;
+
     if (modalState.mode === 'create') {
       setNewRowData({
         ...newRowData,
-        [column]: value
+        [column]: valueToSet
       });
     } else {
       const updatedRowData = [...modalState.rowData];
       const itemIndex = updatedRowData.findIndex(item => item.columnName === column);
       
       if (itemIndex !== -1) {
-        updatedRowData[itemIndex].value = value;
+        updatedRowData[itemIndex].value = valueToSet;
         setModalState(prev => ({
           ...prev,
           rowData: updatedRowData
@@ -774,7 +702,7 @@ const EditableTable = () => {
         
         setNewRowData({
           ...newRowData,
-          [column]: value
+          [column]: valueToSet
         });
       }
     }
@@ -789,7 +717,6 @@ const EditableTable = () => {
         await apiRequest('/ordinators', 'POST', apiData);
         alert('Ординатор успешно создан');
       } else {
-        // Для редактирования собираем данные из rowData
         const rowDataObj = {};
         modalState.rowData.forEach(item => {
           rowDataObj[item.columnName] = item.value;
@@ -822,17 +749,10 @@ const EditableTable = () => {
     setNewRowData({});
   };
 
-  const handleSearch = () => {
-    // Локальная фильтрация на фронтенде
-    // Если нужна серверная фильтрация, можно добавить параметры в fetchOrdinators
-  };
-
   const handleResetSearch = () => {
     setSearchTerm('');
     setSearchColumn('all');
     setSortConfig({ key: null, direction: 'ascending' });
-    // Закрыть уведомление о сортировке при сбросе
-    setSortNotification({ show: false, column: '', count: 0 });
   };
 
   const handleSort = (columnKey) => {
@@ -843,25 +763,6 @@ const EditableTable = () => {
     }
     
     setSortConfig({ key: columnKey, direction });
-    
-    // Показываем уведомление о сортировке
-    const columnNumber = parseInt(columnKey.replace('column', ''));
-    const columnName = ColumnName[columnNumber];
-    
-    setSortNotification({
-      show: true,
-      column: columnName,
-      count: sortedFilteredData.length,
-      direction: direction === 'ascending' ? 'по возрастанию' : 'по убыванию'
-    });
-    
-    // Автоматически скрыть уведомление через 3 секунды
-    setTimeout(() => {
-      setSortNotification(prev => ({
-        ...prev,
-        show: false
-      }));
-    }, 3000);
   };
 
   const getSortedData = (dataToSort) => {
@@ -904,7 +805,7 @@ const EditableTable = () => {
     if (sortConfig.key !== columnKey) {
       return '↕️'; 
     }
-    return sortConfig.direction === 'ascending' ? <ChevronUp size={16} /> : <ChevronDown size={16} />;
+    return sortConfig.direction === 'ascending' ? '↑' : '↓';
   };
 
   const renderModalField = (columnName, columnNumber, isEditMode = false, currentValue = '') => {
@@ -913,14 +814,7 @@ const EditableTable = () => {
     const value = isEditMode ? currentValue : (newRowData[columnKey] || '');
 
     const handleChange = (newValue) => {
-      if (isEditMode) {
-        handleModalChange(columnKey, newValue);
-      } else {
-        setNewRowData({
-          ...newRowData,
-          [columnKey]: newValue
-        });
-      }
+      handleModalChange(columnKey, newValue);
     };
 
     switch(fieldName) {
@@ -938,23 +832,68 @@ const EditableTable = () => {
         );
       
       case 'Страна':
+        const countryOptions = selectData.countries.map(country => ({
+          value: country,
+          label: country
+        }));
+        
         return (
-          <div className="country-select-container">
-            <select
-              value={value}
-              onChange={(e) => handleChange(e.target.value)}
-              className="modal-select country-select"
-            >
-              {selectOptions.country.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          </div>
+          <CreatableSelect
+            options={countryOptions}
+            value={value ? { value: value, label: value } : null}
+            onChange={handleChange}
+            placeholder="Выберите или введите страну..."
+            isClearable
+            noOptionsMessage={() => "Нет вариантов, введите свой"}
+            formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
+            className="react-select-container"
+            classNamePrefix="react-select"
+          />
+        );
+      
+      case 'Кафедра':
+        const departmentOptions = selectData.departments.map(dept => ({
+          value: dept,
+          label: dept
+        }));
+        
+        return (
+          <CreatableSelect
+            options={departmentOptions}
+            value={value ? { value: value, label: value } : null}
+            onChange={handleChange}
+            placeholder="Выберите или введите кафедру..."
+            isClearable
+            noOptionsMessage={() => "Нет вариантов, введите свою"}
+            formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
+            className="react-select-container"
+            classNamePrefix="react-select"
+          />
+        );
+      
+      case 'Профиль специальности':
+        const specialtyOptions = selectData.specialtyProfiles.map(spec => ({
+          value: spec,
+          label: spec
+        }));
+        
+        return (
+          <CreatableSelect
+            options={specialtyOptions}
+            value={value ? { value: value, label: value } : null}
+            onChange={handleChange}
+            placeholder="Выберите или введите профиль..."
+            isClearable
+            noOptionsMessage={() => "Нет вариантов, введите свой"}
+            formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
+            className="react-select-container"
+            classNamePrefix="react-select"
+          />
         );
       
       case 'Причина отчисления':
         return (
-          <div className="dismissal-select-container">
+          <div>
             <select
               value={value}
               onChange={(e) => handleChange(e.target.value)}
@@ -992,7 +931,7 @@ const EditableTable = () => {
       
       case 'ВУЗ':
         return (
-          <div className="university-select-container">
+          <div>
             <select
               value={value}
               onChange={(e) => handleChange(e.target.value)}
@@ -1014,6 +953,18 @@ const EditableTable = () => {
           </div>
         );
       
+      case 'Год окончания':
+        return (
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-input"
+            placeholder="Например: 2024"
+            maxLength="4"
+          />
+        );
+      
       case 'Форма подготовки':
         return (
           <div className="checkbox-group">
@@ -1033,7 +984,7 @@ const EditableTable = () => {
       
       case 'Документ, удостоверяющий личность':
         return (
-          <div className="document-select-container">
+          <div>
             <select
               value={value}
               onChange={(e) => handleChange(e.target.value)}
@@ -1108,7 +1059,6 @@ const EditableTable = () => {
         );
       
       case 'Год рождения':
-      case 'Год окончания':
         return (
           <input
             type="date"
@@ -1120,6 +1070,10 @@ const EditableTable = () => {
       
       case 'Дата зачисления':
       case 'Дата отчисления':
+      case 'Дата начала соц. отпуска':
+      case 'Дата окончания соц. отпуска':
+      case 'Дата приказа о зачислении':
+      case 'Дата приказа об отчислении':
       case 'Срок окончания регистрации':
       case 'Дата установки надбавки':
       case 'Дата окончания надбавки':
@@ -1187,6 +1141,17 @@ const EditableTable = () => {
           />
         );
       
+      case 'Адрес проживания':
+        return (
+          <textarea
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-textarea"
+            placeholder="Введите полный адрес проживания"
+            rows="2"
+          />
+        );
+      
       default:
         return (
           <input
@@ -1229,32 +1194,10 @@ const EditableTable = () => {
     );
   }
 
-  const columns = Array.from({ length: 35 }, (_, i) => `column${i + 1}`);
+  const columns = Array.from({ length: 40 }, (_, i) => `column${i + 1}`);
 
   return (
     <div className="table-page">
-      {/* Уведомление о сортировке */}
-      {sortNotification.show && (
-        <div className="sort-notification">
-          <div className="sort-notification-content">
-            <div className="sort-notification-header">
-              <strong>Сортировка применена</strong>
-              <button 
-                className="close-notification" 
-                onClick={() => setSortNotification({ show: false, column: '', count: 0 })}
-              >
-                &times;
-              </button>
-            </div>
-            <div className="sort-notification-body">
-              <p>Сортировка по столбцу: <strong>{sortNotification.column}</strong></p>
-              <p>Направление: <strong>{sortNotification.direction}</strong></p>
-              <p>Количество строк: <strong>{sortNotification.count}</strong></p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <header className="user-header">
         <div className="header-left">
           <div 
@@ -1470,7 +1413,7 @@ const EditableTable = () => {
             <tbody>
               {sortedFilteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={37} className="no-data">
+                  <td colSpan={42} className="no-data">
                     {data.length === 0 ? 'Нет данных. Создайте первую запись.' : 'Нет результатов по вашему запросу.'}
                   </td>
                 </tr>
@@ -1534,10 +1477,9 @@ const EditableTable = () => {
         )}
       </div>
 
-      {/* Универсальное модальное окно */}
       {modalState.isOpen && (
         <div className="modal-overlay">
-          <div className="modal">
+          <div className="modal create-modal">
             <div className="modal-header">
               <h2>
                 {modalState.mode === 'create' 

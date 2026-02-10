@@ -1302,3 +1302,47 @@ mark {
     width: 100%;
   }
 }
+
+/* Стили для react-select */
+.react-select-container {
+  width: 100%;
+  font-size: 16px;
+}
+
+.react-select__control {
+  min-height: 44px;
+  border: 2px solid #ddd !important;
+  box-shadow: none !important;
+}
+
+.react-select__control:hover {
+  border-color: #bbb !important;
+}
+
+.react-select__control--is-focused {
+  border-color: #36d1dc !important;
+  box-shadow: 0 0 0 3px rgba(54, 209, 220, 0.2) !important;
+}
+
+.react-select__menu {
+  z-index: 9999 !important;
+}
+
+.react-select__option--is-selected {
+  background-color: #36d1dc !important;
+  color: white !important;
+}
+
+.react-select__option--is-focused {
+  background-color: #f0f9ff !important;
+}
+
+.react-select__placeholder {
+  color: #666 !important;
+  font-size: 16px;
+}
+
+.react-select__input input {
+  font-size: 16px !important;
+}
+
