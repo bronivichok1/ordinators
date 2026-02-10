@@ -6,7 +6,9 @@ import {
   User, 
   Shield, 
   Menu,
-  X
+  X,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 const EditableTable = () => {
@@ -101,11 +103,200 @@ const EditableTable = () => {
     rivshCertificate: ['да', 'нет'],
     entryByInvitation: ['да', 'нет'],
     country: [
+      'Афганистан',
+      'Албания',
+      'Алжир',
+      'Андорра',
+      'Ангола',
+      'Антигуа и Барбуда',
+      'Аргентина',
+      'Армения',
+      'Австралия',
+      'Австрия',
+      'Азербайджан',
+      'Багамские Острова',
+      'Бахрейн',
+      'Бангладеш',
+      'Барбадос',
       'Беларусь',
-      'Россия',
-      'Украина',
+      'Бельгия',
+      'Белиз',
+      'Бенин',
+      'Бутан',
+      'Боливия',
+      'Босния и Герцеговина',
+      'Ботсвана',
+      'Бразилия',
+      'Бруней',
+      'Болгария',
+      'Буркина-Фасо',
+      'Бурунди',
+      'Кабо-Верде',
+      'Камбоджа',
+      'Камерун',
+      'Канада',
+      'Центральноафриканская Республика',
+      'Чад',
+      'Чили',
+      'Китай',
+      'Колумбия',
+      'Коморы',
+      'Конго',
+      'Коста-Рика',
+      'Хорватия',
+      'Куба',
+      'Кипр',
+      'Чехия',
+      'Дания',
+      'Джибути',
+      'Доминика',
+      'Доминиканская Республика',
+      'Восточный Тимор',
+      'Эквадор',
+      'Египет',
+      'Сальвадор',
+      'Экваториальная Гвинея',
+      'Эритрея',
+      'Эстония',
+      'Эсватини',
+      'Эфиопия',
+      'Фиджи',
+      'Финляндия',
+      'Франция',
+      'Габон',
+      'Гамбия',
+      'Грузия',
+      'Германия',
+      'Гана',
+      'Греция',
+      'Гренада',
+      'Гватемала',
+      'Гвинея',
+      'Гвинея-Бисау',
+      'Гайана',
+      'Гаити',
+      'Гондурас',
+      'Венгрия',
+      'Исландия',
+      'Индия',
+      'Индонезия',
+      'Иран',
+      'Ирак',
+      'Ирландия',
+      'Израиль',
+      'Италия',
+      'Кот-д\'Ивуар',
+      'Ямайка',
+      'Япония',
+      'Иордания',
       'Казахстан',
-      'Другая'
+      'Кения',
+      'Кирибати',
+      'Корея Северная',
+      'Корея Южная',
+      'Косово',
+      'Кувейт',
+      'Кыргызстан',
+      'Лаос',
+      'Латвия',
+      'Ливан',
+      'Лесото',
+      'Либерия',
+      'Ливия',
+      'Лихтенштейн',
+      'Литва',
+      'Люксембург',
+      'Мадагаскар',
+      'Малави',
+      'Малайзия',
+      'Мальдивы',
+      'Мали',
+      'Мальта',
+      'Маршалловы Острова',
+      'Мавритания',
+      'Маврикий',
+      'Мексика',
+      'Микронезия',
+      'Молдова',
+      'Монако',
+      'Монголия',
+      'Черногория',
+      'Марокко',
+      'Мозамбик',
+      'Мьянма',
+      'Намибия',
+      'Науру',
+      'Непал',
+      'Нидерланды',
+      'Новая Зеландия',
+      'Никарагуа',
+      'Нигер',
+      'Нигерия',
+      'Северная Македония',
+      'Норвегия',
+      'Оман',
+      'Пакистан',
+      'Палау',
+      'Панама',
+      'Папуа — Новая Гвинея',
+      'Парагвай',
+      'Перу',
+      'Филиппины',
+      'Польша',
+      'Португалия',
+      'Катар',
+      'Румыния',
+      'Россия',
+      'Руанда',
+      'Сент-Китс и Невис',
+      'Сент-Люсия',
+      'Сент-Винсент и Гренадины',
+      'Самоа',
+      'Сан-Марино',
+      'Сан-Томе и Принсипи',
+      'Саудовская Аравия',
+      'Сенегал',
+      'Сербия',
+      'Сейшелы',
+      'Сьерра-Леоне',
+      'Сингапур',
+      'Словакия',
+      'Словения',
+      'Соломоновы Острова',
+      'Сомали',
+      'ЮАР',
+      'Южный Судан',
+      'Испания',
+      'Шри-Ланка',
+      'Судан',
+      'Суринам',
+      'Швеция',
+      'Швейцария',
+      'Сирия',
+      'Таджикистан',
+      'Танзания',
+      'Таиланд',
+      'Того',
+      'Тонга',
+      'Тринидад и Тобаго',
+      'Тунис',
+      'Турция',
+      'Туркменистан',
+      'Тувалу',
+      'Уганда',
+      'Украина',
+      'ОАЭ',
+      'Великобритания',
+      'США',
+      'Уругвай',
+      'Узбекистан',
+      'Вануату',
+      'Ватикан',
+      'Венесуэла',
+      'Вьетнам',
+      'Йемен',
+      'Замбия',
+      'Зимбабве'
     ]
   };
 
@@ -126,6 +317,11 @@ const EditableTable = () => {
   const [sortConfig, setSortConfig] = useState({
     key: null,
     direction: 'ascending',
+  });
+  const [sortNotification, setSortNotification] = useState({
+    show: false,
+    column: '',
+    count: 0
   });
 
   // Функция для выполнения запросов к API
@@ -635,6 +831,8 @@ const EditableTable = () => {
     setSearchTerm('');
     setSearchColumn('all');
     setSortConfig({ key: null, direction: 'ascending' });
+    // Закрыть уведомление о сортировке при сбросе
+    setSortNotification({ show: false, column: '', count: 0 });
   };
 
   const handleSort = (columnKey) => {
@@ -645,6 +843,25 @@ const EditableTable = () => {
     }
     
     setSortConfig({ key: columnKey, direction });
+    
+    // Показываем уведомление о сортировке
+    const columnNumber = parseInt(columnKey.replace('column', ''));
+    const columnName = ColumnName[columnNumber];
+    
+    setSortNotification({
+      show: true,
+      column: columnName,
+      count: sortedFilteredData.length,
+      direction: direction === 'ascending' ? 'по возрастанию' : 'по убыванию'
+    });
+    
+    // Автоматически скрыть уведомление через 3 секунды
+    setTimeout(() => {
+      setSortNotification(prev => ({
+        ...prev,
+        show: false
+      }));
+    }, 3000);
   };
 
   const getSortedData = (dataToSort) => {
@@ -687,7 +904,7 @@ const EditableTable = () => {
     if (sortConfig.key !== columnKey) {
       return '↕️'; 
     }
-    return sortConfig.direction === 'ascending' ? '↑' : '↓';
+    return sortConfig.direction === 'ascending' ? <ChevronUp size={16} /> : <ChevronDown size={16} />;
   };
 
   const renderModalField = (columnName, columnNumber, isEditMode = false, currentValue = '') => {
@@ -726,21 +943,12 @@ const EditableTable = () => {
             <select
               value={value}
               onChange={(e) => handleChange(e.target.value)}
-              className="modal-select"
+              className="modal-select country-select"
             >
               {selectOptions.country.map(option => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
-            {value === 'Другая' && (
-              <input
-                type="text"
-                value={modalState.otherCountry}
-                onChange={(e) => setModalState(prev => ({ ...prev, otherCountry: e.target.value }))}
-                className="other-input"
-                placeholder="Введите страну"
-              />
-            )}
           </div>
         );
       
@@ -1025,6 +1233,28 @@ const EditableTable = () => {
 
   return (
     <div className="table-page">
+      {/* Уведомление о сортировке */}
+      {sortNotification.show && (
+        <div className="sort-notification">
+          <div className="sort-notification-content">
+            <div className="sort-notification-header">
+              <strong>Сортировка применена</strong>
+              <button 
+                className="close-notification" 
+                onClick={() => setSortNotification({ show: false, column: '', count: 0 })}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="sort-notification-body">
+              <p>Сортировка по столбцу: <strong>{sortNotification.column}</strong></p>
+              <p>Направление: <strong>{sortNotification.direction}</strong></p>
+              <p>Количество строк: <strong>{sortNotification.count}</strong></p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="user-header">
         <div className="header-left">
           <div 

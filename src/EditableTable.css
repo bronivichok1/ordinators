@@ -1196,3 +1196,109 @@ mark {
   font-size: 12px;
   padding: 10px;
 }
+
+/* Уведомление о сортировке */
+.sort-notification {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  z-index: 1000;
+  animation: slideInRight 0.3s ease;
+}
+
+.sort-notification-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.sort-notification-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sort-notification-header strong {
+  font-weight: 600;
+}
+
+.close-notification {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-notification:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.sort-notification-body {
+  padding: 16px;
+}
+
+.sort-notification-body p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.sort-notification-body strong {
+  color: #667eea;
+  font-weight: 600;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Анимация исчезновения */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Стили для выбора страны в модальном окне */
+.country-select {
+  min-width: 250px;
+}
+
+/* Адаптивность уведомления */
+@media (max-width: 768px) {
+  .sort-notification {
+    left: 20px;
+    right: 20px;
+    top: 80px;
+  }
+  
+  .sort-notification-content {
+    width: 100%;
+  }
+}
