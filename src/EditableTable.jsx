@@ -33,8 +33,8 @@ const EditableTable = () => {
     'Дата отчисления',
     'Причина отчисления',
     'Социальный отпуск',
-    'Дата начала соц. отпуска',
-    'Дата окончания соц. отпуска',
+    'Дата начала социального отпуска',
+    'Дата окончания социального отпуска',
     'Мобильный телефон',
     'ВУЗ',
     'Год окончания',
@@ -53,12 +53,13 @@ const EditableTable = () => {
     'Номер приказа об отчислении',
     'Дата приказа об отчислении',
     'Договор, дополнительное соглашение',
-    'Мед. справка',
+    'Медицинская справка',
     'Текущий контроль',
     'Логин',
     'Пароль',
     'Руководитель ординатора',
-    'Дата сессии(циклов), начало, окончание',
+    'Дата начала сессии(циклов)',
+    'Дата окончания сессии(циклов)',
     'Дата установки надбавки',
     'Дата окончания надбавки',
     'Наличие сертификата РИВШ',
@@ -199,74 +200,24 @@ const EditableTable = () => {
     return apiData.map((ordinator) => {
       const row = {};
       
+      // Основные поля
       row.column1 = ordinator.fio || '';
       row.column2 = ordinator.fioEn || '';
-      row.column3 = ordinator.birthYear ? new Date(ordinator.birthYear).toISOString().split('T')[0] : '';
+      row.column3 = ordinator.birthYear || '';
       row.column4 = ordinator.gender || 'М';
       row.column5 = ordinator.country || '';
-      row.column6 = ordinator.enrollmentDate ? new Date(ordinator.enrollmentDate).toISOString().split('T')[0] : '';
-      row.column7 = ordinator.dismissalDate ? new Date(ordinator.dismissalDate).toISOString().split('T')[0] : '';
+      row.column6 = ordinator.enrollmentDate || '';
+      row.column7 = ordinator.dismissalDate || '';
       row.column8 = ordinator.dismissalReason || '';
       row.column9 = ordinator.socialLeave || '';
       
-      if (ordinator.socialLeaveDuration) {
-        const [startDate, endDate] = ordinator.socialLeaveDuration.split(' - ');
-        row.column10 = startDate || '';
-        row.column11 = endDate || '';
-      } else {
-        row.column10 = '';
-        row.column11 = '';
-      }
+      // Социальный отпуск (отдельные поля)
+      row.column10 = ordinator.socialLeaveStart || '';
+      row.column11 = ordinator.socialLeaveEnd || '';
       
       row.column12 = ordinator.mobilePhone || '';
-      row.column19 = ordinator.identityDocument || 'паспорт';
-      row.column20 = ordinator.documentNumber || '';
-      row.column21 = ordinator.identNumber || '';
-      row.column22 = ordinator.residenceAddress || 'общежитие';
-      row.column23 = ordinator.livingAddress || '';
-      row.column24 = ordinator.registrationExpiry ? new Date(ordinator.registrationExpiry).toISOString().split('T')[0] : '';
       
-      if (ordinator.enrollmentOrder) {
-        const [orderNum, orderDate] = ordinator.enrollmentOrder.split(' от ');
-        row.column25 = orderNum || '';
-        row.column26 = orderDate || '';
-      } else {
-        row.column25 = '';
-        row.column26 = '';
-      }
-      
-      if (ordinator.dismissalOrder) {
-        const [orderNum, orderDate] = ordinator.dismissalOrder.split(' от ');
-        row.column27 = orderNum || '';
-        row.column28 = orderDate || '';
-      } else {
-        row.column27 = '';
-        row.column28 = '';
-      }
-      
-      row.column29 = ordinator.contractInfo || '';
-      row.column30 = ordinator.medicalCertificate || 'есть';
-      
-      if (ordinator.currentControl) {
-        if (typeof ordinator.currentControl === 'object' && ordinator.currentControl.scores) {
-          row.column31 = ordinator.currentControl.scores || '';
-        } else {
-          row.column31 = String(ordinator.currentControl) || '';
-        }
-      } else {
-        row.column31 = '';
-      }
-      
-      row.column32 = ordinator.login || '';
-      row.column33 = '••••••••';
-      row.column34 = ordinator.supervisorId ? String(ordinator.supervisorId) : '';
-      row.column35 = ordinator.sessionDates || '';
-      row.column36 = ordinator.allowanceStartDate ? new Date(ordinator.allowanceStartDate).toISOString().split('T')[0] : '';
-      row.column37 = ordinator.allowanceEndDate ? new Date(ordinator.allowanceEndDate).toISOString().split('T')[0] : '';
-      row.column38 = ordinator.rivshCertificate || 'нет';
-      row.column39 = ordinator.entryByInvitation || 'нет';
-      row.column40 = ordinator.distributionInfo || '';
-      
+      // Университет (из связанной сущности)
       if (ordinator.university) {
         row.column13 = ordinator.university.name || 'БГМУ';
         row.column14 = ordinator.university.graduationYear || '';
@@ -283,22 +234,59 @@ const EditableTable = () => {
         row.column18 = JSON.stringify(['очная']);
       }
       
-      if (ordinator.money) {
-        row.column36 = ordinator.money.allowanceStartDate ? new Date(ordinator.money.allowanceStartDate).toISOString().split('T')[0] : '';
-        row.column37 = ordinator.money.allowanceEndDate ? new Date(ordinator.money.allowanceEndDate).toISOString().split('T')[0] : '';
+      // Документы
+      row.column19 = ordinator.identityDocument || 'паспорт';
+      row.column20 = ordinator.documentNumber || '';
+      row.column21 = ''; // Идентификационный номер (нет в сущности)
+      row.column22 = ordinator.residenceAddress || 'общежитие';
+      row.column23 = ordinator.livingAddress || ''; 
+      row.column24 = ordinator.registrationExpiry || '';
+      
+      row.column25 = ordinator.enrollmentOrderNumber || '';
+      row.column26 = ordinator.enrollmentOrderDate || '';
+      row.column27 = ordinator.dismissalOrderNumber || '';
+      row.column28 = ordinator.dismissalOrderDate || '';
+      
+      row.column29 = ordinator.contractInfo || '';
+      row.column30 = ordinator.medicalCertificate || 'есть';
+      
+      // берем строку из объекта
+      if (ordinator.currentControl) {
+        // Если это объект, берем его поле scores
+        if (typeof ordinator.currentControl === 'object') {
+          row.column31 = ordinator.currentControl.scores || '';
+        } else {
+          row.column31 = String(ordinator.currentControl) || '';
+        }
+      } else {
+        row.column31 = '';
       }
       
+      row.column32 = ordinator.login || '';
+      row.column33 = ordinator.password; 
+      row.column34 = ordinator.supervisorId ? String(ordinator.supervisorId) : '';
+      
+      // Сессии 
       if (ordinator.session) {
-        const startDate = ordinator.session.sessionStart ? new Date(ordinator.session.sessionStart).toISOString().split('T')[0] : '';
-        const endDate = ordinator.session.sessionEnd ? new Date(ordinator.session.sessionEnd).toISOString().split('T')[0] : '';
-        if (startDate && endDate) {
-          row.column35 = `${startDate} - ${endDate}`;
-        } else if (startDate) {
-          row.column35 = startDate;
-        } else {
-          row.column35 = '';
-        }
+        row.column35 = ordinator.session.sessionStart || '';
+        row.column36 = ordinator.session.sessionEnd || '';
+      } else {
+        row.column35 = '';
+        row.column36 = '';
       }
+      
+      // Надбавки 
+      if (ordinator.money) {
+        row.column37 = ordinator.money.allowanceStartDate || '';
+        row.column38 = ordinator.money.allowanceEndDate || '';
+      } else {
+        row.column37 = '';
+        row.column38 = '';
+      }
+      
+      row.column39 = ordinator.rivshCertificate || 'нет';
+      row.column40 = ordinator.entryByInvitation || 'нет';
+      row.column41 = ordinator.distributionInfo || '';
       
       return {
         ...row,
@@ -309,101 +297,74 @@ const EditableTable = () => {
   };
 
   const transformTableDataToApi = (tableData, mode = 'create') => {
-    let sessionStart = tableData.column35 || '';
-    let sessionEnd = '';
-    
-    if (sessionStart && sessionStart.includes('-')) {
-      const dates = sessionStart.split('-').map(d => d.trim());
-      sessionStart = dates[0];
-      sessionEnd = dates[1] || dates[0];
-    }
-
-    const socialLeaveStart = tableData.column10 || '';
-    const socialLeaveEnd = tableData.column11 || '';
-    const socialLeaveDuration = socialLeaveStart && socialLeaveEnd ? 
-      `${socialLeaveStart} - ${socialLeaveEnd}` : '';
-
-    const enrollmentOrderNum = tableData.column25 || '';
-    const enrollmentOrderDate = tableData.column26 || '';
-    const enrollmentOrder = enrollmentOrderNum && enrollmentOrderDate ? 
-      `${enrollmentOrderNum} от ${enrollmentOrderDate}` : '';
-
-    const dismissalOrderNum = tableData.column27 || '';
-    const dismissalOrderDate = tableData.column28 || '';
-    const dismissalOrder = dismissalOrderNum && dismissalOrderDate ? 
-      `${dismissalOrderNum} от ${dismissalOrderDate}` : '';
-
     const apiData = {
       fio: tableData.column1 || '',
       fioEn: tableData.column2 || '',
-      birthYear: tableData.column3 || new Date().toISOString(),
+      birthYear: tableData.column3 || null,
       gender: tableData.column4 || 'М',
       country: tableData.column5 || 'Беларусь',
-      enrollmentDate: tableData.column6 || new Date().toISOString(),
+      enrollmentDate: tableData.column6 || null,
       dismissalDate: tableData.column7 || null,
       dismissalReason: tableData.column8 || '',
       socialLeave: tableData.column9 || '',
-      socialLeaveDuration: socialLeaveDuration,
+      socialLeaveStart: tableData.column10 || null,
+      socialLeaveEnd: tableData.column11 || null,
       mobilePhone: tableData.column12 || '',
-      identityDocument: tableData.column19 || 'паспорт',
-      documentNumber: tableData.column20 || '',
-      identNumber: tableData.column21 || '',
-      residenceAddress: tableData.column22 || 'общежитие',
-      livingAddress: tableData.column23 || '',
-      registrationExpiry: tableData.column24 || null,
-      enrollmentOrder: enrollmentOrder,
-      dismissalOrder: dismissalOrder,
-      contractInfo: tableData.column29 || '',
-      medicalCertificate: tableData.column30 || 'есть',
-      login: tableData.column32 || '',
-      supervisorId: tableData.column34 ? parseInt(tableData.column34) : null,
-      rivshCertificate: tableData.column38 || 'нет',
-      entryByInvitation: tableData.column39 || 'нет',
-      distributionInfo: tableData.column40 || '',
+      
       universityName: tableData.column13 || 'БГМУ',
       graduationYear: tableData.column14 || '',
       department: tableData.column15 || '',
       specialtyProfile: tableData.column16 || '',
       specialty: tableData.column17 || '',
       preparationForm: JSON.stringify(modalState.selectedPreparationForm),
+      
+      identityDocument: tableData.column19 || 'паспорт',
+      documentNumber: tableData.column20 || '',
+      identNumber: tableData.column21 || '',
+      residenceAddress: tableData.column22 || 'общежитие',
+      livingAddress: tableData.column23 || '',
+      registrationExpiry: tableData.column24 || null,
+      
+      enrollmentOrderNumber: tableData.column25 || '',
+      enrollmentOrderDate: tableData.column26 || null,
+      dismissalOrderNumber: tableData.column27 || '',
+      dismissalOrderDate: tableData.column28 || null,
+      
+      contractInfo: tableData.column29 || '',
+      medicalCertificate: tableData.column30 || 'есть',
+      
+      scores: tableData.column31 || '',
+      
+      login: tableData.column32 || '',
+      password: tableData.column33 || '',
+      supervisorId: tableData.column34 ? parseInt(tableData.column34) : null,
+      
+      sessionStart: tableData.column35 || null,
+      sessionEnd: tableData.column36 || null,
+      
+      allowanceStartDate: tableData.column37 || null,
+      allowanceEndDate: tableData.column38 || null,
+      
+      rivshCertificate: tableData.column39 || 'нет',
+      entryByInvitation: tableData.column40 || 'нет',
+      distributionInfo: tableData.column41 || ''
     };
 
-    if (tableData.column31) {
-      apiData.currentControl = {
-        scores: tableData.column31
-      };
-    }
-
-    if (tableData.column36 || tableData.column37) {
-      apiData.money = {
-        allowanceStartDate: tableData.column36 || null,
-        allowanceEndDate: tableData.column37 || null
-      };
-    }
-
-    if (sessionStart) {
-      apiData.session = {
-        sessionStart: sessionStart,
-        sessionEnd: sessionEnd || sessionStart
-      };
-    }
-
+  
     if (tableData.column13 === 'другое' && modalState.otherUniversity) {
       apiData.universityName = modalState.otherUniversity;
     }
-
+  
     if (tableData.column19 === 'иное' && modalState.otherDocument) {
       apiData.identityDocument = modalState.otherDocument;
     }
-
+  
     if (tableData.column8 === 'иное' && modalState.otherUniversity) {
       apiData.dismissalReason = modalState.otherUniversity;
     }
-
-    if (mode === 'create') {
-      apiData.password = tableData.column33 || 'defaultPassword123';
-    }
-
+  
+    Object.keys(apiData).forEach(key => apiData[key] === undefined && delete apiData[key]);
+  
     return apiData;
   };
 
@@ -1086,14 +1047,24 @@ const EditableTable = () => {
           />
         );
 
-      case 'Дата сессии(циклов), начало, окончание':
+      case 'Дата начала сессии(циклов)':
         return (
           <input
             type="text"
             value={value}
             onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
-            placeholder="YYYY-MM-DD - YYYY-MM-DD"
+            placeholder="YYYY-MM-DD"
+          />
+        );
+        case 'Дата окончания сессии(циклов)':
+        return (
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-input"
+            placeholder="YYYY-MM-DD"
           />
         );
       
@@ -1121,10 +1092,10 @@ const EditableTable = () => {
 
       case 'Текущий контроль':
         return (
-          <textarea
+          <input
             value={value}
             onChange={(e) => handleChange(e.target.value)}
-            className="modal-textarea"
+            className="modal-input"
             placeholder="Введите данные текущего контроля"
             rows="3"
           />
@@ -1132,10 +1103,10 @@ const EditableTable = () => {
 
       case 'Распределение клинических ординаторов':
         return (
-          <textarea
+          <input
             value={value}
             onChange={(e) => handleChange(e.target.value)}
-            className="modal-textarea"
+            className="modal-input"
             placeholder="Введите информацию о распределении"
             rows="3"
           />
@@ -1143,10 +1114,10 @@ const EditableTable = () => {
       
       case 'Адрес проживания':
         return (
-          <textarea
+          <input
             value={value}
             onChange={(e) => handleChange(e.target.value)}
-            className="modal-textarea"
+            className="modal-input"
             placeholder="Введите полный адрес проживания"
             rows="2"
           />

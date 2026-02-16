@@ -616,8 +616,8 @@ function App() {
             </div>
           </div>
 
-          <button type="submit" className="submit-button" disabled={loading}>
-            <UserPlus size={20} /><span>{loading ? 'Регистрация...' : 'Зарегистрировать'}</span>
+          <button type="submit" className="back-button" disabled={loading}>
+            <UserPlus size={20} />{loading ? 'Регистрация...' : 'Зарегистрировать'}
           </button>
           
           <div className="auth-footer">
