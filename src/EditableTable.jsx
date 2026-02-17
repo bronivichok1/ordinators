@@ -8,8 +8,16 @@ import {
   User, 
   Shield, 
   Menu,
-  X
+  X,
+  Download,
+  FileText,
+  FileSpreadsheet,
+  CheckSquare,
+  Square,
+  Columns
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 const EditableTable = () => {
   const navigate = useNavigate();
@@ -18,6 +26,14 @@ const EditableTable = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Состояние для экспорта
+  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const [selectedRows, setSelectedRows] = useState(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+  const [selectedColumns, setSelectedColumns] = useState(new Set());
+  const [exportFormat, setExportFormat] = useState('excel'); // 'excel' или 'word'
 
   const API_URL = process.env.REACT_APP_API_URL;
   const BASE_API_URL = `${API_URL}`;
@@ -66,6 +82,15 @@ const EditableTable = () => {
     'Въезд по приглашению',
     'Распределение клинических ординаторов',
   ];
+
+  // При инициализации выбираем все колонки по умолчанию
+  useEffect(() => {
+    const allColumns = new Set();
+    for (let i = 1; i <= 41; i++) {
+      allColumns.add(i);
+    }
+    setSelectedColumns(allColumns);
+  }, []);
 
   const selectOptions = {
     gender: ['М', 'Ж'],
@@ -154,6 +179,190 @@ const EditableTable = () => {
     direction: 'ascending',
   });
 
+  // Функции для работы с выбранными строками
+  const handleSelectRow = (rowId) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(rowId)) {
+      newSelected.delete(rowId);
+    } else {
+      newSelected.add(rowId);
+    }
+    setSelectedRows(newSelected);
+    setSelectAll(newSelected.size === filteredData.length && filteredData.length > 0);
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedRows(new Set());
+    } else {
+      const newSelected = new Set(filteredData.map(row => row.id));
+      setSelectedRows(newSelected);
+    }
+    setSelectAll(!selectAll);
+  };
+
+  const handleSelectColumn = (columnIndex) => {
+    const newSelected = new Set(selectedColumns);
+    if (newSelected.has(columnIndex)) {
+      newSelected.delete(columnIndex);
+    } else {
+      newSelected.add(columnIndex);
+    }
+    setSelectedColumns(newSelected);
+  };
+
+  const handleSelectAllColumns = () => {
+    if (selectedColumns.size === 41) {
+      setSelectedColumns(new Set());
+    } else {
+      const allColumns = new Set();
+      for (let i = 1; i <= 41; i++) {
+        allColumns.add(i);
+      }
+      setSelectedColumns(allColumns);
+    }
+  };
+
+  // Функции экспорта
+  const prepareDataForExport = () => {
+    // Берем только выбранные строки
+    const selectedData = data.filter(row => selectedRows.has(row.id));
+    
+    if (selectedData.length === 0) {
+      alert('Выберите записи для экспорта');
+      return null;
+    }
+
+    // Преобразуем данные для экспорта с учетом выбранных колонок
+    return selectedData.map(row => {
+      const exportRow = {};
+      
+      // Добавляем ID всегда
+      exportRow['ID'] = row.id;
+      
+      // Добавляем выбранные колонки
+      selectedColumns.forEach(colIndex => {
+        const columnKey = `column${colIndex}`;
+        if (row[columnKey] !== undefined) {
+          exportRow[ColumnName[colIndex]] = row[columnKey] || '';
+        }
+      });
+      
+      return exportRow;
+    });
+  };
+
+  const exportToExcel = () => {
+    try {
+      const exportData = prepareDataForExport();
+      if (!exportData) return;
+      
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Ординаторы');
+      
+      // Генерируем имя файла
+      const fileName = `ординаторы_${new Date().toISOString().split('T')[0]}_${selectedRows.size}записей.xlsx`;
+      
+      XLSX.writeFile(wb, fileName);
+      setShowExportPanel(false);
+    } catch (error) {
+      console.error('Ошибка экспорта в Excel:', error);
+      alert('Ошибка при экспорте в Excel: ' + error.message);
+    }
+  };
+
+  const exportToWord = () => {
+    try {
+      const exportData = prepareDataForExport();
+      if (!exportData) return;
+      
+      // Создаем HTML для Word документа
+      let html = `
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Экспорт ординаторов</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th { background-color: #f2f2f2; font-weight: bold; padding: 10px; border: 1px solid #ddd; }
+            td { padding: 8px; border: 1px solid #ddd; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .info { margin-bottom: 20px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <h1>Список ординаторов</h1>
+          <div class="info">
+            <p>Дата экспорта: ${new Date().toLocaleString('ru-RU')}</p>
+            <p>Всего записей: ${exportData.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+      `;
+      
+      // Заголовки таблицы
+      const headers = Object.keys(exportData[0]);
+      headers.forEach(header => {
+        html += `<th>${header}</th>`;
+      });
+      
+      html += `
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      
+      // Данные таблицы
+      exportData.forEach(row => {
+        html += '<tr>';
+        headers.forEach(header => {
+          html += `<td>${row[header] || ''}</td>`;
+        });
+        html += '</tr>';
+      });
+      
+      html += `
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+      
+      // Создаем и скачиваем Word документ
+      const blob = new Blob([html], { type: 'application/msword' });
+      const fileName = `ординаторы_${new Date().toISOString().split('T')[0]}_${selectedRows.size}записей.doc`;
+      
+      saveAs(blob, fileName);
+      setShowExportPanel(false);
+    } catch (error) {
+      console.error('Ошибка экспорта в Word:', error);
+      alert('Ошибка при экспорте в Word: ' + error.message);
+    }
+  };
+
+  const handleExport = () => {
+    if (selectedRows.size === 0) {
+      alert('Сначала выберите записи для экспорта');
+      return;
+    }
+    
+    if (selectedColumns.size === 0) {
+      alert('Выберите хотя бы одну колонку для экспорта');
+      return;
+    }
+
+    if (exportFormat === 'excel') {
+      exportToExcel();
+    } else {
+      exportToWord();
+    }
+  };
+
+  // Остальные функции API и обработчики...
   const apiRequest = async (endpoint, method = 'GET', data = null) => {
     const token = localStorage.getItem('auth_token');
     const headers = {
@@ -921,7 +1130,6 @@ const EditableTable = () => {
             value={value}
             onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
-            placeholder="Например: 2024"
             maxLength="4"
           />
         );
@@ -1030,13 +1238,69 @@ const EditableTable = () => {
         );
       
       case 'Дата зачисления':
+        return (
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-input"
+          />
+        );
       case 'Дата отчисления':
-      case 'Дата начала соц. отпуска':
-      case 'Дата окончания соц. отпуска':
+        return (
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-input"
+          />
+        );
+      case 'Дата начала социального отпуска':
+        return (
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-input"
+          />
+        );
+      case 'Дата окончания социального отпуска':
+        return (
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-input"
+          />
+        );
       case 'Дата приказа о зачислении':
+        return (
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-input"
+          />
+        );
       case 'Дата приказа об отчислении':
+        return (
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-input"
+          />
+        );
       case 'Срок окончания регистрации':
       case 'Дата установки надбавки':
+        return (
+          <input
+            type="date"
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            className="modal-input"
+          />
+        );
       case 'Дата окончания надбавки':
         return (
           <input
@@ -1050,21 +1314,19 @@ const EditableTable = () => {
       case 'Дата начала сессии(циклов)':
         return (
           <input
-            type="text"
+            type="date"
             value={value}
             onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
-            placeholder="YYYY-MM-DD"
           />
         );
         case 'Дата окончания сессии(циклов)':
         return (
           <input
-            type="text"
+            type="date"
             value={value}
             onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
-            placeholder="YYYY-MM-DD"
           />
         );
       
@@ -1165,7 +1427,7 @@ const EditableTable = () => {
     );
   }
 
-  const columns = Array.from({ length: 40 }, (_, i) => `column${i + 1}`);
+  const columns = Array.from({ length: 41 }, (_, i) => `column${i + 1}`);
 
   return (
     <div className="table-page">
@@ -1216,12 +1478,7 @@ const EditableTable = () => {
             )}
           </div>
           
-          <button 
-            className="mobile-menu-button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          
         </div>
 
         <div className="header-center">
@@ -1337,7 +1594,78 @@ const EditableTable = () => {
             >
               🔄 Обновить
             </button>
+            
+            {/* Кнопка выбора колонок */}
+            <button 
+              onClick={() => setShowColumnSelector(!showColumnSelector)}
+              className="columns-button"
+              title="Выбрать колонки для экспорта"
+            >
+              <Columns size={18} />
+              <span>Колонки</span>
+            </button>
+            
+            <button 
+              onClick={handleExport}
+              className="export-button"
+              title="Экспорт выбранных записей"
+              disabled={selectedRows.size === 0}
+            >
+              <Download size={18} />
+              <span>Экспорт ({selectedRows.size})</span>
+            </button>
           </div>
+          
+          {showColumnSelector && (
+            <div className="column-selector-panel">
+              <div className="column-selector-header">
+                <h3>Выбор колонок для экспорта</h3>
+                <button 
+                  onClick={handleSelectAllColumns}
+                  className="select-all-columns-button"
+                >
+                  {selectedColumns.size === 41 ? 'Снять все' : 'Выбрать все'}
+                </button>
+              </div>
+              <div className="column-selector-grid">
+                {ColumnName.slice(1).map((name, index) => (
+                  <label key={index + 1} className="column-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={selectedColumns.has(index + 1)}
+                      onChange={() => handleSelectColumn(index + 1)}
+                      className="column-checkbox"
+                    />
+                    <span className="column-name">{name}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="column-selector-actions">
+                <button 
+                  onClick={() => setShowColumnSelector(false)}
+                  className="column-selector-close"
+                >
+                  Готово
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Информация о выборе */}
+          <div className="selection-info">
+            {selectedRows.size > 0 && (
+              <p className="selected-count">
+                Выбрано записей: {selectedRows.size} 
+                {selectAll && filteredData.length > 0 && ` (все из текущего фильтра)`}
+              </p>
+            )}
+            {selectedColumns.size > 0 && selectedColumns.size < 41 && (
+              <p className="selected-columns-info">
+                Выбрано колонок: {selectedColumns.size} из 41
+              </p>
+            )}
+          </div>
+          
           <div className="search-info">
             {searchTerm && (
               <p>
@@ -1358,6 +1686,17 @@ const EditableTable = () => {
           <table className="editable-table">
             <thead>
               <tr>
+                <th className="checkbox-header sticky-top-left">
+                  <div className="checkbox-container">
+                    <input
+                      type="checkbox"
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      className="select-all-checkbox"
+                      title="Выбрать все из текущего фильтра"
+                    />
+                  </div>
+                </th>
                 <th className="row-header sticky-top-left">
                   <div className="id-header">ID</div>
                 </th>
@@ -1384,7 +1723,7 @@ const EditableTable = () => {
             <tbody>
               {sortedFilteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={42} className="no-data">
+                  <td colSpan={43} className="no-data">
                     {data.length === 0 ? 'Нет данных. Создайте первую запись.' : 'Нет результатов по вашему запросу.'}
                   </td>
                 </tr>
@@ -1393,6 +1732,16 @@ const EditableTable = () => {
                   const originalIndex = data.indexOf(row);
                   return (
                     <tr key={`row-${row.id}`} className="table-row">
+                      <td className="checkbox-cell sticky-left">
+                        <div className="checkbox-container">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.has(row.id)}
+                            onChange={() => handleSelectRow(row.id)}
+                            className="row-checkbox"
+                          />
+                        </div>
+                      </td>
                       <td className="row-header sticky-left">
                         <div className="id-cell">{row.id || originalIndex + 1}</div>
                       </td>
