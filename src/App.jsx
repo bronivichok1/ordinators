@@ -36,11 +36,11 @@ function App() {
   const [showEditPassword, setShowEditPassword] = useState(false);
 
   const ADMIN_CREDENTIALS = {
-    login: process.env.REACT_APP_ADMIN_LOGIN || 'admin',
-    password: process.env.REACT_APP_ADMIN_PASSWORD || 'admin123'
+    login: process.env.REACT_APP_ADMIN_LOGIN,
+    password: process.env.REACT_APP_ADMIN_PASSWORD
   };
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  const API_URL = process.env.REACT_APP_API_URL;
 
   const getAdminToken = async () => {
     try {
@@ -276,9 +276,9 @@ function App() {
           password: adminFormData.adminPassword
         })
       });
-
+  
       const data = await response.json();
-      if (response.ok && data.user.role === 'admin') {
+      if (response.ok &&(data.user.role == 'dispatcher'||data.user.role == 'admin')) {
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
         setMessage({ text: 'Доступ подтвержден!', type: 'success' });
@@ -358,7 +358,7 @@ function App() {
     
     if (token && userData) {
       const user = JSON.parse(userData);
-      if (user.role === 'admin') {
+      if (user.role == 'admin'||user.role =='dispatcher') {
         setCurrentPage('admin-panel');
         loadUsers();
       }
@@ -421,14 +421,14 @@ function App() {
             </div>
           </div>
           
-          <button type="submit" className="submit-button" disabled={loading}>
+          <button type="submit" className="submitauth-button" disabled={loading}>
             <LogIn size={20} /><span>{loading ? 'Вход...' : 'Войти'}</span>
           </button>
           
           <div className="auth-footer">
             <p className="register-link">
               <a href="#" onClick={(e) => { e.preventDefault(); setCurrentPage('admin-auth'); }}>
-                <Shield size={16} /> Регистрация новых пользователей (только для админа)
+                <Shield size={16} /> Регистрация новых пользователей (только для администратора)
               </a>
             </p>
           </div>
@@ -483,7 +483,7 @@ function App() {
             </div>
           </div>
           
-          <button type="submit" className="submit-button" disabled={loading}>
+          <button type="submit" className="submitauth-button" disabled={loading}>
             <Shield size={20} /><span>{loading ? 'Вход...' : 'Войти как админ'}</span>
           </button>
           
@@ -601,22 +601,23 @@ function App() {
             <label className="input-label"><Shield size={18} /><span>Роль</span></label>
             <div className="password-field-wrapper">
               <div className="input-wrapper">
-                <select 
+              <select 
                   className="input-field" 
                   value={registerData.role} 
                   onChange={(e) => setRegisterData({...registerData, role: e.target.value})} 
                   disabled={loading}
                 >
-                  <option value="user">Пользователь</option>
                   <option value="admin">Администратор</option>
-                  <option value="manager">Менеджер</option>
+                  <option value="dispatcher">Диспетчер</option>
+                  <option value="passportist">Паспортист</option>
+                  <option value="supervisor">Руководитель</option>
                 </select>
               </div>
             </div>
           </div>
 
-          <button type="submit" className="submit-button" disabled={loading}>
-            <UserPlus size={20} /><span>{loading ? 'Регистрация...' : 'Зарегистрировать'}</span>
+          <button type="submit" className="back-button" disabled={loading}>
+            <UserPlus size={20} />{loading ? 'Регистрация...' : 'Зарегистрировать'}
           </button>
           
           <div className="auth-footer">
@@ -724,7 +725,9 @@ function App() {
                   <div className='role-div'>
                     <span className={`role-badge role-${user.role}`}>
                       {user.role === 'admin' ? 'Администратор' : 
-                       user.role === 'manager' ? 'Менеджер' : 'Пользователь'}
+                      user.role === 'dispatcher' ? 'Диспетчер' :
+                      user.role === 'passportist' ? 'Паспортист' :
+                      user.role === 'supervisor' ? 'Руководитель' : 'Пользователь'}
                     </span>
                   </div>
                   <div className="actions">
@@ -845,16 +848,17 @@ function App() {
                   <label className="input-label"><Shield size={18} /><span>Роль</span></label>
                   <div className="password-field-wrapper">
                     <div className="input-wrapper">
-                      <select 
-                        className="input-field" 
-                        value={editFormData.role} 
-                        onChange={(e) => setEditFormData({...editFormData, role: e.target.value})} 
-                        disabled={loading}
-                      >
-                        <option value="user">Пользователь</option>
-                        <option value="admin">Администратор</option>
-                        <option value="manager">Менеджер</option>
-                      </select>
+                    <select 
+                      className="input-field" 
+                      value={editFormData.role} 
+                      onChange={(e) => setEditFormData({...editFormData, role: e.target.value})} 
+                      disabled={loading}
+                    >
+                      <option value="admin">Администратор</option>
+                      <option value="dispatcher">Диспетчер</option>
+                      <option value="passportist">Паспортист</option>
+                      <option value="supervisor">Руководитель</option>
+                    </select>
                     </div>
                   </div>
                 </div>
@@ -904,21 +908,20 @@ function App() {
 
                 <div className="modal-actions">
                   <button 
+                      type="button" 
+                      className="submit-button" 
+                      onClick={saveEditUser}
+                      disabled={loading}
+                    >
+                    <Save size={16} /> {loading ? 'Сохранение...' : 'Сохранить изменения'}
+                  </button>
+                  <button 
                     type="button" 
                     className="cancel-button" 
                     onClick={closeEditModal}
                     disabled={loading}
                   >
-                    <X size={16} /> Отмена
-                  </button>
-                  
-                  <button 
-                    type="button" 
-                    className="submit-button" 
-                    onClick={saveEditUser}
-                    disabled={loading}
-                  >
-                    <Save size={16} /> {loading ? 'Сохранение...' : 'Сохранить изменения'}
+                    Отмена
                   </button>
                 </div>
               </form>

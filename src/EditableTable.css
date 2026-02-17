@@ -102,6 +102,48 @@
   gap: 5px;
 }
 
+.export-button:hover {
+  background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
+  box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
+}
+
+.export-button {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #36d1dc 0%, #5be562 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.refresh-button:hover {
+  background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
+  box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
+}
+
+.refresh-button {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #36d1dc 0%, #5be562 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .create-row-button:hover {
   background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
   box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
@@ -327,6 +369,29 @@ mark {
   box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
 }
 
+.export-row-button {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f8cf04 0%, #efae14 100%);color: rgb(255, 255, 255);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  width: 100%;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.export-row-button:hover {
+  background: linear-gradient(135deg, #ffe883 0%, #ffde68 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(246, 232, 143, 0.3);
+}
+
 .no-results {
   text-align: center;
   padding: 40px;
@@ -391,6 +456,68 @@ mark {
 .modal-header h2 {
   margin: 0;
   font-size: 20px;
+}
+
+.export-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.export-menu {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease;
+}
+
+.export-menu h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  text-align: center;
+}
+
+.export-option {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.export-option:hover {
+  opacity: 0.9;
+}
+
+.cancel-button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 15px;
+  background: #aaa;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background: #888;
 }
 
 .close-button {
@@ -496,7 +623,7 @@ mark {
   border-top: 1px solid #e0e0e0;
 }
 
-.cancel-button, .save-button {
+.cancel-button-modal, .save-button {
   padding: 12px 24px;
   border: none;
   border-radius: 6px;
@@ -507,15 +634,17 @@ mark {
   min-width: 150px;
 }
 
-.cancel-button {
+.cancel-button-modal {
   background-color: #f8f9fa;
   color: #666;
   border: 2px solid #ddd;
 }
 
-.cancel-button:hover {
-  background-color: #e9ecef;
+.cancel-button-modal:hover {
   border-color: #ccc;
+  background: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(3, 18, 19, 0.5);
 }
 
 .save-button {
@@ -526,7 +655,7 @@ mark {
 .save-button:hover {
   background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(54, 209, 220, 0.3);
+  box-shadow: 0 4px 12px rgba(54, 209, 220, 0.5);
 }
 
 .create-modal {
@@ -1186,5 +1315,161 @@ mark {
     top: 60px;
     max-height: calc(100vh - 60px);
   }
+}
+
+.no-actions {
+  text-align: center;
+  color: #718096;
+  font-size: 12px;
+  padding: 10px;
+}
+
+/* Уведомление о сортировке */
+.sort-notification {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  z-index: 1000;
+  animation: slideInRight 0.3s ease;
+}
+
+.sort-notification-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.sort-notification-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sort-notification-header strong {
+  font-weight: 600;
+}
+
+.close-notification {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-notification:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.sort-notification-body {
+  padding: 16px;
+}
+
+.sort-notification-body p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.sort-notification-body strong {
+  color: #667eea;
+  font-weight: 600;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Анимация исчезновения */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Стили для выбора страны в модальном окне */
+.country-select {
+  min-width: 250px;
+}
+
+/* Адаптивность уведомления */
+@media (max-width: 768px) {
+  .sort-notification {
+    left: 20px;
+    right: 20px;
+    top: 80px;
+  }
+  
+  .sort-notification-content {
+    width: 100%;
+  }
+}
+
+/* Стили для react-select */
+.react-select-container {
+  width: 100%;
+  font-size: 16px;
+}
+
+.react-select__control {
+  min-height: 44px;
+  border: 2px solid #ddd !important;
+  box-shadow: none !important;
+}
+
+.react-select__control:hover {
+  border-color: #bbb !important;
+}
+
+.react-select__control--is-focused {
+  border-color: #36d1dc !important;
+  box-shadow: 0 0 0 3px rgba(54, 209, 220, 0.2) !important;
+}
+
+.react-select__menu {
+  z-index: 9999 !important;
+}
+
+.react-select__option--is-selected {
+  background-color: #36d1dc !important;
+  color: white !important;
+}
+
+.react-select__option--is-focused {
+  background-color: #f0f9ff !important;
+}
+
+.react-select__placeholder {
+  color: #666 !important;
+  font-size: 16px;
+}
+
+.react-select__input input {
+  font-size: 16px !important;
 }
 
