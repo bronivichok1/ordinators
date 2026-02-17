@@ -102,6 +102,48 @@
   gap: 5px;
 }
 
+.export-button:hover {
+  background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
+  box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
+}
+
+.export-button {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #36d1dc 0%, #5be562 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.refresh-button:hover {
+  background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
+  box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
+}
+
+.refresh-button {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #36d1dc 0%, #5be562 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .create-row-button:hover {
   background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
   box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
@@ -327,6 +369,29 @@ mark {
   box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
 }
 
+.export-row-button {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f8cf04 0%, #efae14 100%);color: rgb(255, 255, 255);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  width: 100%;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.export-row-button:hover {
+  background: linear-gradient(135deg, #ffe883 0%, #ffde68 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(246, 232, 143, 0.3);
+}
+
 .no-results {
   text-align: center;
   padding: 40px;
@@ -391,6 +456,68 @@ mark {
 .modal-header h2 {
   margin: 0;
   font-size: 20px;
+}
+
+.export-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.export-menu {
+  background-color: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.3s ease;
+}
+
+.export-menu h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  text-align: center;
+}
+
+.export-option {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.export-option:hover {
+  opacity: 0.9;
+}
+
+.cancel-button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 15px;
+  background: #aaa;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cancel-button:hover {
+  background: #888;
 }
 
 .close-button {

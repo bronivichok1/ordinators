@@ -10,6 +10,9 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+import { Document, Packer, TextRun, Paragraph } from 'docx';
 
 const EditableTable = () => {
   const navigate = useNavigate();
@@ -21,6 +24,9 @@ const EditableTable = () => {
 
   const API_URL = process.env.REACT_APP_API_URL;
   const BASE_API_URL = `${API_URL}`;
+  const [exportMenuVisible, setExportMenuVisible] = useState(false);
+  const [exportData, setExportData] = useState([]); 
+  const [selectedRowForExport, setSelectedRowForExport] = useState(null);
 
   const ColumnName = [
     '',
@@ -716,6 +722,130 @@ const EditableTable = () => {
     setSortConfig({ key: null, direction: 'ascending' });
   };
 
+ // чтобы экспорт соответствовал тому, что видит пользователь
+const prepareDataForExport = () => {
+  const rows = sortedFilteredData.length ? sortedFilteredData : data;
+
+  return rows.map(row => {
+    const result = {};
+
+    for (let i = 1; i <= 41; i++) {
+      const columnKey = `column${i}`;
+      result[columnKey] = row[columnKey] || '';
+    }
+
+    return result;
+  });
+};
+
+const convertRow = (row) => {
+  const result = {};
+  for (let i = 1; i <= 41; i++) {
+    const key = `column${i}`;
+    const label = ColumnName[i] || `Поле ${i}`;
+    result[label] = row[key] || "";
+  }
+  return result;
+};
+
+const exportToExcel = (rows) => {
+  try {
+    if (!rows.length) {
+      alert("Нет данных для экспорта");
+      return;
+    }
+
+    const labeledRows = rows.map(convertRow);
+    const worksheet = XLSX.utils.json_to_sheet(labeledRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Ординаторы");
+
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    const filename =
+      rows.length === 1
+        ? `${rows[0].column1 || "ordinator"}.xlsx`
+        : "ordinators.xlsx";
+    saveAs(blob, filename);
+
+  } catch (error) {
+    console.error("Ошибка экспорта Excel:", error);
+    alert("Не удалось экспортировать данные в Excel");
+  }
+};
+
+const exportToWord = async (rows) => {
+  try {
+    if (!rows.length) {
+      alert("Нет данных для экспорта");
+      return;
+    }
+
+    const paragraphs = [];
+    paragraphs.push(
+      new Paragraph({
+        text: rows.length === 1 
+          ? "Анкета клинического ординатора"
+          : "Список клинических ординаторов",
+        heading: "Heading1",
+        spacing: { after: 300 }
+      })
+    );
+
+    rows.forEach((row, index) => {
+      const data = convertRow(row);
+
+      if (rows.length > 1) {
+        paragraphs.push(
+          new Paragraph({
+            text: `${index + 1}. ${data["ФИО"] || ""}`,
+            heading: "Heading2",
+            spacing: { after: 200 }
+          })
+        );
+      }
+
+      Object.entries(data).forEach(([label, value]) => {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `${label}: `, bold: true }),
+              new TextRun(value || "")
+            ],
+            spacing: { after: 150 }
+          })
+        );
+      });
+
+      if (rows.length > 1) {
+        paragraphs.push(
+          new Paragraph({
+            text: "──────────────────────────────────────────────",
+            spacing: { before: 200, after: 300 }
+          })
+        );
+      }
+    });
+
+    const doc = new Document({
+      sections: [{ children: paragraphs }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+
+    const filename =
+      rows.length === 1
+        ? `${rows[0].column1 || "ordinator"}.docx`
+        : "ordinators_full.docx";
+
+    saveAs(blob, filename);
+
+  } catch (error) {
+    console.error("Ошибка экспорта Word:", error);
+    alert("Не удалось создать документ");
+  }
+};
+
   const handleSort = (columnKey) => {
     let direction = 'ascending';
     
@@ -1337,6 +1467,15 @@ const EditableTable = () => {
             >
               🔄 Обновить
             </button>
+            <button 
+              className="export-button"
+              onClick={() => {
+                setExportData(prepareDataForExport()); 
+                setExportMenuVisible(true);
+              }}
+            >
+              📤 Экспорт всех
+            </button>
           </div>
           <div className="search-info">
             {searchTerm && (
@@ -1432,6 +1571,15 @@ const EditableTable = () => {
                         {!canEditRow() && !canDeleteRow() && (
                           <div className="no-actions">Только просмотр</div>
                         )}
+                       <button 
+                          className="export-row-button"
+                          onClick={() => {
+                            setExportData([row]);
+                            setExportMenuVisible(true);
+                          }}
+                        >
+                          📝 Экспорт
+                        </button>
                       </td>
                     </tr>
                   );
@@ -1507,6 +1655,38 @@ const EditableTable = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {exportMenuVisible && (
+        <div className="export-menu-overlay">
+          <div className="export-menu">
+            <h3>Экспортировать</h3>
+            <button 
+              className="export-option"
+              onClick={() => {
+                exportToWord(exportData);
+                setExportMenuVisible(false);
+              }}
+            >
+              📝 Word
+            </button>
+            <button 
+              className="export-option"
+              onClick={() => {
+                exportToExcel(exportData);
+                setExportMenuVisible(false);
+              }}
+            >
+              📄 Excel
+            </button>
+            <button 
+              className="cancel-button"
+              onClick={() => setExportMenuVisible(false)}
+            >
+              Отмена
+            </button>
           </div>
         </div>
       )}
