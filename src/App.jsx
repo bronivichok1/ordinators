@@ -662,7 +662,7 @@ function App() {
         <div className="admin-controls">
             <input 
               type="text" 
-              className="search-input" 
+              className="search-input-app" 
               placeholder="Поиск по ФИО или логину..." 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -723,7 +723,7 @@ function App() {
                   <div>{user.fio}</div>
                   <div>{user.login}</div>
                   <div className='role-div'>
-                    <span className={`role-badge role-${user.role}`}>
+                    <span className={`role-badge-app role-${user.role}`}>
                       {user.role === 'admin' ? 'Администратор' : 
                       user.role === 'dispatcher' ? 'Диспетчер' :
                       user.role === 'passportist' ? 'Паспортист' :
@@ -882,7 +882,7 @@ function App() {
                           <input 
                             type="password" 
                             className="input-field" 
-                            placeholder="Новый пароль (оставьте пустым, чтобы не менять)"
+                            placeholder="Новый пароль"
                             value={editFormData.password} 
                             onChange={(e) => setEditFormData({...editFormData, password: e.target.value})}
                             disabled={loading} 
