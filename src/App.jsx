@@ -895,7 +895,7 @@ function App() {
                           <input 
                             type="password" 
                             className="input-field" 
-                            placeholder="Подтвердите новый пароль"
+                            placeholder="Повторите новый пароль"
                             value={editFormData.confirmPassword} 
                             onChange={(e) => setEditFormData({...editFormData, confirmPassword: e.target.value})}
                             disabled={loading} 

@@ -165,6 +165,7 @@ const EditableTable = () => {
     rowData: [],
     otherUniversity: '',
     otherDocument: '',
+    otherDismissalReason: '',
     otherCountry: '',
     selectedPreparationForm: ['очная']
   });
@@ -477,18 +478,18 @@ const EditableTable = () => {
       country: tableData.column5 || 'Беларусь',
       enrollmentDate: tableData.column6 || null,
       dismissalDate: tableData.column7 || null,
-      dismissalReason: tableData.column8 || '',
+      dismissalReason: tableData.column8 === 'иное' ? modalState.otherDismissalReason : tableData.column8 || '',
       socialLeave: tableData.column9 || '',
       socialLeaveStart: tableData.column10 || null,
       socialLeaveEnd: tableData.column11 || null,
       mobilePhone: tableData.column12 || '',
-      universityName: tableData.column13 || 'БГМУ',
-      graduationYear: tableData.column14 || '',
+      universityName: tableData.column13 === 'другое' ? modalState.otherUniversity : tableData.column13 || 'БГМУ',
+      graduationYear: tableData.column14 ? parseInt(tableData.column14) : null,
       department: tableData.column15 || '',
       specialtyProfile: tableData.column16 || '',
       specialty: tableData.column17 || '',
       preparationForm: JSON.stringify(modalState.selectedPreparationForm),
-      identityDocument: tableData.column19 || 'паспорт',
+      identityDocument: tableData.column19 === 'иное' ? modalState.otherDocument : tableData.column19 || 'паспорт',
       documentNumber: tableData.column20 || '',
       identNumber: tableData.column21 || '',
       residenceAddress: tableData.column22 || 'общежитие',
@@ -513,15 +514,6 @@ const EditableTable = () => {
       distributionInfo: tableData.column41 || ''
     };
 
-    if (tableData.column13 === 'другое' && modalState.otherUniversity) {
-      apiData.universityName = modalState.otherUniversity;
-    }
-    if (tableData.column19 === 'иное' && modalState.otherDocument) {
-      apiData.identityDocument = modalState.otherDocument;
-    }
-    if (tableData.column8 === 'иное' && modalState.otherUniversity) {
-      apiData.dismissalReason = modalState.otherUniversity;
-    }
     Object.keys(apiData).forEach(key => apiData[key] === undefined && delete apiData[key]);
     return apiData;
   };
@@ -687,6 +679,7 @@ const EditableTable = () => {
       rowData: [],
       otherUniversity: '',
       otherDocument: '',
+      otherDismissalReason: '',
       otherCountry: '',
       selectedPreparationForm: ['очная']
     });
@@ -713,13 +706,19 @@ const EditableTable = () => {
       }
       let otherUni = '';
       let otherDoc = '';
+      let otherDismissal = '';
       let prepForm = ['очная'];
+      
       if (row['column13'] && !selectOptions.university.includes(row['column13'])) {
         otherUni = row['column13'];
       }
       if (row['column19'] && !selectOptions.identityDocument.includes(row['column19'])) {
         otherDoc = row['column19'];
       }
+      if (row['column8'] && !selectOptions.dismissalReason.includes(row['column8'])) {
+        otherDismissal = row['column8'];
+      }
+      
       try {
         if (row['column18']) {
           const parsed = JSON.parse(row['column18']);
@@ -729,6 +728,7 @@ const EditableTable = () => {
         console.error('Ошибка парсинга данных:', e);
         prepForm = ['очная'];
       }
+      
       setModalState({
         isOpen: true,
         mode: 'edit',
@@ -740,6 +740,7 @@ const EditableTable = () => {
         rowData: rowValues,
         otherUniversity: otherUni,
         otherDocument: otherDoc,
+        otherDismissalReason: otherDismissal,
         otherCountry: '',
         selectedPreparationForm: prepForm
       });
@@ -840,6 +841,7 @@ const EditableTable = () => {
       rowData: [],
       otherUniversity: '',
       otherDocument: '',
+      otherDismissalReason: '',
       otherCountry: '',
       selectedPreparationForm: ['очная']
     });
@@ -1008,22 +1010,33 @@ const EditableTable = () => {
           />
         );
       case 'Причина отчисления':
+        const isOther = !selectOptions.dismissalReason.includes(value) && value !== '';
         return (
           <div>
             <select
-              value={value}
-              onChange={(e) => handleChange(e.target.value)}
+              value={isOther ? 'иное' : value}
+              onChange={(e) => {
+                if (e.target.value === 'иное') {
+                  handleChange('иное');
+                } else {
+                  handleChange(e.target.value);
+                  setModalState(prev => ({ ...prev, otherDismissalReason: '' }));
+                }
+              }}
               className="modal-select"
             >
               {selectOptions.dismissalReason.map(option => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
-            {value === 'иное' && (
+            {(value === 'иное' || isOther) && (
               <input
                 type="text"
-                value={modalState.otherUniversity}
-                onChange={(e) => setModalState(prev => ({ ...prev, otherUniversity: e.target.value }))}
+                value={modalState.otherDismissalReason || (isOther ? value : '')}
+                onChange={(e) => {
+                  setModalState(prev => ({ ...prev, otherDismissalReason: e.target.value }));
+                  handleChange(e.target.value);
+                }}
                 className="other-input"
                 placeholder="Введите причину отчисления"
               />
@@ -1044,38 +1057,53 @@ const EditableTable = () => {
           </select>
         );
       case 'ВУЗ':
+        const isOtherUniversity = !selectOptions.university.includes(value) && value !== '';
         return (
           <div>
             <select
-              value={value}
-              onChange={(e) => handleChange(e.target.value)}
+              value={isOtherUniversity ? 'другое' : value}
+              onChange={(e) => {
+                if (e.target.value === 'другое') {
+                  handleChange('другое');
+                } else {
+                  handleChange(e.target.value);
+                  setModalState(prev => ({ ...prev, otherUniversity: '' }));
+                }
+              }}
               className="modal-select"
             >
               {selectOptions.university.map(option => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
-            {value === 'другое' && (
+            {(value === 'другое' || isOtherUniversity) && (
               <input
                 type="text"
-                value={modalState.otherUniversity}
-                onChange={(e) => setModalState(prev => ({ ...prev, otherUniversity: e.target.value }))}
+                value={modalState.otherUniversity || (isOtherUniversity ? value : '')}
+                onChange={(e) => {
+                  setModalState(prev => ({ ...prev, otherUniversity: e.target.value }));
+                  handleChange(e.target.value);
+                }}
                 className="other-input"
                 placeholder="Введите название ВУЗа"
               />
             )}
           </div>
         );
-      case 'Год окончания':
-        return (
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-            maxLength="4"
-          />
-        );
+        case 'Год окончания':
+          return (
+            <input
+              type="text"
+              value={value || ''}
+              onChange={(e) => {
+                const year = e.target.value.replace(/\D/g, '').slice(0, 4);
+                handleChange(year);
+              }}
+              className="modal-input"
+              maxLength="4"
+              placeholder="ГГГГ"
+            />
+          );
       case 'Форма подготовки':
         return (
           <div className="checkbox-group">
@@ -1093,22 +1121,33 @@ const EditableTable = () => {
           </div>
         );
       case 'Документ, удостоверяющий личность':
+        const isOtherDocument = !selectOptions.identityDocument.includes(value) && value !== '';
         return (
           <div>
             <select
-              value={value}
-              onChange={(e) => handleChange(e.target.value)}
+              value={isOtherDocument ? 'иное' : value}
+              onChange={(e) => {
+                if (e.target.value === 'иное') {
+                  handleChange('иное');
+                } else {
+                  handleChange(e.target.value);
+                  setModalState(prev => ({ ...prev, otherDocument: '' }));
+                }
+              }}
               className="modal-select"
             >
               {selectOptions.identityDocument.map(option => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
-            {value === 'иное' && (
+            {(value === 'иное' || isOtherDocument) && (
               <input
                 type="text"
-                value={modalState.otherDocument}
-                onChange={(e) => setModalState(prev => ({ ...prev, otherDocument: e.target.value }))}
+                value={modalState.otherDocument || (isOtherDocument ? value : '')}
+                onChange={(e) => {
+                  setModalState(prev => ({ ...prev, otherDocument: e.target.value }));
+                  handleChange(e.target.value);
+                }}
                 className="other-input"
                 placeholder="Введите название документа"
               />
@@ -1383,10 +1422,10 @@ const EditableTable = () => {
               <div className="user-menu">
                 <div className="menu-section">
                   <div className="menu-header">Управление</div>
-                  <div className="menu-item" onClick={() => setShowUserMenu(false)}>
+                  {/*<div className="menu-item" onClick={() => setShowUserMenu(false)}>
                     <User size={16} />
                     <span>Мой профиль</span>
-                  </div>
+                  </div>*/}
                   {userData.role === 'admin' && (
                     <div className="menu-item" onClick={goToAdminPanel}>
                       <Shield size={16} />
