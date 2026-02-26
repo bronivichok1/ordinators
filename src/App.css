@@ -590,36 +590,6 @@ input:-moz-ui-invalid {
   transform: none !important;
 }
 
-.role-admin {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
-}
-
-.role-dispatcher {
-  background: #e8f4fd;
-  color: #0c63e4;
-  border: 1px solid #b6d4fe;
-}
-
-.role-passportist {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
-}
-
-.role-supervisor {
-  background: #d1e7dd;
-  color: #0f5132;
-  border: 1px solid #badbcc;
-}
-
-.role-user {
-  background: #e2e3e5;
-  color: #383d41;
-  border: 1px solid #d6d8db;
-}
-
 .admin-footer {
   margin-top: 30px;
   padding-top: 20px;

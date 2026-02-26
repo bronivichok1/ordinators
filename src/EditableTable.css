@@ -149,7 +149,7 @@
 .sort-info {
   margin: 0;
   color: #666;
-  font-size: 14px;
+  font-size: 16px;
   padding: 8px 0;
   border-top: 1px solid #eee;
 }
@@ -347,7 +347,7 @@
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   width: 100%;
   color: white;
@@ -450,7 +450,7 @@
 }
 
 .column-name {
-  font-size: 14px;
+  font-size: 16px;
   color: #334155;
   flex: 1;
 }
@@ -462,7 +462,7 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   width: fit-content;
   display: block;
@@ -598,7 +598,7 @@ mark {
 .column-number {
   font-weight: 600;
   color: #333;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .modal-input,
@@ -606,7 +606,7 @@ mark {
   padding: 10px 15px;
   border: 2px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .modal-input:focus,
@@ -630,14 +630,14 @@ mark {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 500;
   min-width: 150px;
 }
 
 .cancel-button-modal {
-  background-color: #f8f9fa;
-  color: #666;
+  background-color: #faf8f8;
+  color: #4d4d4d;
   border: 2px solid #ddd;
 }
 
@@ -683,7 +683,7 @@ mark {
   padding: 10px 15px;
   border: 2px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   width: 98%;
 }
 
@@ -756,14 +756,14 @@ mark {
 
 .user-name {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .role-badge {
-  font-size: 10px;
+  font-size: 13px;
   padding: 2px 8px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
@@ -856,7 +856,7 @@ mark {
   padding: 8px 16px;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -907,4 +907,47 @@ mark {
 .columns-editor::-webkit-scrollbar-thumb:hover,
 .column-selector-grid::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.view-row-button{
+  background-color: #2563eb;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  width: 100%;
+  color: white;
+  background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+
+}
+
+.view-row-button:hover {
+  background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
+}
+
+.export-confirm-button{
+  background-color: #10b981;;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  margin-right: 10px;
+}
+.export-cancel-button{
+  background-color: #f11818;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  background: linear-gradient(135deg, #ee5045 0%, #b61717 100%);
 }

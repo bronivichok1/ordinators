@@ -32,7 +32,10 @@ const EditableTable = () => {
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState(new Set());
-  const [exportFormat, setExportFormat] = useState('excel');
+  const [exportFormats, setExportFormats] = useState({
+    excel: true,
+    word: false
+  });
 
   const API_URL = process.env.REACT_APP_API_URL;
   const BASE_API_URL = `${API_URL}`;
@@ -234,6 +237,13 @@ const EditableTable = () => {
     }
   };
 
+  const handleFormatChange = (format) => {
+    setExportFormats(prev => ({
+      ...prev,
+      [format]: !prev[format]
+    }));
+  };
+
   const prepareDataForExport = () => {
     const selectedData = data.filter(row => selectedRows.has(row.id));
     
@@ -259,26 +269,21 @@ const EditableTable = () => {
     });
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = (exportData) => {
     try {
-      const exportData = prepareDataForExport();
-      if (!exportData) return;
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Ординаторы');
       const fileName = `ординаторы_${new Date().toISOString().split('T')[0]}_${selectedRows.size}записей.xlsx`;
       XLSX.writeFile(wb, fileName);
-      setShowExportPanel(false);
     } catch (error) {
       console.error('Ошибка экспорта в Excel:', error);
-      alert('Ошибка при экспорте в Excel: ' + error.message);
+      throw error;
     }
   };
 
-  const exportToWord = () => {
+  const exportToWord = (exportData) => {
     try {
-      const exportData = prepareDataForExport();
-      if (!exportData) return;
       let html = `
         <html>
         <head>
@@ -304,15 +309,18 @@ const EditableTable = () => {
             <thead>
               <tr>
       `;
+      
       const headers = Object.keys(exportData[0]);
       headers.forEach(header => {
         html += `<th>${header}</th>`;
       });
+      
       html += `
               </tr>
             </thead>
             <tbody>
       `;
+      
       exportData.forEach(row => {
         html += '<tr>';
         headers.forEach(header => {
@@ -320,35 +328,63 @@ const EditableTable = () => {
         });
         html += '</tr>';
       });
+      
       html += `
             </tbody>
           </table>
         </body>
         </html>
       `;
+      
       const blob = new Blob([html], { type: 'application/msword' });
       const fileName = `ординаторы_${new Date().toISOString().split('T')[0]}_${selectedRows.size}записей.doc`;
       saveAs(blob, fileName);
-      setShowExportPanel(false);
     } catch (error) {
       console.error('Ошибка экспорта в Word:', error);
-      alert('Ошибка при экспорте в Word: ' + error.message);
+      throw error;
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (selectedRows.size === 0) {
       alert('Сначала выберите записи для экспорта');
       return;
     }
+    
     if (selectedColumns.size === 0) {
       alert('Выберите хотя бы одну колонку для экспорта');
       return;
     }
-    if (exportFormat === 'excel') {
-      exportToExcel();
-    } else {
-      exportToWord();
+
+    if (!exportFormats.excel && !exportFormats.word) {
+      alert('Выберите хотя бы один формат экспорта');
+      return;
+    }
+
+    try {
+      const exportData = prepareDataForExport();
+      if (!exportData) return;
+
+      if (exportFormats.excel) {
+        await exportToExcel(exportData);
+      }
+      
+      if (exportFormats.word) {
+        await exportToWord(exportData);
+      }
+
+      setShowExportPanel(false);
+      
+      if (exportFormats.excel && exportFormats.word) {
+        alert('Экспорт выполнен успешно в форматах Excel и Word');
+      } else if (exportFormats.excel) {
+        alert('Экспорт в Excel выполнен успешно');
+      } else if (exportFormats.word) {
+        alert('Экспорт в Word выполнен успешно');
+      }
+    } catch (error) {
+      console.error('Ошибка экспорта:', error);
+      alert('Ошибка при экспорте: ' + error.message);
     }
   };
 
@@ -685,11 +721,13 @@ const EditableTable = () => {
     });
   };
 
-  const handleRowClick = async (rowIndex, row) => {
-    if (!canEditRow()) {
+  const handleRowClick = async (rowIndex, row, mode = 'edit') => {
+    // Проверяем права доступа
+    if (mode === 'edit' && !canEditRow()) {
       alert('У вас нет прав для редактирования');
       return;
     }
+    
     try {
       const response = await apiRequest(`/ordinators/${row.id}`);
       const ordinator = response;
@@ -704,6 +742,7 @@ const EditableTable = () => {
           columnNumber: i
         });
       }
+      
       let otherUni = '';
       let otherDoc = '';
       let otherDismissal = '';
@@ -731,7 +770,7 @@ const EditableTable = () => {
       
       setModalState({
         isOpen: true,
-        mode: 'edit',
+        mode: mode, // 'edit' или 'view'
         selectedRow: {
           index: rowIndex,
           id: row.id,
@@ -747,7 +786,7 @@ const EditableTable = () => {
       setNewRowData({ ...row });
     } catch (error) {
       console.error('Error fetching ordinator details:', error);
-      alert('Не удалось загрузить данные для редактирования');
+      alert('Не удалось загрузить данные');
     }
   };
 
@@ -926,8 +965,9 @@ const EditableTable = () => {
       value = JSON.stringify(modalState.selectedPreparationForm);
     }
     
-    const isReadOnly = userData?.role === 'supervisor' || (userData?.role === 'passportist' && 
-      ![23, 24].includes(columnNumber));
+    const isReadOnly = modalState.mode === 'view' || 
+      userData?.role === 'supervisor' || 
+      (userData?.role === 'passportist' && ![23, 24].includes(columnNumber));
 
     const handleChange = (newValue) => {
       if (isReadOnly) return;
@@ -1410,7 +1450,7 @@ const EditableTable = () => {
             <div className="user-details">
               <div className="user-name">{userData.fio || userData.login}</div>
               <div className="user-role">
-                <span className={`role-badge role-${userData.role}`}>
+                <span className={`role-badge role-${userData.role}-table`}>
                   {userData.role === 'admin' ? 'Администратор' : 
                   userData.role === 'dispatcher' ? 'Диспетчер' :
                   userData.role === 'passportist' ? 'Паспортист' :
@@ -1422,10 +1462,6 @@ const EditableTable = () => {
               <div className="user-menu">
                 <div className="menu-section">
                   <div className="menu-header">Управление</div>
-                  {/*<div className="menu-item" onClick={() => setShowUserMenu(false)}>
-                    <User size={16} />
-                    <span>Мой профиль</span>
-                  </div>*/}
                   {userData.role === 'admin' && (
                     <div className="menu-item" onClick={goToAdminPanel}>
                       <Shield size={16} />
@@ -1563,15 +1599,62 @@ const EditableTable = () => {
               <span>Колонки</span>
             </button>
             <button 
-              onClick={handleExport}
+              onClick={() => setShowExportPanel(!showExportPanel)}
               className="export-button"
-              title="Экспорт выбранных записей"
+              title="Настройки экспорта"
               disabled={selectedRows.size === 0}
             >
               <Download size={18} />
               <span>Экспорт ({selectedRows.size})</span>
             </button>
           </div>
+          
+          {showExportPanel && (
+            <div className="export-panel">
+              <div className="export-panel-header">
+                <h3>Настройки экспорта</h3>
+              </div>
+              <div className="export-formats">
+                <label className="format-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={exportFormats.excel}
+                    onChange={() => handleFormatChange('excel')}
+                  />
+                  <FileSpreadsheet size={18} />
+                  <span>Excel (.xlsx)</span>
+                </label>
+                <label className="format-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={exportFormats.word}
+                    onChange={() => handleFormatChange('word')}
+                  />
+                  <FileText size={18} />
+                  <span>Word (.doc)</span>
+                </label>
+              </div>
+              <div className="export-info">
+                <p>Выбрано записей: {selectedRows.size}</p>
+                <p>Выбрано колонок: {selectedColumns.size} из 41</p>
+              </div>
+              <div className="export-actions">
+                <button 
+                  onClick={handleExport}
+                  className="export-confirm-button"
+                  disabled={!exportFormats.excel && !exportFormats.word}
+                >
+                  Выполнить экспорт
+                </button>
+                <button 
+                  onClick={() => setShowExportPanel(false)}
+                  className="export-cancel-button"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
           
           {showColumnSelector && (
             <div className="column-selector-panel">
@@ -1721,26 +1804,38 @@ const EditableTable = () => {
                         );
                       })}
                       <td className="action-cell sticky-right">
-                        {isEditAllowed && (
+                        {userData?.role === 'supervisor' ? (
                           <button 
-                            onClick={() => handleRowClick(originalIndex, row)}
-                            className="edit-row-button"
-                            title="Редактировать эту строку"
+                            onClick={() => handleRowClick(originalIndex, row, 'view')}
+                            className="view-row-button"
+                            title="Просмотреть запись"
                           >
-                            ✏️ Редактировать
+                            👁️ Просмотр
                           </button>
-                        )}
-                        {isDeleteAllowed && (
-                          <button 
-                            onClick={() => handleDeleteRow(originalIndex, row)}
-                            className="delete-row-button"
-                            title="Удалить эту строку"
-                          >
-                            🗑️ Удалить
-                          </button>
-                        )}
-                        {!isEditAllowed && !isDeleteAllowed && (
-                          <div className="no-actions">Только просмотр</div>
+                        ) : (
+                          <>
+                            {isEditAllowed && (
+                              <button 
+                                onClick={() => handleRowClick(originalIndex, row, 'edit')}
+                                className="edit-row-button"
+                                title="Редактировать эту строку"
+                              >
+                                ✏️ Редактировать
+                              </button>
+                            )}
+                            {isDeleteAllowed && (
+                              <button 
+                                onClick={() => handleDeleteRow(originalIndex, row)}
+                                className="delete-row-button"
+                                title="Удалить эту строку"
+                              >
+                                🗑️ Удалить
+                              </button>
+                            )}
+                            {!isEditAllowed && !isDeleteAllowed && userData?.role !== 'supervisor' && (
+                              <div className="no-actions">Только просмотр</div>
+                            )}
+                          </>
                         )}
                       </td>
                     </tr>
@@ -1765,7 +1860,9 @@ const EditableTable = () => {
               <h2>
                 {modalState.mode === 'create' 
                   ? 'Создание нового ординатора' 
-                  : `Редактирование ординатора #${modalState.selectedRow?.id || modalState.selectedRow?.index + 1}`}
+                  : modalState.mode === 'view'
+                    ? `Просмотр ординатора #${modalState.selectedRow?.id || modalState.selectedRow?.index + 1}`
+                    : `Редактирование ординатора #${modalState.selectedRow?.id || modalState.selectedRow?.index + 1}`}
               </h2>
               <button onClick={handleCancel} className="close-button">&times;</button>
             </div>
@@ -1776,9 +1873,14 @@ const EditableTable = () => {
                   <p>
                     {modalState.mode === 'create' 
                       ? 'Заполните данные нового ординатора' 
-                      : 'Редактирование данных ординатора'}
+                      : modalState.mode === 'view'
+                        ? 'Просмотр данных ординатора'
+                        : 'Редактирование данных ординатора'}
                   </p>
                   {modalState.mode === 'edit' && (
+                    <p className="editor-note">ID: {modalState.selectedRow?.id}</p>
+                  )}
+                  {modalState.mode === 'view' && (
                     <p className="editor-note">ID: {modalState.selectedRow?.id}</p>
                   )}
                 </div>
@@ -1787,7 +1889,7 @@ const EditableTable = () => {
                   {columns.map((column, index) => {
                     const columnNumber = parseInt(column.replace('column', ''));
                     const fieldName = ColumnName[columnNumber];
-                    const currentValue = modalState.mode === 'edit' 
+                    const currentValue = modalState.mode === 'edit' || modalState.mode === 'view'
                       ? modalState.rowData.find(item => item.columnName === column)?.value || ''
                       : '';
                     
@@ -1799,7 +1901,7 @@ const EditableTable = () => {
                         {renderModalField(
                           column, 
                           columnNumber, 
-                          modalState.mode === 'edit', 
+                          modalState.mode === 'edit' || modalState.mode === 'view', 
                           currentValue
                         )}
                       </div>
@@ -1808,11 +1910,13 @@ const EditableTable = () => {
                 </div>
                 
                 <div className="modal-actions">
-                  <button onClick={handleSave} className="save-button">
-                    {modalState.mode === 'create' ? 'Создать ординатора' : 'Сохранить изменения'}
-                  </button>
+                  {modalState.mode !== 'view' && (
+                    <button onClick={handleSave} className="save-button">
+                      {modalState.mode === 'create' ? 'Создать ординатора' : 'Сохранить изменения'}
+                    </button>
+                  )}
                   <button onClick={handleCancel} className="cancel-button-modal">
-                    Отмена
+                    {modalState.mode === 'view' ? 'Закрыть' : 'Отмена'}
                   </button>
                 </div>
               </div>

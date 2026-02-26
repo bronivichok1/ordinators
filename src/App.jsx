@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   User, Lock, Eye, EyeOff, LogIn, UserPlus,
   Key, Mail, Users, Shield, ArrowLeft, LogOut,
-  Edit, Trash2, Save, X, Search, Table, KeyRound, XCircle
+  Edit, Trash2, Save, X, Search, Table, KeyRound, XCircle,
+  FileText // Добавляем иконку для логов
 } from 'lucide-react';
 
 function App() {
@@ -41,6 +42,11 @@ function App() {
   };
 
   const API_URL = process.env.REACT_APP_API_URL;
+
+  // Функция для перехода к логам
+  const goToLogs = () => {
+    navigate('/logs');
+  };
 
   const getAdminToken = async () => {
     try {
@@ -648,137 +654,168 @@ function App() {
     </div>
   );
 
-  const renderAdminPanel = () => (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <div className="logo-container"><div className="logo"><Shield size={32} /></div></div>
-          <h1 className="auth-title">Панель администратора</h1>
-          <p className="auth-subtitle">Управление пользователями системы</p>
-        </div>
+  const renderAdminPanel = () => {
+    // Получаем данные пользователя для проверки роли
+    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+    const canViewLogs = userData.role === 'admin' || userData.role === 'dispatcher';
 
-        {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
-
-        <div className="admin-controls">
-            <input 
-              type="text" 
-              className="search-input-app" 
-              placeholder="Поиск по ФИО или логину..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)}
-              disabled={loading}
-            />
-          
-          <div className="admin-stats">
-            <div className="stat-item">
-              <span className="stat-label">Всего пользователей:</span>
-              <span className="stat-value">{users.length}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Найдено:</span>
-              <span className="stat-value">{filteredUsers.length}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="users-list-container">
-          <div className="users-list-header">
-            <h3>Список пользователей</h3>
-            <button 
-              className="add-user-button" 
-              onClick={() => setCurrentPage('register')}
-              disabled={loading}
-            >
-              <UserPlus size={16} /><span>Добавить нового пользователя</span>
-            </button>
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-header">
+            <div className="logo-container"><div className="logo"><Shield size={32} /></div></div>
+            <h1 className="auth-title">Панель администратора</h1>
+            <p className="auth-subtitle">Управление пользователями системы</p>
           </div>
 
-          {loading ? (
-            <div className="loading-users">Загрузка пользователей...</div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="no-users">
-              {users.length === 0 ? 'Пользователей нет' : 'Пользователи не найдены'}
-              <br />
+          {message.text && <div className={`message ${message.type}`}>{message.text}</div>}
+
+          <div className="admin-controls">
+              <input 
+                type="text" 
+                className="search-input-app" 
+                placeholder="Поиск по ФИО или логину..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={loading}
+              />
+            
+            <div className="admin-stats">
+              <div className="stat-item">
+                <span className="stat-label">Всего пользователей:</span>
+                <span className="stat-value">{users.length}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Найдено:</span>
+                <span className="stat-value">{filteredUsers.length}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="users-list-container">
+            <div className="users-list-header">
+              <h3>Список пользователей</h3>
               <button 
                 className="add-user-button" 
                 onClick={() => setCurrentPage('register')}
-                style={{ marginTop: '10px' }}
+                disabled={loading}
               >
-                <UserPlus size={16} /><span>Добавить первого пользователя</span>
+                <UserPlus size={16} /><span>Добавить нового пользователя</span>
               </button>
             </div>
-          ) : (
-            <div className="users-table">
-              <div className="table-header">
-                <div>ID</div>
-                <div>ФИО</div>
-                <div>Логин</div>
-                <div className='div-role'>Роль</div>
-                <div className='div-action'>Действия</div>
-              </div>
-              
-              {filteredUsers.map(user => (
-                <div key={user.id} className="table-row-app">
-                  <div>{user.id}</div>
-                  <div>{user.fio}</div>
-                  <div>{user.login}</div>
-                  <div className='role-div'>
-                    <span className={`role-badge-app role-${user.role}`}>
-                      {user.role === 'admin' ? 'Администратор' : 
-                      user.role === 'dispatcher' ? 'Диспетчер' :
-                      user.role === 'passportist' ? 'Паспортист' :
-                      user.role === 'supervisor' ? 'Руководитель' : 'Пользователь'}
-                    </span>
-                  </div>
-                  <div className="actions">
-                    <button 
-                      className="action-button edit-button" 
-                      onClick={() => openEditModal(user)}
-                      disabled={loading}
-                    >
-                      <Edit size={16} /> Изменить
-                    </button>
-                    <button 
-                      className="action-button delete-button" 
-                      onClick={() => deleteUser(user.id)}
-                      disabled={loading}
-                    >
-                      <Trash2 size={16} /> Удалить
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
-        <div className="admin-footer">
-          <div className="admin-footer-actions">
-            <button 
-              className="table-button" 
-              onClick={goToTable}
-              disabled={loading}
-            >
-              <Table size={16} /><span>Перейти к таблице</span>
-            </button>
-            
-            <button 
-              className="logout-button" 
-              onClick={() => { 
-                localStorage.clear(); 
-                navigate('/');
-                window.location.reload()
-                setMessage({ text: 'Вы вышли из системы', type: 'success' });
-              }}
-              disabled={loading}
-            >
-              <LogOut size={16} /><span>Выйти из системы</span>
-            </button>
+            {loading ? (
+              <div className="loading-users">Загрузка пользователей...</div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="no-users">
+                {users.length === 0 ? 'Пользователей нет' : 'Пользователи не найдены'}
+                <br />
+                <button 
+                  className="add-user-button" 
+                  onClick={() => setCurrentPage('register')}
+                  style={{ marginTop: '10px' }}
+                >
+                  <UserPlus size={16} /><span>Добавить первого пользователя</span>
+                </button>
+              </div>
+            ) : (
+              <div className="users-table">
+                <div className="table-header">
+                  <div>ID</div>
+                  <div>ФИО</div>
+                  <div>Логин</div>
+                  <div className='div-role'>Роль</div>
+                  <div className='div-action'>Действия</div>
+                </div>
+                
+                {filteredUsers.map(user => (
+                  <div key={user.id} className="table-row-app">
+                    <div>{user.id}</div>
+                    <div>{user.fio}</div>
+                    <div>{user.login}</div>
+                    <div className='role-div'>
+                      <span className={`role-badge-app role-${user.role}`}>
+                        {user.role === 'admin' ? 'Администратор' : 
+                        user.role === 'dispatcher' ? 'Диспетчер' :
+                        user.role === 'passportist' ? 'Паспортист' :
+                        user.role === 'supervisor' ? 'Руководитель' : 'Пользователь'}
+                      </span>
+                    </div>
+                    <div className="actions">
+                      <button 
+                        className="action-button edit-button" 
+                        onClick={() => openEditModal(user)}
+                        disabled={loading}
+                      >
+                        <Edit size={16} /> Изменить
+                      </button>
+                      <button 
+                        className="action-button delete-button" 
+                        onClick={() => deleteUser(user.id)}
+                        disabled={loading}
+                      >
+                        <Trash2 size={16} /> Удалить
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="admin-footer">
+            <div className="admin-footer-actions">
+              <button 
+                className="table-button" 
+                onClick={goToTable}
+                disabled={loading}
+              >
+                <Table size={16} /><span>Перейти к таблице</span>
+              </button>
+              
+              {/* Кнопка просмотра логов - доступна только админам и диспетчерам */}
+              {canViewLogs && (
+                <button 
+                  className="logs-button" 
+                  onClick={goToLogs}
+                  disabled={loading}
+                  style={{
+                    backgroundColor: '#6f42c1',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 16px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <FileText size={16} /><span>Просмотр логов</span>
+                </button>
+              )}
+              
+              <button 
+                className="logout-button" 
+                onClick={() => { 
+                  localStorage.clear(); 
+                  navigate('/');
+                  window.location.reload()
+                  setMessage({ text: 'Вы вышли из системы', type: 'success' });
+                }}
+                disabled={loading}
+              >
+                <LogOut size={16} /><span>Выйти из системы</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Роутинг
   let page;
