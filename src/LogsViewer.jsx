@@ -142,7 +142,7 @@ const LogsViewer = () => {
   };
 
   const handleCleanup = async () => {
-    if (!window.confirm('Удалить логи старше 30 дней? Это действие нельзя отменить.')) {
+    if (!window.confirm('Удалить все логи? Это действие нельзя отменить.')) {
       return;
     }
 
@@ -199,7 +199,6 @@ const LogsViewer = () => {
       const fileName = `логи_${new Date().toISOString().split('T')[0]}${selectedLogs.size > 0 ? `_${selectedLogs.size}записей` : ''}.xlsx`;
       XLSX.writeFile(wb, fileName);
     } catch (error) {
-      console.error('Ошибка экспорта в Excel:', error);
       alert('Ошибка при экспорте в Excel');
     }
   };

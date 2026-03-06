@@ -43,29 +43,24 @@ function App() {
 
   const API_URL = process.env.REACT_APP_API_URL;
 
-  // Функция для перехода к логам
   const goToLogs = () => {
     navigate('/logs');
   };
 
   const getAdminToken = async () => {
     try {
-      console.log('Пытаюсь получить токен админа...');
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ADMIN_CREDENTIALS)
       });
       
-      console.log('Ответ сервера:', response.status);
       const data = await response.json();
       
       if (response.ok) {
-        console.log('Токен получен успешно');
         return data.access_token;
       }
       
-      console.log('Админ не найден, пытаюсь создать...');
       const registerResponse = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,7 +72,6 @@ function App() {
         })
       });
       
-      console.log('Регистрация админа:', registerResponse.status);
       if (registerResponse.ok) {
         const loginResponse = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
@@ -88,7 +82,6 @@ function App() {
         return loginData.access_token;
       }
     } catch (error) {
-      console.error('Ошибка получения токена:', error);
     }
     return null;
   };
@@ -96,34 +89,27 @@ function App() {
   const loadUsers = async () => {
     setLoading(true);
     try {
-      console.log('Загружаю пользователей...');
       const adminToken = await getAdminToken();
       if (!adminToken) {
         setMessage({ text: 'Ошибка авторизации администратора', type: 'error' });
         return;
       }
 
-      console.log('Токен получен, делаю запрос к /users');
       const response = await fetch(`${API_URL}/users`, {
         headers: { 
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
         }
       });
-
-      console.log('Ответ от /users:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Получены пользователи:', data);
         setUsers(data);
       } else {
         const errorText = await response.text();
-        console.error('Ошибка загрузки пользователей:', errorText);
         setMessage({ text: 'Ошибка загрузки списка пользователей', type: 'error' });
       }
     } catch (error) {
-      console.error('Ошибка загрузки:', error);
       setMessage({ text: 'Ошибка соединения с сервером', type: 'error' });
     } finally {
       setLoading(false);
@@ -193,7 +179,6 @@ function App() {
         setMessage({ text: 'Ошибка обновления пользователя', type: 'error' });
       }
     } catch (error) {
-      console.error('Ошибка обновления:', error);
       setMessage({ text: 'Ошибка соединения', type: 'error' });
     } finally {
       setLoading(false);
@@ -221,7 +206,6 @@ function App() {
         setMessage({ text: 'Пользователь удален', type: 'success' });
       }
     } catch (error) {
-      console.error('Ошибка удаления:', error);
     } finally {
       setLoading(false);
     }
@@ -655,7 +639,6 @@ function App() {
   );
 
   const renderAdminPanel = () => {
-    // Получаем данные пользователя для проверки роли
     const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
     const canViewLogs = userData.role === 'admin' || userData.role === 'dispatcher';
 
@@ -773,7 +756,6 @@ function App() {
                 <Table size={16} /><span>Перейти к таблице</span>
               </button>
               
-              {/* Кнопка просмотра логов - доступна только админам и диспетчерам */}
               {canViewLogs && (
                 <button 
                   className="logs-button" 
