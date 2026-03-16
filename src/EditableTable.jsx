@@ -398,6 +398,7 @@ const EditableTable = () => {
     const config = {
       method,
       headers,
+      credentials: 'include',
     };
 
     if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
@@ -650,7 +651,16 @@ const EditableTable = () => {
     return ['admin', 'dispatcher', 'passportist', 'supervisor'].includes(userData.role);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Ошибка при выходе:', error);
+    }
+    
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     navigate('/');
@@ -1669,10 +1679,6 @@ const EditableTable = () => {
                   <span>Word (.doc)</span>
                 </label>
               </div>
-              <div className="export-info">
-                <p>Выбрано записей: {selectedRows.size}</p>
-                <p>Выбрано колонок: {selectedColumns.size} из 41</p>
-              </div>
               <div className="export-actions">
                 <button 
                   onClick={handleExport}
@@ -1725,19 +1731,19 @@ const EditableTable = () => {
           <table className="editable-table">
             <thead>
               <tr>
-                <th className="checkbox-header sticky-top-left">
-                  <div className="checkbox-container">
-                    <input
-                      type="checkbox"
-                      checked={selectAll}
-                      onChange={handleSelectAll}
-                      className="select-all-checkbox"
-                      title="Выбрать все из текущего фильтра"
-                    />
+                <th className="id-checkbox-header sticky-top-left">
+                  <div className="id-checkbox-container">
+                    <span className="id-label">ID</span>
+                    <div className="checkbox-wrapper">
+                      <input
+                        type="checkbox"
+                        checked={selectAll}
+                        onChange={handleSelectAll}
+                        className="select-all-checkbox"
+                        title="Выбрать все из текущего фильтра"
+                      />
+                    </div>
                   </div>
-                </th>
-                <th className="row-header sticky-top-left">
-                  <div className="id-header">ID</div>
                 </th>
                 {columns.map((col, index) => (
                   <th 
@@ -1760,7 +1766,7 @@ const EditableTable = () => {
             <tbody>
               {sortedFilteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={43} className="no-data">
+                  <td colSpan={42} className="no-data">
                     {data.length === 0 ? 'Нет данных. Создайте первую запись.' : 'Нет результатов по вашему запросу.'}
                   </td>
                 </tr>
@@ -1772,18 +1778,18 @@ const EditableTable = () => {
                   
                   return (
                     <tr key={`row-${row.id}`} className="table-row">
-                      <td className="checkbox-cell sticky-left">
-                        <div className="checkbox-container">
-                          <input
-                            type="checkbox"
-                            checked={selectedRows.has(row.id)}
-                            onChange={() => handleSelectRow(row.id)}
-                            className="row-checkbox"
-                          />
+                      <td className="id-checkbox-cell sticky-left">
+                        <div className="id-checkbox-container">
+                          <span className="id-value">{row.id || originalIndex + 1}</span>
+                          <div className="checkbox-wrapper">
+                            <input
+                              type="checkbox"
+                              checked={selectedRows.has(row.id)}
+                              onChange={() => handleSelectRow(row.id)}
+                              className="row-checkbox"
+                            />
+                          </div>
                         </div>
-                      </td>
-                      <td className="row-header sticky-left">
-                        <div className="id-cell">{row.id || originalIndex + 1}</div>
                       </td>
                       {columns.map((column) => {
                         let cellValue = row[column] || '';

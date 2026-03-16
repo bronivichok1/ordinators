@@ -292,10 +292,6 @@
   z-index: 32;
 }
 
-.editable-table td.sticky-left {
-  background-color: white;
-}
-
 .column-header {
   background-color: #4a6fa5;
   font-weight: 600;
@@ -955,4 +951,42 @@ mark {
 .export-panel{
   text-align: center;
   justify-content: center;
+}
+
+.export-formats{
+  margin-bottom: 15px;
+}
+
+.id-checkbox-header,
+.id-checkbox-cell {
+  min-width: 80px;
+  width: 80px;
+  background-color: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  text-align: center;
+}
+
+.id-checkbox-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.id-checkbox-container .id-label {
+  font-weight: bold;
+  color: #333;
+  font-size: 14px;
+}
+
+.id-checkbox-container .checkbox-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.id-checkbox-cell .id-value {
+  font-weight: 500;
+  color: #495057;
+  font-size: 14px;
 }

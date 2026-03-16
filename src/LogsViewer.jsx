@@ -67,7 +67,8 @@ const LogsViewer = () => {
       const response = await fetch(`${API_URL}/logs?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        credentials: 'include',
       });
 
       if (response.status === 401) {
@@ -152,7 +153,8 @@ const LogsViewer = () => {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -167,7 +169,6 @@ const LogsViewer = () => {
 
   const exportToExcel = () => {
     try {
-      // Определяем, какие логи экспортировать
       const logsToExport = selectedLogs.size > 0 
         ? logs.filter(log => selectedLogs.has(log.id))
         : logs;
@@ -239,7 +240,7 @@ const LogsViewer = () => {
         <div className="logs-actions">
           <button 
             className="back-button-logs"
-            onClick={() => navigate('/main')}
+            onClick={() => navigate('/')}
             disabled={loading}
           >
             <ArrowLeft size={16} />

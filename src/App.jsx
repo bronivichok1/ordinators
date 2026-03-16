@@ -5,7 +5,7 @@ import {
   User, Lock, Eye, EyeOff, LogIn, UserPlus,
   Key, Mail, Users, Shield, ArrowLeft, LogOut,
   Edit, Trash2, Save, X, Search, Table, KeyRound, XCircle,
-  FileText // Добавляем иконку для логов
+  FileText
 } from 'lucide-react';
 
 function App() {
@@ -52,6 +52,7 @@ function App() {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(ADMIN_CREDENTIALS)
       });
       
@@ -64,6 +65,7 @@ function App() {
       const registerResponse = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           fio: 'Администратор',
           login: ADMIN_CREDENTIALS.login,
@@ -76,6 +78,7 @@ function App() {
         const loginResponse = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(ADMIN_CREDENTIALS)
         });
         const loginData = await loginResponse.json();
@@ -99,7 +102,8 @@ function App() {
         headers: { 
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include',
       });
       
       if (response.ok) {
@@ -167,6 +171,7 @@ function App() {
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updateData)
       });
 
@@ -198,7 +203,8 @@ function App() {
         headers: { 
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -228,6 +234,7 @@ function App() {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           login: formData.username,
           password: formData.password
@@ -261,6 +268,7 @@ function App() {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           login: adminFormData.adminLogin,
           password: adminFormData.adminPassword
@@ -316,6 +324,7 @@ function App() {
           'Authorization': `Bearer ${adminToken}`,
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           fio: registerData.fio,
           login: registerData.login,
@@ -799,7 +808,6 @@ function App() {
     );
   };
 
-  // Роутинг
   let page;
   switch(currentPage) {
     case 'admin-auth': page = renderAdminAuthPage(); break;
@@ -814,7 +822,6 @@ function App() {
         <div className='App'>{page}</div>
       </div>
 
-      {/* Модальное окно редактирования пользователя */}
       {editModalOpen && (
         <div className="modal-overlay">
           <div className="modal edit-user-modal">
