@@ -951,3 +951,8 @@ mark {
   color: white;
   background: linear-gradient(135deg, #ee5045 0%, #b61717 100%);
 }
+
+.export-panel{
+  text-align: center;
+  justify-content: center;
+}

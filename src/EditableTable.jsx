@@ -28,7 +28,7 @@ const EditableTable = () => {
   const [error, setError] = useState(null);
   
   const [showExportPanel, setShowExportPanel] = useState(false);
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
+  /*const [showColumnSelector, setShowColumnSelector] = useState(false);*/
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState(new Set());
@@ -1590,14 +1590,14 @@ const EditableTable = () => {
             >
               🔄 Обновить
             </button>
-            <button 
+            {/*<button 
               onClick={() => setShowColumnSelector(!showColumnSelector)}
               className="columns-button"
               title="Выбрать колонки для экспорта"
             >
               <Columns size={18} />
               <span>Колонки</span>
-            </button>
+            </button>*/}
             <button 
               onClick={() => setShowExportPanel(!showExportPanel)}
               className="export-button"
@@ -1610,6 +1610,41 @@ const EditableTable = () => {
           </div>
           
           {showExportPanel && (
+            <div className="column-selector-panel">
+              <div className="column-selector-header">
+                <h3>Выбор колонок для экспорта</h3>
+                <button 
+                  onClick={handleSelectAllColumns}
+                  className="select-all-columns-button"
+                >
+                  {selectedColumns.size === 41 ? 'Снять все' : 'Выбрать все'}
+                </button>
+              </div>
+              <div className="column-selector-grid">
+                {ColumnName.slice(1).map((name, index) => (
+                  <label key={index + 1} className="column-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={selectedColumns.has(index + 1)}
+                      onChange={() => handleSelectColumn(index + 1)}
+                      className="column-checkbox"
+                    />
+                    <span className="column-name">{name}</span>
+                  </label>
+                ))}
+              </div>
+              {/*<div className="column-selector-actions">
+                <button 
+                  onClick={() => setShowColumnSelector(false)}
+                  className="column-selector-close"
+                >
+                  Готово
+                </button>
+              </div>*/}
+            </div>
+          )}
+
+{showExportPanel && (
             <div className="export-panel">
               <div className="export-panel-header">
                 <h3>Настройки экспорта</h3>
@@ -1656,41 +1691,6 @@ const EditableTable = () => {
             </div>
           )}
           
-          {showColumnSelector && (
-            <div className="column-selector-panel">
-              <div className="column-selector-header">
-                <h3>Выбор колонок для экспорта</h3>
-                <button 
-                  onClick={handleSelectAllColumns}
-                  className="select-all-columns-button"
-                >
-                  {selectedColumns.size === 41 ? 'Снять все' : 'Выбрать все'}
-                </button>
-              </div>
-              <div className="column-selector-grid">
-                {ColumnName.slice(1).map((name, index) => (
-                  <label key={index + 1} className="column-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={selectedColumns.has(index + 1)}
-                      onChange={() => handleSelectColumn(index + 1)}
-                      className="column-checkbox"
-                    />
-                    <span className="column-name">{name}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="column-selector-actions">
-                <button 
-                  onClick={() => setShowColumnSelector(false)}
-                  className="column-selector-close"
-                >
-                  Готово
-                </button>
-              </div>
-            </div>
-          )}
-          
           <div className="selection-info">
             {selectedRows.size > 0 && (
               <p className="selected-count">
@@ -1698,7 +1698,7 @@ const EditableTable = () => {
                 {selectAll && filteredData.length > 0 && ` (все из текущего фильтра)`}
               </p>
             )}
-            {selectedColumns.size > 0 && selectedColumns.size < 41 && (
+            {showExportPanel && selectedColumns.size >= 0 && selectedColumns.size <= 41 && (
               <p className="selected-columns-info">
                 Выбрано колонок: {selectedColumns.size} из 41
               </p>
