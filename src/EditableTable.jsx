@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import './EditableTable.css';
 import { 
@@ -13,10 +12,12 @@ import {
   Filter,
   Eye,
   EyeOff,
-  X
+  X,
+  FileSignature
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { CERTIFICATE_TYPES, generateMultipleCertificates } from './utils/certificateGenerator';
 
 const EditableTable = () => {
   const navigate = useNavigate();
@@ -29,21 +30,23 @@ const EditableTable = () => {
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showColumnsPanel, setShowColumnsPanel] = useState(false);
+  const [showCertificatePanel, setShowCertificatePanel] = useState(false);
   
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState(new Set());
-  const [visibleColumns, setVisibleColumns] = useState(new Set()); // Колонки для отображения
+  const [visibleColumns, setVisibleColumns] = useState(new Set());
   const [exportFormats, setExportFormats] = useState({
     excel: true,
     word: false
   });
 
-  // Состояния для фильтров
-  const [filters, setFilters] = useState([]);
-  const [filterLogic, setFilterLogic] = useState('AND'); // 'AND' или 'OR'
+  const [selectedCertificateTypes, setSelectedCertificateTypes] = useState(new Set());
+  const [generatingCertificates, setGeneratingCertificates] = useState(false);
 
-  // Состояния для inline-редактирования
+  const [filters, setFilters] = useState([]);
+  const [filterLogic, setFilterLogic] = useState('AND');
+
   const [editingCell, setEditingCell] = useState({
     rowId: null,
     column: null,
@@ -106,14 +109,13 @@ const EditableTable = () => {
     'Распределение клинических ординаторов',
   ];
 
-  // Инициализация видимых колонок (по умолчанию все)
   useEffect(() => {
     const allColumns = new Set();
     for (let i = 1; i <= 41; i++) {
       allColumns.add(i);
     }
     setSelectedColumns(allColumns);
-    setVisibleColumns(allColumns); // По умолчанию показываем все колонки
+    setVisibleColumns(allColumns);
   }, []);
 
   const [selectOptions, setSelectOptions] = useState({
@@ -167,7 +169,6 @@ const EditableTable = () => {
     direction: 'ascending',
   });
 
-  // Функция для определения типа поля
   const getFieldType = (columnNumber) => {
     const fieldName = ColumnName[columnNumber];
     
@@ -224,7 +225,6 @@ const EditableTable = () => {
     }
   };
 
-  // Функция для добавления нового фильтра
   const addFilter = () => {
     setFilters([
       ...filters,
@@ -238,24 +238,20 @@ const EditableTable = () => {
     ]);
   };
 
-  // Функция для удаления фильтра
   const removeFilter = (filterId) => {
     setFilters(filters.filter(f => f.id !== filterId));
   };
 
-  // Функция для обновления фильтра
   const updateFilter = (filterId, field, value) => {
     setFilters(filters.map(filter => {
       if (filter.id === filterId) {
         const updatedFilter = { ...filter, [field]: value };
         
-        // Если изменилась колонка, обновляем тип фильтра
         if (field === 'column') {
           const columnNumber = parseInt(value.replace('column', ''));
           const fieldType = getFieldType(columnNumber);
           updatedFilter.type = fieldType;
           
-          // Сбрасываем оператор в зависимости от типа
           if (fieldType.startsWith('creatable-') || fieldType === 'text') {
             updatedFilter.operator = 'contains';
           } else if (fieldType === 'date') {
@@ -269,7 +265,6 @@ const EditableTable = () => {
     }));
   };
 
-  // Функция для получения операторов в зависимости от типа поля
   const getOperatorsByType = (type) => {
     if (type.startsWith('creatable-') || type === 'text') {
       return [
@@ -296,7 +291,6 @@ const EditableTable = () => {
     return [{ value: 'contains', label: 'Содержит' }];
   };
 
-  // Функция применения фильтров
   const applyFilters = (rows) => {
     if (filters.length === 0) return rows;
 
@@ -305,7 +299,6 @@ const EditableTable = () => {
         const columnValue = row[filter.column] || '';
         let filterValue = filter.value;
         
-        // Форматирование для поля формы подготовки
         let processedValue = columnValue;
         if (filter.column === 'column18') {
           processedValue = formatPreparationForm(columnValue);
@@ -332,7 +325,6 @@ const EditableTable = () => {
           case 'lessThan':
             return processedValueStr < filterValueStr;
           case 'between':
-            // Для between ожидаем формат "значение1,значение2"
             const [val1, val2] = filterValue.split(',').map(v => v.trim());
             return processedValueStr >= val1 && processedValueStr <= val2;
           default:
@@ -340,7 +332,6 @@ const EditableTable = () => {
         }
       });
 
-      // Применяем логику И/ИЛИ
       return filterLogic === 'AND' 
         ? results.every(result => result)
         : results.some(result => result);
@@ -452,6 +443,49 @@ const EditableTable = () => {
     }
   };
 
+  const handleCertificateTypeChange = (typeId) => {
+    const newSelected = new Set(selectedCertificateTypes);
+    if (newSelected.has(typeId)) {
+      newSelected.delete(typeId);
+    } else {
+      newSelected.add(typeId);
+    }
+    setSelectedCertificateTypes(newSelected);
+  };
+
+  const handleGenerateCertificates = async () => {
+    if (selectedRows.size === 0) {
+      alert('Выберите записи для генерации справок');
+      return;
+    }
+    
+    if (selectedCertificateTypes.size === 0) {
+      alert('Выберите хотя бы один тип справки');
+      return;
+    }
+
+    setGeneratingCertificates(true);
+    
+    try {
+      const selectedData = data.filter(row => selectedRows.has(row.id));
+      const { successCount, errorCount } = await generateMultipleCertificates(selectedData, selectedCertificateTypes);
+      
+      if (errorCount > 0) {
+        alert(`Справки сгенерированы: ${successCount} успешно, ${errorCount} с ошибками`);
+      } else {
+        alert(`Справки успешно сгенерированы для ${successCount} записей`);
+      }
+      
+      setShowCertificatePanel(false);
+      setSelectedCertificateTypes(new Set());
+    } catch (error) {
+      console.error('Ошибка генерации справок:', error);
+      alert('Ошибка при генерации справок');
+    } finally {
+      setGeneratingCertificates(false);
+    }
+  };
+
   const handleSelectRow = (rowId) => {
     const newSelected = new Set(selectedRows);
     if (newSelected.has(rowId)) {
@@ -495,7 +529,6 @@ const EditableTable = () => {
     }
   };
 
-  // Функции для управления видимыми колонками
   const handleToggleColumn = (columnIndex) => {
     const newVisible = new Set(visibleColumns);
     if (newVisible.has(columnIndex)) {
@@ -690,7 +723,13 @@ const EditableTable = () => {
         row.column15 = ordinator.university.department || '';
         row.column16 = ordinator.university.specialtyProfile || '';
         row.column17 = ordinator.university.specialty || '';
-        row.column18 = ordinator.university.preparationForm || JSON.stringify(['очная']);
+        let prepForm = ordinator.university.preparationForm;
+        if (prepForm && typeof prepForm === 'object') {
+          prepForm = JSON.stringify(prepForm);
+        } else if (!prepForm) {
+          prepForm = JSON.stringify(['очная']);
+        }
+        row.column18 = prepForm;
       } else {
         row.column13 = 'БГМУ';
         row.column14 = '';
@@ -749,6 +788,27 @@ const EditableTable = () => {
   };
 
   const transformTableDataToApi = (tableData, mode = 'create') => {
+
+  let preparationFormValue = tableData.column18 || '';
+  
+  if (typeof preparationFormValue === 'string') {
+    try {
+      const parsed = JSON.parse(preparationFormValue);
+      if (Array.isArray(parsed)) {
+        preparationFormValue = JSON.stringify(parsed);
+      }
+    } catch {
+      if (preparationFormValue.includes(',')) {
+        const options = preparationFormValue.split(',').map(s => s.trim());
+        preparationFormValue = JSON.stringify(options);
+      } else {
+        preparationFormValue = JSON.stringify([preparationFormValue]);
+      }
+    }
+  } else if (Array.isArray(preparationFormValue)) {
+    preparationFormValue = JSON.stringify(preparationFormValue);
+  }
+
     const apiData = {
       fio: tableData.column1 || '',
       fioEn: tableData.column2 || '',
@@ -767,7 +827,7 @@ const EditableTable = () => {
       department: tableData.column15 || '',
       specialtyProfile: tableData.column16 || '',
       specialty: tableData.column17 || '',
-      preparationForm: JSON.stringify(modalState.selectedPreparationForm),
+      preparationForm: preparationFormValue,
       identityDocument: tableData.column19 === 'иное' ? modalState.otherDocument : tableData.column19 || 'паспорт',
       documentNumber: tableData.column20 || '',
       identNumber: tableData.column21 || '',
@@ -880,7 +940,6 @@ const EditableTable = () => {
     navigate('/');
   };
 
-  // Функция для начала редактирования ячейки
   const handleCellDoubleClick = (rowId, column, currentValue, rowIndex) => {
     if (!canEditRow()) {
       alert('У вас нет прав для редактирования');
@@ -906,15 +965,24 @@ const EditableTable = () => {
     setEditValue(displayValue);
   };
 
-  // Функция для сохранения изменений в ячейке
   const handleCellSave = async () => {
     if (editingCell.rowId === null) return;
 
     try {
-      const { rowId, column } = editingCell;
+      const { rowId, column, fieldType } = editingCell;
       
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex === -1) return;
+
+      let valueToSave = editValue;
+    
+      if (fieldType === 'date' && valueToSave) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(valueToSave)) {
+          const [year, month, day] = valueToSave.split('-');
+          valueToSave = `${day}.${month}.${year}`;
+        }
+      }
+  
 
       const updatedRow = { ...data[rowIndex] };
       updatedRow[column] = editValue;
@@ -923,7 +991,6 @@ const EditableTable = () => {
       updatedData[rowIndex] = updatedRow;
       setData(updatedData);
 
-      // Сохраняем в pendingChanges для последующей отправки на сервер
       setPendingChanges(prev => ({
         ...prev,
         [rowId]: {
@@ -932,7 +999,6 @@ const EditableTable = () => {
         }
       }));
 
-      // Отправляем на сервер сразу
       const apiData = transformTableDataToApi(updatedRow, 'update');
       await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
 
@@ -944,19 +1010,30 @@ const EditableTable = () => {
     }
   };
 
-  // Функция для отмены редактирования
   const handleCellCancel = () => {
     setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null });
     setEditValue('');
   };
 
-  // Компонент для редактирования ячейки с учетом типа поля
   const InlineCellEditor = ({ editingCell, editValue, setEditValue, onSave, onCancel }) => {
     const { fieldType, columnNumber } = editingCell;
     const fieldName = ColumnName[columnNumber];
     
     const [otherValue, setOtherValue] = useState('');
-    const [selectedOptions, setSelectedOptions] = useState([]);
+    const [selectedOptions, setSelectedOptions] = useState(() => {
+      if (columnNumber === 18 && editValue) {
+        try {
+          const parsed = JSON.parse(editValue);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          if (typeof editValue === 'string' && editValue.includes(',')) {
+            return editValue.split(',').map(s => s.trim());
+          }
+          return editValue ? [editValue] : [];
+        }
+      }
+      return [];
+    });
     
     const selectRef = useRef(null);
 
@@ -972,7 +1049,6 @@ const EditableTable = () => {
       }
     };
 
-    // Функция для получения опций в зависимости от типа поля
     const getOptions = () => {
       switch(fieldType) {
         case 'creatable-gender':
@@ -1006,7 +1082,6 @@ const EditableTable = () => {
       }
     };
 
-    // Функция для определения названия поля для добавления кастомного значения
     const getOptionField = () => {
       switch(fieldType) {
         case 'creatable-gender': return 'gender';
@@ -1027,7 +1102,34 @@ const EditableTable = () => {
     };
 
     const renderEditor = () => {
-      // Для всех creatable полей используем CreatableSelect
+
+      if (columnNumber === 18) {
+        return (
+          <div className="inline-checkbox-group">
+            {selectOptions.preparationForm.map(option => (
+              <label key={option} className="inline-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={selectedOptions.includes(option)}
+                  onChange={(e) => {
+                    let newOptions;
+                    if (e.target.checked) {
+                      newOptions = [...selectedOptions, option];
+                    } else {
+                      newOptions = selectedOptions.filter(o => o !== option);
+                    }
+                    setSelectedOptions(newOptions);
+                    // Сохраняем как JSON массив
+                    setEditValue(JSON.stringify(newOptions));
+                  }}
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+      }
+
       if (fieldType && fieldType.startsWith('creatable-')) {
         const options = getOptions();
         const optionField = getOptionField();
@@ -1065,15 +1167,42 @@ const EditableTable = () => {
         );
       }
 
-      // Для остальных типов полей оставляем прежнюю логику
       switch(fieldType) {
         case 'date':
+          const handleDateChange = (e) => {
+            const value = e.target.value;
+            setEditValue(value);
+          };
+        
+          const handleDateBlur = () => {
+            // При потере фокуса ничего не делаем, оставляем как есть
+          };
+        
+          // Форматируем значение для отображения в input
+          const displayDate = (() => {
+            if (!editValue) return '';
+            
+            // Если уже в формате ГГГГ-ММ-ДД, показываем как есть
+            if (/^\d{4}-\d{2}-\d{2}$/.test(editValue)) {
+              return editValue;
+            }
+            
+            // Если в формате ДД.ММ.ГГГГ, преобразуем для input
+            const ddmmyyyy = editValue.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+            if (ddmmyyyy) {
+              return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+            }
+            
+            return editValue;
+          })();
+        
           return (
             <input
               ref={selectRef}
-              type="date"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
+              type="input"
+              value={displayDate}
+              onChange={handleDateChange}
+              onBlur={handleDateBlur}
               onKeyDown={handleKeyDown}
               className="inline-input"
             />
@@ -1531,7 +1660,6 @@ const EditableTable = () => {
       return <div className="readonly-field">{displayValue}</div>;
     }
 
-    // Функция для получения опций в модальном окне
     const getModalOptions = (field) => {
       switch(field) {
         case 'Пол':
@@ -1814,7 +1942,7 @@ const EditableTable = () => {
                   <span>Панель администратора</span>
                 </div>
               )}
-              <div className="menu-item" onClick={fetchOrdinators}>
+              <div className="mobile-menu-item" onClick={fetchOrdinators}>
                     <span>🔄 Обновить данные</span>
                   </div>
               <div className="menu-divider"></div>
@@ -1852,7 +1980,6 @@ const EditableTable = () => {
                 </option>
               ))}
             </select>
-            
             <button 
               onClick={() => setShowFilterPanel(!showFilterPanel)}
               className={`filter-button ${filters.length > 0 ? 'active' : ''}`}
@@ -1861,7 +1988,12 @@ const EditableTable = () => {
               <Filter size={18} />
               <span>Фильтры {filters.length > 0 && `(${filters.length})`}</span>
             </button>
-            
+            <button 
+              onClick={handleResetSearch} 
+              className="reset-search-button"
+            >
+              Сброс
+            </button>
             <button 
               onClick={() => setShowColumnsPanel(!showColumnsPanel)}
               className={`columns-button ${visibleColumns.size < 41 ? 'active' : ''}`}
@@ -1870,12 +2002,24 @@ const EditableTable = () => {
               <Eye size={18} />
               <span>Колонки</span>
             </button>
-            
+
             <button 
-              onClick={handleResetSearch} 
-              className="reset-search-button"
+              onClick={() => setShowCertificatePanel(!showCertificatePanel)}
+              className={`certificate-button ${selectedCertificateTypes.size > 0 ? 'active' : ''}`}
+              title="Генерация справок"
+              disabled={selectedRows.size === 0}
             >
-              Сброс
+              <FileSignature size={18} />
+              <span>Справки ({selectedRows.size})</span>
+            </button>
+            <button 
+              onClick={() => setShowExportPanel(!showExportPanel)}
+              className="export-button"
+              title="Настройки экспорта"
+              disabled={selectedRows.size === 0}
+            >
+              <Download size={18} />
+              <span>Экспорт ({selectedRows.size})</span>
             </button>
             {canCreateRow() && (
               <button 
@@ -1886,25 +2030,8 @@ const EditableTable = () => {
                 📋 Создать
               </button>
             )}
-            {/*<button 
-              onClick={fetchOrdinators}
-              className="refresh-button"
-              title="Обновить данные"
-            >
-              🔄 Обновить
-            </button>*/}
-            <button 
-              onClick={() => setShowExportPanel(!showExportPanel)}
-              className="export-button"
-              title="Настройки экспорта"
-              disabled={selectedRows.size === 0}
-            >
-              <Download size={18} />
-              <span>Экспорт ({selectedRows.size})</span>
-            </button>
           </div>
 
-          {/* Панель фильтров */}
           {showFilterPanel && (
             <div className="filter-panel">
               <div className="filter-panel-header">
@@ -2000,7 +2127,6 @@ const EditableTable = () => {
             </div>
           )}
 
-          {/* Панель выбора колонок для отображения */}
           {showColumnsPanel && (
             <div className="columns-panel">
               <div className="columns-panel-header">
@@ -2030,7 +2156,48 @@ const EditableTable = () => {
             </div>
           )}
 
-          {/* Панель экспорта */}
+          {showCertificatePanel && (
+            <div className="certificate-panel">
+              <div className="certificate-panel-header">
+                <h3>Выберите типы справок</h3>
+              </div>
+              
+              <div className="certificate-types">
+                {CERTIFICATE_TYPES.map(type => (
+                  <label key={type.id} className="certificate-type-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={selectedCertificateTypes.has(type.id)}
+                      onChange={() => handleCertificateTypeChange(type.id)}
+                      disabled={generatingCertificates}
+                    />
+                    <span>{type.name}</span>
+                  </label>
+                ))}
+              </div>
+              
+              <div className="certificate-actions">
+                <button 
+                  onClick={handleGenerateCertificates}
+                  className="generate-certificate-button"
+                  disabled={selectedCertificateTypes.size === 0 || generatingCertificates}
+                >
+                  {generatingCertificates ? 'Генерация...' : 'Сгенерировать справки'}
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowCertificatePanel(false);
+                    setSelectedCertificateTypes(new Set());
+                  }}
+                  className="certificate-cancel-button"
+                  disabled={generatingCertificates}
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
+
           {showExportPanel && (
             <>
               <div className="column-selector-panel">
@@ -2118,6 +2285,11 @@ const EditableTable = () => {
                 Отображается колонок: {visibleColumns.size} из 41
               </p>
             )}
+            {showCertificatePanel && selectedCertificateTypes.size > 0 && (
+              <p className="certificate-info">
+                Выбрано типов справок: {selectedCertificateTypes.size}
+              </p>
+            )}
             {showExportPanel && selectedColumns.size >= 0 && selectedColumns.size <= 41 && (
               <p className="selected-columns-info">
                 Выбрано колонок для экспорта: {selectedColumns.size} из 41
@@ -2160,7 +2332,6 @@ const EditableTable = () => {
                 </th>
                 {columns.map((col, index) => {
                   const columnNumber = index + 1;
-                  // Показываем только выбранные колонки
                   if (!visibleColumns.has(columnNumber)) return null;
                   
                   return (
@@ -2211,7 +2382,6 @@ const EditableTable = () => {
                       </td>
                       {columns.map((column) => {
                         const columnNumber = parseInt(column.replace('column', ''));
-                        // Показываем только выбранные колонки
                         if (!visibleColumns.has(columnNumber)) return null;
                         
                         let cellValue = row[column] || '';

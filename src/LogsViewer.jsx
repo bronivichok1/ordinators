@@ -41,7 +41,6 @@ const LogsViewer = () => {
 
   const API_URL = process.env.REACT_APP_API_URL;
 
-  // Проверка прав доступа при загрузке
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user_data'));
     const token = localStorage.getItem('auth_token');
@@ -51,7 +50,6 @@ const LogsViewer = () => {
       return;
     }
 
-    // Только админ и диспетчер могут просматривать логи
     if (!['admin', 'dispatcher'].includes(userData.role)) {
       navigate('/unauthorized');
       return;
@@ -310,10 +308,9 @@ const LogsViewer = () => {
         <div className="filters-panel">
           <div className="filters-grid">
             <div className="filter-group">
-              <label>Поиск по описанию</label>
+              <label>Поиск</label>
               <input
                 type="text"
-                placeholder="Поиск в описании..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
               />

@@ -30,7 +30,6 @@ const OptionsPage = () => {
 
   const API_URL = process.env.REACT_APP_API_URL;
 
-  // Проверка прав доступа при загрузке
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user_data'));
     const token = localStorage.getItem('auth_token');
@@ -40,7 +39,6 @@ const OptionsPage = () => {
       return;
     }
 
-    // Только админ и диспетчер могут просматривать эту страницу
     if (!['admin', 'dispatcher'].includes(userData.role)) {
       navigate('/unauthorized');
       return;
