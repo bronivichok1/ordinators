@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   User, Lock, Eye, EyeOff, LogIn, UserPlus,
   Key, Mail, Users, Shield, ArrowLeft, LogOut,
-  Edit, Trash2, Save, X, Search, Table, KeyRound, XCircle,
-  FileText
+  Edit, Trash2, Save, Table, KeyRound, XCircle,
+  FileText, Settings
 } from 'lucide-react';
 
 function App() {
@@ -764,7 +764,14 @@ function App() {
               >
                 <Table size={16} /><span>Перейти к таблице</span>
               </button>
-              
+              <button 
+                className="options-button" 
+                onClick={() => navigate('/options')}
+                disabled={loading}
+              >
+                <Settings size={16} />
+                <span>Списки</span>
+              </button>
               {canViewLogs && (
                 <button 
                   className="logs-button" 

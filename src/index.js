@@ -5,7 +5,8 @@ import './index.css';
 import App from './App';
 import Main from './EditableTable';
 import LogsViewer from './LogsViewer';
-
+import OptionsPage from './OptionsPage';
+import Unauthorized from './Unauthorized';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <BrowserRouter>
@@ -13,6 +14,8 @@ root.render(
       <Route path="/" element={<App />}/>
       <Route path="/main" element={<Main />}/>
       <Route path="/logs" element={<LogsViewer />}/>
+      <Route path="/options" element={<OptionsPage />}/>
+      <Route path="/unauthorized" element={<Unauthorized />}/>
   </Routes>
 </BrowserRouter>
 );

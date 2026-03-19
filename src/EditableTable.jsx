@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
@@ -7,14 +7,13 @@ import {
   LogOut, 
   User, 
   Shield, 
-  Menu,
-  X,
   Download,
   FileText,
   FileSpreadsheet,
-  CheckSquare,
-  Square,
-  Columns
+  Filter,
+  Eye,
+  EyeOff,
+  X
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -28,14 +27,36 @@ const EditableTable = () => {
   const [error, setError] = useState(null);
   
   const [showExportPanel, setShowExportPanel] = useState(false);
-  /*const [showColumnSelector, setShowColumnSelector] = useState(false);*/
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [showColumnsPanel, setShowColumnsPanel] = useState(false);
+  
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [selectAll, setSelectAll] = useState(false);
   const [selectedColumns, setSelectedColumns] = useState(new Set());
+  const [visibleColumns, setVisibleColumns] = useState(new Set()); // Колонки для отображения
   const [exportFormats, setExportFormats] = useState({
     excel: true,
     word: false
   });
+
+  // Состояния для фильтров
+  const [filters, setFilters] = useState([]);
+  const [filterLogic, setFilterLogic] = useState('AND'); // 'AND' или 'OR'
+
+  // Состояния для inline-редактирования
+  const [editingCell, setEditingCell] = useState({
+    rowId: null,
+    column: null,
+    value: '',
+    rowIndex: null,
+    fieldType: null,
+    columnNumber: null
+  });
+  const [editValue, setEditValue] = useState('');
+  const [pendingChanges, setPendingChanges] = useState({});
+
+  const [serverOptions, setServerOptions] = useState(null);
+  const [optionsLoading, setOptionsLoading] = useState(true);
 
   const API_URL = process.env.REACT_APP_API_URL;
   const BASE_API_URL = `${API_URL}`;
@@ -85,79 +106,44 @@ const EditableTable = () => {
     'Распределение клинических ординаторов',
   ];
 
+  // Инициализация видимых колонок (по умолчанию все)
   useEffect(() => {
     const allColumns = new Set();
     for (let i = 1; i <= 41; i++) {
       allColumns.add(i);
     }
     setSelectedColumns(allColumns);
+    setVisibleColumns(allColumns); // По умолчанию показываем все колонки
   }, []);
 
-  const selectOptions = {
-    gender: ['М', 'Ж'],
-    dismissalReason: [
-      'по окончанию срока подготовки',
-      'за неуплату подготовки',
-      'по собственному желанию',
-      'отсутствие на занятиях',
-      'иное'
-    ],
-    socialLeave: [
-      'по беременности и родам',
-      'по уходу за ребёнком',
-      'мед показаниям',
-      'служба в армии'
-    ],
-    university: [
-      'БГМУ',
-      'ВГМУ',
-      'ГрГМУ',
-      'ГомГМУ',
-      'другое'
-    ],
-    preparationForm: [
-      'заочная',
-      'очная',
-      'платно',
-      'за счёт бюджета'
-    ],
-    identityDocument: [
-      'паспорт',
-      'вид на жительство',
-      'паспорт ИГ',
-      'иное'
-    ],
-    residence: [
-      'общежитие',
-      'квартира'
-    ],
-    medicalCertificate: ['есть', 'нет'],
-    rivshCertificate: ['да', 'нет'],
-    entryByInvitation: ['да', 'нет'],
-    country: [
-      'Беларусь',
-      'Россия',
-      'Украина',
-      'Казахстан',
-      'Азербайджан',
-      'Армения',
-      'Грузия',
-      'Молдова',
-      'Таджикистан',
-      'Туркменистан',
-      'Узбекистан',
-      'Литва',
-      'Латвия',
-      'Эстония',
-      'Польша',
-      'Другая'
-    ]
-  };
+  const [selectOptions, setSelectOptions] = useState({
+    gender: [],
+    dismissalReason: [],
+    socialLeave: [],
+    university: [],
+    preparationForm: [],
+    identityDocument: [],
+    residence: [],
+    medicalCertificate: [],
+    rivshCertificate: [],
+    entryByInvitation: [],
+    country: []
+  });
 
   const [selectData, setSelectData] = useState({
     departments: [],
     specialtyProfiles: [],
-    countries: selectOptions.country
+    countries: [],
+    gender: [],
+    dismissalReason: [],
+    socialLeave: [],
+    university: [],
+    preparationForm: [],
+    identityDocument: [],
+    residence: [],
+    medicalCertificate: [],
+    rivshCertificate: [],
+    entryByInvitation: []
   });
 
   const [data, setData] = useState([]);
@@ -180,6 +166,278 @@ const EditableTable = () => {
     key: null,
     direction: 'ascending',
   });
+
+  // Функция для определения типа поля
+  const getFieldType = (columnNumber) => {
+    const fieldName = ColumnName[columnNumber];
+    
+    switch(fieldName) {
+      case 'Пол':
+        return 'creatable-gender';
+      case 'Страна':
+        return 'creatable-country';
+      case 'Кафедра':
+        return 'creatable-department';
+      case 'Профиль специальности':
+        return 'creatable-specialty';
+      case 'Причина отчисления':
+        return 'creatable-dismissal';
+      case 'Социальный отпуск':
+        return 'creatable-social';
+      case 'ВУЗ':
+        return 'creatable-university';
+      case 'Форма подготовки':
+        return 'creatable-preparation';
+      case 'Документ, удостоверяющий личность':
+        return 'creatable-document';
+      case 'Место проживания, регистрации':
+        return 'creatable-residence';
+      case 'Медицинская справка':
+        return 'creatable-medical';
+      case 'Наличие сертификата РИВШ':
+        return 'creatable-rivsh';
+      case 'Въезд по приглашению':
+        return 'creatable-entry';
+      case 'Год рождения':
+      case 'Дата зачисления':
+      case 'Дата отчисления':
+      case 'Дата начала социального отпуска':
+      case 'Дата окончания социального отпуска':
+      case 'Дата приказа о зачислении':
+      case 'Дата приказа об отчислении':
+      case 'Срок окончания регистрации':
+      case 'Дата установки надбавки':
+      case 'Дата окончания надбавки':
+      case 'Дата начала сессии(циклов)':
+      case 'Дата окончания сессии(циклов)':
+        return 'date';
+      case 'Мобильный телефон':
+        return 'tel';
+      case 'Пароль':
+        return 'password';
+      case 'Текущий контроль':
+      case 'Распределение клинических ординаторов':
+      case 'Адрес проживания':
+        return 'textarea';
+      default:
+        return 'text';
+    }
+  };
+
+  // Функция для добавления нового фильтра
+  const addFilter = () => {
+    setFilters([
+      ...filters,
+      {
+        id: Date.now(),
+        column: 'column1',
+        operator: 'contains',
+        value: '',
+        type: 'text'
+      }
+    ]);
+  };
+
+  // Функция для удаления фильтра
+  const removeFilter = (filterId) => {
+    setFilters(filters.filter(f => f.id !== filterId));
+  };
+
+  // Функция для обновления фильтра
+  const updateFilter = (filterId, field, value) => {
+    setFilters(filters.map(filter => {
+      if (filter.id === filterId) {
+        const updatedFilter = { ...filter, [field]: value };
+        
+        // Если изменилась колонка, обновляем тип фильтра
+        if (field === 'column') {
+          const columnNumber = parseInt(value.replace('column', ''));
+          const fieldType = getFieldType(columnNumber);
+          updatedFilter.type = fieldType;
+          
+          // Сбрасываем оператор в зависимости от типа
+          if (fieldType.startsWith('creatable-') || fieldType === 'text') {
+            updatedFilter.operator = 'contains';
+          } else if (fieldType === 'date') {
+            updatedFilter.operator = 'equals';
+          }
+        }
+        
+        return updatedFilter;
+      }
+      return filter;
+    }));
+  };
+
+  // Функция для получения операторов в зависимости от типа поля
+  const getOperatorsByType = (type) => {
+    if (type.startsWith('creatable-') || type === 'text') {
+      return [
+        { value: 'contains', label: 'Содержит' },
+        { value: 'equals', label: 'Равно' },
+        { value: 'startsWith', label: 'Начинается с' },
+        { value: 'endsWith', label: 'Заканчивается на' },
+        { value: 'notContains', label: 'Не содержит' },
+        { value: 'notEquals', label: 'Не равно' }
+      ];
+    } else if (type === 'date') {
+      return [
+        { value: 'equals', label: 'Равно' },
+        { value: 'greaterThan', label: 'Больше' },
+        { value: 'lessThan', label: 'Меньше' },
+        { value: 'between', label: 'Между' }
+      ];
+    } else if (type === 'tel' || type === 'password') {
+      return [
+        { value: 'contains', label: 'Содержит' },
+        { value: 'equals', label: 'Равно' }
+      ];
+    }
+    return [{ value: 'contains', label: 'Содержит' }];
+  };
+
+  // Функция применения фильтров
+  const applyFilters = (rows) => {
+    if (filters.length === 0) return rows;
+
+    return rows.filter(row => {
+      const results = filters.map(filter => {
+        const columnValue = row[filter.column] || '';
+        let filterValue = filter.value;
+        
+        // Форматирование для поля формы подготовки
+        let processedValue = columnValue;
+        if (filter.column === 'column18') {
+          processedValue = formatPreparationForm(columnValue);
+        }
+        
+        const processedValueStr = String(processedValue || '').toLowerCase();
+        const filterValueStr = String(filterValue || '').toLowerCase();
+
+        switch (filter.operator) {
+          case 'contains':
+            return processedValueStr.includes(filterValueStr);
+          case 'notContains':
+            return !processedValueStr.includes(filterValueStr);
+          case 'equals':
+            return processedValueStr === filterValueStr;
+          case 'notEquals':
+            return processedValueStr !== filterValueStr;
+          case 'startsWith':
+            return processedValueStr.startsWith(filterValueStr);
+          case 'endsWith':
+            return processedValueStr.endsWith(filterValueStr);
+          case 'greaterThan':
+            return processedValueStr > filterValueStr;
+          case 'lessThan':
+            return processedValueStr < filterValueStr;
+          case 'between':
+            // Для between ожидаем формат "значение1,значение2"
+            const [val1, val2] = filterValue.split(',').map(v => v.trim());
+            return processedValueStr >= val1 && processedValueStr <= val2;
+          default:
+            return true;
+        }
+      });
+
+      // Применяем логику И/ИЛИ
+      return filterLogic === 'AND' 
+        ? results.every(result => result)
+        : results.some(result => result);
+    });
+  };
+
+  const apiRequest = async (endpoint, method = 'GET', data = null) => {
+    const token = localStorage.getItem('auth_token');
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+
+    const config = {
+      method,
+      headers,
+      credentials: 'include',
+    };
+
+    if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
+      config.body = JSON.stringify(data);
+    }
+
+    try {
+      const response = await fetch(`${BASE_API_URL}${endpoint}`, config);
+      if (response.status === 401) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        navigate('/');
+        throw new Error('Не авторизован');
+      }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Ошибка ${response.status}`);
+      }
+      if (method === 'DELETE') {
+        return { success: true };
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  };
+
+  const loadServerOptions = async () => {
+    try {
+      setOptionsLoading(true);
+      const data = await apiRequest('/options');
+      setServerOptions(data);
+      
+      const preparationForm = data.preparationForm || ['очная', 'заочная', 'платно', 'за счёт бюджета'];
+      
+      setSelectOptions({
+        gender: data.gender || ['М', 'Ж'],
+        dismissalReason: data.dismissalReason || [],
+        socialLeave: data.socialLeave || [],
+        university: data.university || [],
+        preparationForm: preparationForm,
+        identityDocument: data.identityDocument || [],
+        residence: data.residence || [],
+        medicalCertificate: data.medicalCertificate || [],
+        rivshCertificate: data.rivshCertificate || [],
+        entryByInvitation: data.entryByInvitation || [],
+        country: data.country || []
+      });
+
+      setSelectData({
+        departments: data.departments || [],
+        specialtyProfiles: data.specialtyProfiles || [],
+        countries: data.country || [],
+        gender: data.gender || ['М', 'Ж'],
+        dismissalReason: data.dismissalReason || [],
+        socialLeave: data.socialLeave || [],
+        university: data.university || [],
+        preparationForm: preparationForm,
+        identityDocument: data.identityDocument || [],
+        residence: data.residence || [],
+        medicalCertificate: data.medicalCertificate || [],
+        rivshCertificate: data.rivshCertificate || [],
+        entryByInvitation: data.entryByInvitation || []
+      });
+    } catch (error) {
+      console.error('Error loading server options:', error);
+    } finally {
+      setOptionsLoading(false);
+    }
+  };
+
+  const addCustomOption = async (field, value) => {
+    try {
+      await apiRequest(`/options/${field}/add`, 'POST', { value });
+      await loadServerOptions();
+    } catch (error) {
+      console.error('Error adding custom option:', error);
+    }
+  };
 
   const formatPreparationForm = (formData) => {
     if (!formData) return '';
@@ -235,6 +493,29 @@ const EditableTable = () => {
       }
       setSelectedColumns(allColumns);
     }
+  };
+
+  // Функции для управления видимыми колонками
+  const handleToggleColumn = (columnIndex) => {
+    const newVisible = new Set(visibleColumns);
+    if (newVisible.has(columnIndex)) {
+      newVisible.delete(columnIndex);
+    } else {
+      newVisible.add(columnIndex);
+    }
+    setVisibleColumns(newVisible);
+  };
+
+  const handleShowAllColumns = () => {
+    const allColumns = new Set();
+    for (let i = 1; i <= 41; i++) {
+      allColumns.add(i);
+    }
+    setVisibleColumns(allColumns);
+  };
+
+  const handleHideAllColumns = () => {
+    setVisibleColumns(new Set());
   };
 
   const handleFormatChange = (format) => {
@@ -388,45 +669,6 @@ const EditableTable = () => {
     }
   };
 
-  const apiRequest = async (endpoint, method = 'GET', data = null) => {
-    const token = localStorage.getItem('auth_token');
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    };
-
-    const config = {
-      method,
-      headers,
-      credentials: 'include',
-    };
-
-    if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
-      config.body = JSON.stringify(data);
-    }
-
-    try {
-      const response = await fetch(`${BASE_API_URL}${endpoint}`, config);
-      if (response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        navigate('/');
-        throw new Error('Не авторизован');
-      }
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Ошибка ${response.status}`);
-      }
-      if (method === 'DELETE') {
-        return { success: true };
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
-    }
-  };
-
   const transformApiDataToTable = (apiData) => {
     return apiData.map((ordinator) => {
       const row = {};
@@ -555,39 +797,6 @@ const EditableTable = () => {
     return apiData;
   };
 
-  const loadSelectData = async () => {
-    try {
-      const mockDepartments = [
-        'Терапевтическая кафедра',
-        'Хирургическая кафедра',
-        'Педиатрическая кафедра',
-        'Стоматологическая кафедра',
-        'Неврологическая кафедра',
-        'Офтальмологическая кафедра',
-        'Отоларингологическая кафедра'
-      ];
-      const mockSpecialtyProfiles = [
-        'Терапия',
-        'Хирургия',
-        'Педиатрия',
-        'Стоматология',
-        'Неврология',
-        'Офтальмология',
-        'Отоларингология',
-        'Кардиология',
-        'Гастроэнтерология',
-        'Эндокринология'
-      ];
-      setSelectData(prev => ({
-        ...prev,
-        departments: mockDepartments,
-        specialtyProfiles: mockSpecialtyProfiles
-      }));
-    } catch (error) {
-      console.error('Error loading select data:', error);
-    }
-  };
-
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     const userDataStr = localStorage.getItem('user_data');
@@ -604,7 +813,7 @@ const EditableTable = () => {
       }
       setUserData(user);
       fetchOrdinators();
-      loadSelectData();
+      loadServerOptions();
     } catch (error) {
       console.error('Ошибка парсинга user_data:', error);
       navigate('/');
@@ -618,6 +827,7 @@ const EditableTable = () => {
       const response = await apiRequest('/ordinators');
       const transformedData = transformApiDataToTable(response);
       setData(transformedData);
+      setPendingChanges({});
     } catch (error) {
       console.error('Error fetching ordinators:', error);
       setError('Не удалось загрузить данные. Проверьте соединение с сервером.');
@@ -670,48 +880,350 @@ const EditableTable = () => {
     navigate('/');
   };
 
+  // Функция для начала редактирования ячейки
+  const handleCellDoubleClick = (rowId, column, currentValue, rowIndex) => {
+    if (!canEditRow()) {
+      alert('У вас нет прав для редактирования');
+      return;
+    }
+
+    const columnNumber = parseInt(column.replace('column', ''));
+    const fieldType = getFieldType(columnNumber);
+    
+    let displayValue = currentValue;
+    if (column === 'column18') {
+      displayValue = formatPreparationForm(currentValue);
+    }
+
+    setEditingCell({
+      rowId,
+      column,
+      value: displayValue,
+      rowIndex,
+      fieldType,
+      columnNumber
+    });
+    setEditValue(displayValue);
+  };
+
+  // Функция для сохранения изменений в ячейке
+  const handleCellSave = async () => {
+    if (editingCell.rowId === null) return;
+
+    try {
+      const { rowId, column } = editingCell;
+      
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex === -1) return;
+
+      const updatedRow = { ...data[rowIndex] };
+      updatedRow[column] = editValue;
+      
+      const updatedData = [...data];
+      updatedData[rowIndex] = updatedRow;
+      setData(updatedData);
+
+      // Сохраняем в pendingChanges для последующей отправки на сервер
+      setPendingChanges(prev => ({
+        ...prev,
+        [rowId]: {
+          ...prev[rowId],
+          [column]: editValue
+        }
+      }));
+
+      // Отправляем на сервер сразу
+      const apiData = transformTableDataToApi(updatedRow, 'update');
+      await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+
+      setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null });
+
+    } catch (error) {
+      console.error('Error saving cell:', error);
+      alert('Ошибка при сохранении изменений');
+    }
+  };
+
+  // Функция для отмены редактирования
+  const handleCellCancel = () => {
+    setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null });
+    setEditValue('');
+  };
+
+  // Компонент для редактирования ячейки с учетом типа поля
+  const InlineCellEditor = ({ editingCell, editValue, setEditValue, onSave, onCancel }) => {
+    const { fieldType, columnNumber } = editingCell;
+    const fieldName = ColumnName[columnNumber];
+    
+    const [otherValue, setOtherValue] = useState('');
+    const [selectedOptions, setSelectedOptions] = useState([]);
+    
+    const selectRef = useRef(null);
+
+    useEffect(() => {
+      if (selectRef.current) {
+        selectRef.current.focus();
+      }
+    }, []);
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+
+    // Функция для получения опций в зависимости от типа поля
+    const getOptions = () => {
+      switch(fieldType) {
+        case 'creatable-gender':
+          return selectData.gender.map(option => ({ value: option, label: option }));
+        case 'creatable-country':
+          return selectData.countries.map(option => ({ value: option, label: option }));
+        case 'creatable-department':
+          return selectData.departments.map(option => ({ value: option, label: option }));
+        case 'creatable-specialty':
+          return selectData.specialtyProfiles.map(option => ({ value: option, label: option }));
+        case 'creatable-dismissal':
+          return selectData.dismissalReason.map(option => ({ value: option, label: option }));
+        case 'creatable-social':
+          return selectData.socialLeave.map(option => ({ value: option, label: option }));
+        case 'creatable-university':
+          return selectData.university.map(option => ({ value: option, label: option }));
+        case 'creatable-preparation':
+          return selectData.preparationForm.map(option => ({ value: option, label: option }));
+        case 'creatable-document':
+          return selectData.identityDocument.map(option => ({ value: option, label: option }));
+        case 'creatable-residence':
+          return selectData.residence.map(option => ({ value: option, label: option }));
+        case 'creatable-medical':
+          return selectData.medicalCertificate.map(option => ({ value: option, label: option }));
+        case 'creatable-rivsh':
+          return selectData.rivshCertificate.map(option => ({ value: option, label: option }));
+        case 'creatable-entry':
+          return selectData.entryByInvitation.map(option => ({ value: option, label: option }));
+        default:
+          return [];
+      }
+    };
+
+    // Функция для определения названия поля для добавления кастомного значения
+    const getOptionField = () => {
+      switch(fieldType) {
+        case 'creatable-gender': return 'gender';
+        case 'creatable-country': return 'country';
+        case 'creatable-department': return 'departments';
+        case 'creatable-specialty': return 'specialtyProfiles';
+        case 'creatable-dismissal': return 'dismissalReason';
+        case 'creatable-social': return 'socialLeave';
+        case 'creatable-university': return 'university';
+        case 'creatable-preparation': return 'preparationForm';
+        case 'creatable-document': return 'identityDocument';
+        case 'creatable-residence': return 'residence';
+        case 'creatable-medical': return 'medicalCertificate';
+        case 'creatable-rivsh': return 'rivshCertificate';
+        case 'creatable-entry': return 'entryByInvitation';
+        default: return null;
+      }
+    };
+
+    const renderEditor = () => {
+      // Для всех creatable полей используем CreatableSelect
+      if (fieldType && fieldType.startsWith('creatable-')) {
+        const options = getOptions();
+        const optionField = getOptionField();
+
+        return (
+          <div className="inline-creatable-wrapper">
+            <CreatableSelect
+              ref={selectRef}
+              options={options}
+              value={editValue ? { value: editValue, label: editValue } : null}
+              onChange={(option) => {
+                if (option) {
+                  setEditValue(option.value);
+                } else {
+                  setEditValue('');
+                }
+              }}
+              onKeyDown={handleKeyDown}
+              isClearable
+              menuPortalTarget={document.body}
+              onCreateOption={(inputValue) => {
+                if (optionField) {
+                  addCustomOption(optionField, inputValue);
+                }
+              }}
+              styles={{
+                menuPortal: base => ({ ...base, zIndex: 9999 }),
+                container: base => ({ ...base, width: '100%' })
+              }}
+              className="react-select-inline"
+              classNamePrefix="react-select"
+              autoFocus
+            />
+          </div>
+        );
+      }
+
+      // Для остальных типов полей оставляем прежнюю логику
+      switch(fieldType) {
+        case 'date':
+          return (
+            <input
+              ref={selectRef}
+              type="date"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="inline-input"
+            />
+          );
+
+        case 'tel':
+          return (
+            <input
+              ref={selectRef}
+              type="tel"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="inline-input"
+              placeholder="+375XXXXXXXXX"
+            />
+          );
+
+        case 'password':
+          return (
+            <input
+              ref={selectRef}
+              type="password"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="inline-input"
+              placeholder="Введите пароль"
+            />
+          );
+
+        case 'textarea':
+          return (
+            <textarea
+              ref={selectRef}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="inline-textarea"
+              rows="3"
+            />
+          );
+
+        case 'checkbox-group':
+          return (
+            <div className="inline-checkbox-group">
+              {selectOptions.preparationForm.map(option => (
+                <label key={option} className="inline-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={selectedOptions.includes(option)}
+                    onChange={(e) => {
+                      let newOptions;
+                      if (e.target.checked) {
+                        newOptions = [...selectedOptions, option];
+                      } else {
+                        newOptions = selectedOptions.filter(o => o !== option);
+                      }
+                      setSelectedOptions(newOptions);
+                      setEditValue(JSON.stringify(newOptions));
+                    }}
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+            </div>
+          );
+
+        default:
+          return (
+            <input
+              ref={selectRef}
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="inline-input"
+              placeholder="Введите значение..."
+            />
+          );
+      }
+    };
+
+    return (
+      <td className="editing-cell">
+        <div className="inline-editor-container">
+          {renderEditor()}
+          <div className="inline-editor-actions">
+            <button 
+              onClick={onSave}
+              className="inline-save-button"
+              title="Сохранить"
+            >
+              ✓ Сохранить
+            </button>
+            <button 
+              onClick={onCancel}
+              className="inline-cancel-button"
+              title="Отмена"
+            >
+              ✗ Отмена
+            </button>
+          </div>
+        </div>
+      </td>
+    );
+  };
+
   const initCreateRow = () => {
     if (!canCreateRow()) {
       alert('У вас нет прав для создания новой записи');
       return;
     }
     const initialRowData = {};
-    for (let i = 1; i <= 40; i++) {
+    for (let i = 1; i <= 41; i++) {
       const columnKey = `column${i}`;
       const fieldName = ColumnName[i];
       switch(fieldName) {
         case 'Пол':
-          initialRowData[columnKey] = 'М';
+          initialRowData[columnKey] = selectOptions.gender[0] || 'М';
           break;
         case 'Причина отчисления':
-          initialRowData[columnKey] = 'по окончанию срока подготовки';
+          initialRowData[columnKey] = selectOptions.dismissalReason[0] || '';
           break;
         case 'Социальный отпуск':
           initialRowData[columnKey] = '';
           break;
         case 'ВУЗ':
-          initialRowData[columnKey] = 'БГМУ';
+          initialRowData[columnKey] = selectOptions.university[0] || 'БГМУ';
           break;
         case 'Форма подготовки':
-          initialRowData[columnKey] = JSON.stringify(['очная']);
+          initialRowData[columnKey] = JSON.stringify(modalState.selectedPreparationForm);
           break;
         case 'Документ, удостоверяющий личность':
-          initialRowData[columnKey] = 'паспорт';
+          initialRowData[columnKey] = selectOptions.identityDocument[0] || 'паспорт';
           break;
         case 'Место проживания, регистрации':
-          initialRowData[columnKey] = 'общежитие';
+          initialRowData[columnKey] = selectOptions.residence[0] || 'общежитие';
           break;
-        case 'Мед. справка':
-          initialRowData[columnKey] = 'есть';
+        case 'Медицинская справка':
+          initialRowData[columnKey] = selectOptions.medicalCertificate[0] || 'есть';
           break;
         case 'Наличие сертификата РИВШ':
-          initialRowData[columnKey] = 'нет';
+          initialRowData[columnKey] = selectOptions.rivshCertificate[0] || 'нет';
           break;
         case 'Въезд по приглашению':
-          initialRowData[columnKey] = 'нет';
+          initialRowData[columnKey] = selectOptions.entryByInvitation[0] || 'нет';
           break;
         case 'Страна':
-          initialRowData[columnKey] = 'Беларусь';
+          initialRowData[columnKey] = selectOptions.country[0] || 'Беларусь';
           break;
         default:
           initialRowData[columnKey] = '';
@@ -727,12 +1239,11 @@ const EditableTable = () => {
       otherDocument: '',
       otherDismissalReason: '',
       otherCountry: '',
-      selectedPreparationForm: ['очная']
+      selectedPreparationForm: selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная']
     });
   };
 
   const handleRowClick = async (rowIndex, row, mode = 'edit') => {
-    // Проверяем права доступа
     if (mode === 'edit' && !canEditRow()) {
       alert('У вас нет прав для редактирования');
       return;
@@ -742,7 +1253,7 @@ const EditableTable = () => {
       const response = await apiRequest(`/ordinators/${row.id}`);
       const ordinator = response;
       const rowValues = [];
-      for (let i = 1; i <= 40; i++) {
+      for (let i = 1; i <= 41; i++) {
         const columnKey = `column${i}`;
         const value = row[columnKey] || '';
         rowValues.push({
@@ -756,7 +1267,7 @@ const EditableTable = () => {
       let otherUni = '';
       let otherDoc = '';
       let otherDismissal = '';
-      let prepForm = ['очная'];
+      let prepForm = selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная'];
       
       if (row['column13'] && !selectOptions.university.includes(row['column13'])) {
         otherUni = row['column13'];
@@ -771,16 +1282,16 @@ const EditableTable = () => {
       try {
         if (row['column18']) {
           const parsed = JSON.parse(row['column18']);
-          prepForm = Array.isArray(parsed) ? parsed : ['очная'];
+          prepForm = Array.isArray(parsed) ? parsed : (selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная']);
         }
       } catch (e) {
         console.error('Ошибка парсинга данных:', e);
-        prepForm = ['очная'];
+        prepForm = selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная'];
       }
       
       setModalState({
         isOpen: true,
-        mode: mode, // 'edit' или 'view'
+        mode: mode,
         selectedRow: {
           index: rowIndex,
           id: row.id,
@@ -835,6 +1346,30 @@ const EditableTable = () => {
     const valueToSet = value && typeof value === 'object' && value.value !== undefined 
       ? value.value 
       : value;
+
+    if (value && typeof value === 'object' && value.__isNew__) {
+      const columnNumber = parseInt(column.replace('column', ''));
+      const fieldName = ColumnName[columnNumber];
+      
+      let optionField = '';
+      if (fieldName === 'Страна') optionField = 'country';
+      else if (fieldName === 'Кафедра') optionField = 'departments';
+      else if (fieldName === 'Профиль специальности') optionField = 'specialtyProfiles';
+      else if (fieldName === 'Пол') optionField = 'gender';
+      else if (fieldName === 'Причина отчисления') optionField = 'dismissalReason';
+      else if (fieldName === 'Социальный отпуск') optionField = 'socialLeave';
+      else if (fieldName === 'ВУЗ') optionField = 'university';
+      else if (fieldName === 'Форма подготовки') optionField = 'preparationForm';
+      else if (fieldName === 'Документ, удостоверяющий личность') optionField = 'identityDocument';
+      else if (fieldName === 'Место проживания, регистрации') optionField = 'residence';
+      else if (fieldName === 'Медицинская справка') optionField = 'medicalCertificate';
+      else if (fieldName === 'Наличие сертификата РИВШ') optionField = 'rivshCertificate';
+      else if (fieldName === 'Въезд по приглашению') optionField = 'entryByInvitation';
+      
+      if (optionField) {
+        addCustomOption(optionField, value.value);
+      }
+    }
 
     if (modalState.mode === 'create') {
       setNewRowData({
@@ -892,7 +1427,7 @@ const EditableTable = () => {
       otherDocument: '',
       otherDismissalReason: '',
       otherCountry: '',
-      selectedPreparationForm: ['очная']
+      selectedPreparationForm: selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная']
     });
     setNewRowData({});
   };
@@ -900,6 +1435,8 @@ const EditableTable = () => {
   const handleResetSearch = () => {
     setSearchTerm('');
     setSearchColumn('all');
+    setFilters([]); 
+    setFilterLogic('AND');
     setSortConfig({ key: null, direction: 'ascending' });
   };
 
@@ -935,27 +1472,29 @@ const EditableTable = () => {
     });
   };
 
-  const filteredData = data.filter(row => {
-    if (!searchTerm.trim()) return true;
-    if (searchColumn === 'all') {
-      return Object.entries(row).some(([key, value]) => {
-        if (key !== 'id' && key !== 'originalData') {
-          let displayValue = value;
-          if (key === 'column18') {
-            displayValue = formatPreparationForm(value);
+  const filteredData = applyFilters(
+    data.filter(row => {
+      if (!searchTerm.trim()) return true;
+      if (searchColumn === 'all') {
+        return Object.entries(row).some(([key, value]) => {
+          if (key !== 'id' && key !== 'originalData') {
+            let displayValue = value;
+            if (key === 'column18') {
+              displayValue = formatPreparationForm(value);
+            }
+            return String(displayValue || '').toLowerCase().includes(searchTerm.toLowerCase());
           }
-          return String(displayValue || '').toLowerCase().includes(searchTerm.toLowerCase());
+          return false;
+        });
+      } else {
+        let displayValue = row[searchColumn];
+        if (searchColumn === 'column18') {
+          displayValue = formatPreparationForm(displayValue);
         }
-        return false;
-      });
-    } else {
-      let displayValue = row[searchColumn];
-      if (searchColumn === 'column18') {
-        displayValue = formatPreparationForm(displayValue);
+        return String(displayValue || '').toLowerCase().includes(searchTerm.toLowerCase());
       }
-      return String(displayValue || '').toLowerCase().includes(searchTerm.toLowerCase());
-    }
-  });
+    })
+  );
 
   const sortedFilteredData = getSortedData(filteredData);
 
@@ -992,168 +1531,79 @@ const EditableTable = () => {
       return <div className="readonly-field">{displayValue}</div>;
     }
 
+    // Функция для получения опций в модальном окне
+    const getModalOptions = (field) => {
+      switch(field) {
+        case 'Пол':
+          return selectData.gender.map(option => ({ value: option, label: option }));
+        case 'Страна':
+          return selectData.countries.map(option => ({ value: option, label: option }));
+        case 'Кафедра':
+          return selectData.departments.map(option => ({ value: option, label: option }));
+        case 'Профиль специальности':
+          return selectData.specialtyProfiles.map(option => ({ value: option, label: option }));
+        case 'Причина отчисления':
+          return selectData.dismissalReason.map(option => ({ value: option, label: option }));
+        case 'Социальный отпуск':
+          return selectData.socialLeave.map(option => ({ value: option, label: option }));
+        case 'ВУЗ':
+          return selectData.university.map(option => ({ value: option, label: option }));
+        case 'Форма подготовки':
+          return selectData.preparationForm.map(option => ({ value: option, label: option }));
+        case 'Документ, удостоверяющий личность':
+          return selectData.identityDocument.map(option => ({ value: option, label: option }));
+        case 'Место проживания, регистрации':
+          return selectData.residence.map(option => ({ value: option, label: option }));
+        case 'Медицинская справка':
+          return selectData.medicalCertificate.map(option => ({ value: option, label: option }));
+        case 'Наличие сертификата РИВШ':
+          return selectData.rivshCertificate.map(option => ({ value: option, label: option }));
+        case 'Въезд по приглашению':
+          return selectData.entryByInvitation.map(option => ({ value: option, label: option }));
+        default:
+          return [];
+      }
+    };
+
+    const selectFields = [
+      'Пол', 'Страна', 'Кафедра', 'Профиль специальности', 'Причина отчисления',
+      'Социальный отпуск', 'ВУЗ', 'Документ, удостоверяющий личность',
+      'Место проживания, регистрации', 'Медицинская справка',
+      'Наличие сертификата РИВШ', 'Въезд по приглашению'
+    ];
+
+    if (selectFields.includes(fieldName)) {
+      const options = getModalOptions(fieldName);
+      return (
+        <CreatableSelect
+          options={options}
+          value={value ? { value: value, label: value } : null}
+          onChange={handleChange}
+          placeholder={``}
+          isClearable
+          noOptionsMessage={() => "Нет вариантов, введите свой"}
+          formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
+          className="react-select-container"
+          classNamePrefix="react-select"
+        />
+      );
+    }
+
     switch(fieldName) {
-      case 'Пол':
+      case 'Год окончания':
         return (
-          <select
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-select"
-          >
-            {selectOptions.gender.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        );
-      case 'Страна':
-        const countryOptions = selectData.countries.map(country => ({
-          value: country,
-          label: country
-        }));
-        return (
-          <CreatableSelect
-            options={countryOptions}
-            value={value ? { value: value, label: value } : null}
-            onChange={handleChange}
-            placeholder="Выберите или введите страну..."
-            isClearable
-            noOptionsMessage={() => "Нет вариантов, введите свой"}
-            formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
-            className="react-select-container"
-            classNamePrefix="react-select"
+          <input
+            type="text"
+            value={value || ''}
+            onChange={(e) => {
+              const year = e.target.value.replace(/\D/g, '').slice(0, 4);
+              handleChange(year);
+            }}
+            className="modal-input"
+            maxLength="4"
+            placeholder="ГГГГ"
           />
         );
-      case 'Кафедра':
-        const departmentOptions = selectData.departments.map(dept => ({
-          value: dept,
-          label: dept
-        }));
-        return (
-          <CreatableSelect
-            options={departmentOptions}
-            value={value ? { value: value, label: value } : null}
-            onChange={handleChange}
-            placeholder="Выберите или введите кафедру..."
-            isClearable
-            noOptionsMessage={() => "Нет вариантов, введите свою"}
-            formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
-            className="react-select-container"
-            classNamePrefix="react-select"
-          />
-        );
-      case 'Профиль специальности':
-        const specialtyOptions = selectData.specialtyProfiles.map(spec => ({
-          value: spec,
-          label: spec
-        }));
-        return (
-          <CreatableSelect
-            options={specialtyOptions}
-            value={value ? { value: value, label: value } : null}
-            onChange={handleChange}
-            placeholder="Выберите или введите профиль..."
-            isClearable
-            noOptionsMessage={() => "Нет вариантов, введите свой"}
-            formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
-            className="react-select-container"
-            classNamePrefix="react-select"
-          />
-        );
-      case 'Причина отчисления':
-        const isOther = !selectOptions.dismissalReason.includes(value) && value !== '';
-        return (
-          <div>
-            <select
-              value={isOther ? 'иное' : value}
-              onChange={(e) => {
-                if (e.target.value === 'иное') {
-                  handleChange('иное');
-                } else {
-                  handleChange(e.target.value);
-                  setModalState(prev => ({ ...prev, otherDismissalReason: '' }));
-                }
-              }}
-              className="modal-select"
-            >
-              {selectOptions.dismissalReason.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            {(value === 'иное' || isOther) && (
-              <input
-                type="text"
-                value={modalState.otherDismissalReason || (isOther ? value : '')}
-                onChange={(e) => {
-                  setModalState(prev => ({ ...prev, otherDismissalReason: e.target.value }));
-                  handleChange(e.target.value);
-                }}
-                className="other-input"
-                placeholder="Введите причину отчисления"
-              />
-            )}
-          </div>
-        );
-      case 'Социальный отпуск':
-        return (
-          <select
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-select"
-          >
-            <option value="">Не выбрано</option>
-            {selectOptions.socialLeave.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        );
-      case 'ВУЗ':
-        const isOtherUniversity = !selectOptions.university.includes(value) && value !== '';
-        return (
-          <div>
-            <select
-              value={isOtherUniversity ? 'другое' : value}
-              onChange={(e) => {
-                if (e.target.value === 'другое') {
-                  handleChange('другое');
-                } else {
-                  handleChange(e.target.value);
-                  setModalState(prev => ({ ...prev, otherUniversity: '' }));
-                }
-              }}
-              className="modal-select"
-            >
-              {selectOptions.university.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            {(value === 'другое' || isOtherUniversity) && (
-              <input
-                type="text"
-                value={modalState.otherUniversity || (isOtherUniversity ? value : '')}
-                onChange={(e) => {
-                  setModalState(prev => ({ ...prev, otherUniversity: e.target.value }));
-                  handleChange(e.target.value);
-                }}
-                className="other-input"
-                placeholder="Введите название ВУЗа"
-              />
-            )}
-          </div>
-        );
-        case 'Год окончания':
-          return (
-            <input
-              type="text"
-              value={value || ''}
-              onChange={(e) => {
-                const year = e.target.value.replace(/\D/g, '').slice(0, 4);
-                handleChange(year);
-              }}
-              className="modal-input"
-              maxLength="4"
-              placeholder="ГГГГ"
-            />
-          );
       case 'Форма подготовки':
         return (
           <div className="checkbox-group">
@@ -1170,179 +1620,17 @@ const EditableTable = () => {
             ))}
           </div>
         );
-      case 'Документ, удостоверяющий личность':
-        const isOtherDocument = !selectOptions.identityDocument.includes(value) && value !== '';
-        return (
-          <div>
-            <select
-              value={isOtherDocument ? 'иное' : value}
-              onChange={(e) => {
-                if (e.target.value === 'иное') {
-                  handleChange('иное');
-                } else {
-                  handleChange(e.target.value);
-                  setModalState(prev => ({ ...prev, otherDocument: '' }));
-                }
-              }}
-              className="modal-select"
-            >
-              {selectOptions.identityDocument.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            {(value === 'иное' || isOtherDocument) && (
-              <input
-                type="text"
-                value={modalState.otherDocument || (isOtherDocument ? value : '')}
-                onChange={(e) => {
-                  setModalState(prev => ({ ...prev, otherDocument: e.target.value }));
-                  handleChange(e.target.value);
-                }}
-                className="other-input"
-                placeholder="Введите название документа"
-              />
-            )}
-          </div>
-        );
-      case 'Место проживания, регистрации':
-        return (
-          <select
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-select"
-          >
-            {selectOptions.residence.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        );
-      case 'Мед. справка':
-        return (
-          <select
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-select"
-          >
-            {selectOptions.medicalCertificate.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        );
-      case 'Наличие сертификата РИВШ':
-        return (
-          <select
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-select"
-          >
-            {selectOptions.rivshCertificate.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        );
-      case 'Въезд по приглашению':
-        return (
-          <select
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-select"
-          >
-            {selectOptions.entryByInvitation.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        );
       case 'Год рождения':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Дата зачисления':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Дата отчисления':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Дата начала социального отпуска':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Дата окончания социального отпуска':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Дата приказа о зачислении':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Дата приказа об отчислении':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Срок окончания регистрации':
       case 'Дата установки надбавки':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Дата окончания надбавки':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Дата начала сессии(циклов)':
-        return (
-          <input
-            type="date"
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-          />
-        );
       case 'Дата окончания сессии(циклов)':
         return (
           <input
@@ -1373,33 +1661,14 @@ const EditableTable = () => {
           />
         );
       case 'Текущий контроль':
-        return (
-          <input
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-            placeholder="Введите данные текущего контроля"
-            rows="3"
-          />
-        );
       case 'Распределение клинических ординаторов':
-        return (
-          <input
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-            placeholder="Введите информацию о распределении"
-            rows="3"
-          />
-        );
       case 'Адрес проживания':
         return (
           <input
             value={value}
             onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
-            placeholder="Введите полный адрес проживания"
-            rows="2"
+            rows="3"
           />
         );
       default:
@@ -1409,13 +1678,12 @@ const EditableTable = () => {
             value={value}
             onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
-            placeholder="Введите значение..."
           />
         );
     }
   };
 
-  if (!userData) {
+  if (!userData || optionsLoading) {
     return (
       <div className="table-page">
         <div className="loading-users">Загрузка...</div>
@@ -1478,6 +1746,9 @@ const EditableTable = () => {
                       <span>Панель администратора</span>
                     </div>
                   )}
+                  <div className="menu-item" onClick={fetchOrdinators}>
+                    <span>🔄 Обновить данные</span>
+                  </div>
                 </div>
                 <div className="menu-divider"></div>
                 <div className="menu-section">
@@ -1495,7 +1766,7 @@ const EditableTable = () => {
           <div className="app-title">
             <h1>Система управления ординаторами</h1>
             <p>Таблица данных клинических ординаторов</p>
-            <p className="data-info">Загружено записей: {data.length}</p>
+            <p className="data-info">Количество ординаторов: {data.length}</p>
           </div>
         </div>
 
@@ -1543,6 +1814,9 @@ const EditableTable = () => {
                   <span>Панель администратора</span>
                 </div>
               )}
+              <div className="menu-item" onClick={fetchOrdinators}>
+                    <span>🔄 Обновить данные</span>
+                  </div>
               <div className="menu-divider"></div>
               <div className="mobile-menu-item logout-item" onClick={handleLogout}>
                 <LogOut size={20} />
@@ -1578,11 +1852,30 @@ const EditableTable = () => {
                 </option>
               ))}
             </select>
+            
+            <button 
+              onClick={() => setShowFilterPanel(!showFilterPanel)}
+              className={`filter-button ${filters.length > 0 ? 'active' : ''}`}
+              title="Настройка фильтров"
+            >
+              <Filter size={18} />
+              <span>Фильтры {filters.length > 0 && `(${filters.length})`}</span>
+            </button>
+            
+            <button 
+              onClick={() => setShowColumnsPanel(!showColumnsPanel)}
+              className={`columns-button ${visibleColumns.size < 41 ? 'active' : ''}`}
+              title="Выбор колонок для отображения"
+            >
+              <Eye size={18} />
+              <span>Колонки</span>
+            </button>
+            
             <button 
               onClick={handleResetSearch} 
               className="reset-search-button"
             >
-              Сброс поиска и сортировки
+              Сброс
             </button>
             {canCreateRow() && (
               <button 
@@ -1593,20 +1886,12 @@ const EditableTable = () => {
                 📋 Создать
               </button>
             )}
-            <button 
+            {/*<button 
               onClick={fetchOrdinators}
               className="refresh-button"
               title="Обновить данные"
             >
               🔄 Обновить
-            </button>
-            {/*<button 
-              onClick={() => setShowColumnSelector(!showColumnSelector)}
-              className="columns-button"
-              title="Выбрать колонки для экспорта"
-            >
-              <Columns size={18} />
-              <span>Колонки</span>
             </button>*/}
             <button 
               onClick={() => setShowExportPanel(!showExportPanel)}
@@ -1618,83 +1903,202 @@ const EditableTable = () => {
               <span>Экспорт ({selectedRows.size})</span>
             </button>
           </div>
-          
-          {showExportPanel && (
-            <div className="column-selector-panel">
-              <div className="column-selector-header">
-                <h3>Выбор колонок для экспорта</h3>
-                <button 
-                  onClick={handleSelectAllColumns}
-                  className="select-all-columns-button"
-                >
-                  {selectedColumns.size === 41 ? 'Снять все' : 'Выбрать все'}
-                </button>
+
+          {/* Панель фильтров */}
+          {showFilterPanel && (
+            <div className="filter-panel">
+              <div className="filter-panel-header">
+                <h3>Комбинированные фильтры</h3>
+                <div className="filter-logic">
+                  <label>
+                    <input
+                      type="radio"
+                      value="AND"
+                      checked={filterLogic === 'AND'}
+                      onChange={(e) => setFilterLogic(e.target.value)}
+                    />
+                    И (все условия)
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      value="OR"
+                      checked={filterLogic === 'OR'}
+                      onChange={(e) => setFilterLogic(e.target.value)}
+                    />
+                    ИЛИ (любое условие)
+                  </label>
+                </div>
               </div>
-              <div className="column-selector-grid">
+              
+              <div className="filters-list">
+                {filters.map((filter, index) => (
+                  <div key={filter.id} className="filter-item">
+                    <select
+                      value={filter.column}
+                      onChange={(e) => updateFilter(filter.id, 'column', e.target.value)}
+                      className="filter-column-select"
+                    >
+                      {columns.map((col, idx) => (
+                        <option key={col} value={col}>
+                          {ColumnName[idx + 1]}
+                        </option>
+                      ))}
+                    </select>
+                    
+                    <select
+                      value={filter.operator}
+                      onChange={(e) => updateFilter(filter.id, 'operator', e.target.value)}
+                      className="filter-operator-select"
+                    >
+                      {getOperatorsByType(filter.type).map(op => (
+                        <option key={op.value} value={op.value}>
+                          {op.label}
+                        </option>
+                      ))}
+                    </select>
+                    
+                    {filter.operator === 'between' ? (
+                      <input
+                        type="text"
+                        placeholder="значение1,значение2"
+                        value={filter.value}
+                        onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
+                        className="filter-value-input"
+                      />
+                    ) : (
+                      <input
+                        type={filter.type === 'date' ? 'date' : 'text'}
+                        placeholder="Значение фильтра"
+                        value={filter.value}
+                        onChange={(e) => updateFilter(filter.id, 'value', e.target.value)}
+                        className="filter-value-input"
+                      />
+                    )}
+                    
+                    <button
+                      onClick={() => removeFilter(filter.id)}
+                      className="remove-filter-button"
+                      title="Удалить фильтр"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="filter-actions">
+                <button onClick={addFilter} className="add-filter-button">
+                  + Добавить фильтр
+                </button>
+                {filters.length > 0 && (
+                  <button onClick={() => setFilters([])} className="clear-filters-button">
+                    Очистить все
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Панель выбора колонок для отображения */}
+          {showColumnsPanel && (
+            <div className="columns-panel">
+              <div className="columns-panel-header">
+                <h3>Выбор колонок для отображения</h3>
+                <div className="columns-actions">
+                  <button onClick={handleShowAllColumns} className="show-all-columns-button">
+                    Показать все
+                  </button>
+                  <button onClick={handleHideAllColumns} className="hide-all-columns-button">
+                    Скрыть все
+                  </button>
+                </div>
+              </div>
+              <div className="columns-grid">
                 {ColumnName.slice(1).map((name, index) => (
-                  <label key={index + 1} className="column-checkbox-label">
+                  <label key={index + 1} className={`column-checkbox-label ${visibleColumns.has(index + 1) ? 'selected' : ''}`}>
                     <input
                       type="checkbox"
-                      checked={selectedColumns.has(index + 1)}
-                      onChange={() => handleSelectColumn(index + 1)}
+                      checked={visibleColumns.has(index + 1)}
+                      onChange={() => handleToggleColumn(index + 1)}
                       className="column-checkbox"
                     />
                     <span className="column-name">{name}</span>
                   </label>
                 ))}
               </div>
-              {/*<div className="column-selector-actions">
-                <button 
-                  onClick={() => setShowColumnSelector(false)}
-                  className="column-selector-close"
-                >
-                  Готово
-                </button>
-              </div>*/}
             </div>
           )}
 
-{showExportPanel && (
-            <div className="export-panel">
-              <div className="export-panel-header">
-                <h3>Настройки экспорта</h3>
+          {/* Панель экспорта */}
+          {showExportPanel && (
+            <>
+              <div className="column-selector-panel">
+                <div className="column-selector-header">
+                  <h3>Выбор колонок для экспорта</h3>
+                  <button 
+                    onClick={handleSelectAllColumns}
+                    className="select-all-columns-button"
+                  >
+                    {selectedColumns.size === 41 ? 'Снять все' : 'Выбрать все'}
+                  </button>
+                </div>
+                <div className="column-selector-grid">
+                  {ColumnName.slice(1).map((name, index) => (
+                    <label key={index + 1} className="column-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={selectedColumns.has(index + 1)}
+                        onChange={() => handleSelectColumn(index + 1)}
+                        className="column-checkbox"
+                      />
+                      <span className="column-name">{name}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-              <div className="export-formats">
-                <label className="format-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={exportFormats.excel}
-                    onChange={() => handleFormatChange('excel')}
-                  />
-                  <FileSpreadsheet size={18} />
-                  <span>Excel (.xlsx)</span>
-                </label>
-                <label className="format-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={exportFormats.word}
-                    onChange={() => handleFormatChange('word')}
-                  />
-                  <FileText size={18} />
-                  <span>Word (.doc)</span>
-                </label>
+
+              <div className="export-panel">
+                <div className="export-panel-header">
+                  <h3>Настройки экспорта</h3>
+                </div>
+                <div className="export-formats">
+                  <label className="format-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={exportFormats.excel}
+                      onChange={() => handleFormatChange('excel')}
+                    />
+                    <FileSpreadsheet size={18} />
+                    <span>Excel (.xlsx)</span>
+                  </label>
+                  <label className="format-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={exportFormats.word}
+                      onChange={() => handleFormatChange('word')}
+                    />
+                    <FileText size={18} />
+                    <span>Word (.doc)</span>
+                  </label>
+                </div>
+                <div className="export-actions">
+                  <button 
+                    onClick={handleExport}
+                    className="export-confirm-button"
+                    disabled={!exportFormats.excel && !exportFormats.word}
+                  >
+                    Выполнить экспорт
+                  </button>
+                  <button 
+                    onClick={() => setShowExportPanel(false)}
+                    className="export-cancel-button"
+                  >
+                    Отмена
+                  </button>
+                </div>
               </div>
-              <div className="export-actions">
-                <button 
-                  onClick={handleExport}
-                  className="export-confirm-button"
-                  disabled={!exportFormats.excel && !exportFormats.word}
-                >
-                  Выполнить экспорт
-                </button>
-                <button 
-                  onClick={() => setShowExportPanel(false)}
-                  className="export-cancel-button"
-                >
-                  Отмена
-                </button>
-              </div>
-            </div>
+            </>
           )}
           
           <div className="selection-info">
@@ -1704,9 +2108,19 @@ const EditableTable = () => {
                 {selectAll && filteredData.length > 0 && ` (все из текущего фильтра)`}
               </p>
             )}
+            {filters.length > 0 && (
+              <p className="filter-info">
+                Активных фильтров: {filters.length} (логика: {filterLogic === 'AND' ? 'И' : 'ИЛИ'})
+              </p>
+            )}
+            {visibleColumns.size < 41 && (
+              <p className="columns-info">
+                Отображается колонок: {visibleColumns.size} из 41
+              </p>
+            )}
             {showExportPanel && selectedColumns.size >= 0 && selectedColumns.size <= 41 && (
               <p className="selected-columns-info">
-                Выбрано колонок: {selectedColumns.size} из 41
+                Выбрано колонок для экспорта: {selectedColumns.size} из 41
               </p>
             )}
           </div>
@@ -1733,7 +2147,6 @@ const EditableTable = () => {
               <tr>
                 <th className="id-checkbox-header sticky-top-left">
                   <div className="id-checkbox-container">
-                    <span className="id-label">ID</span>
                     <div className="checkbox-wrapper">
                       <input
                         type="checkbox"
@@ -1745,28 +2158,34 @@ const EditableTable = () => {
                     </div>
                   </div>
                 </th>
-                {columns.map((col, index) => (
-                  <th 
-                    key={col} 
-                    className="column-header sticky-top sortable-header"
-                    onClick={() => handleSort(col)}
-                    title={`Сортировать по ${ColumnName[index + 1]}`}
-                  >
-                    <div className="header-content">
-                      <span className="header-text">{ColumnName[index + 1]}</span>
-                      <span className="sort-icon">
-                        {getSortIcon(col)}
-                      </span>
-                    </div>
-                  </th>
-                ))}
+                {columns.map((col, index) => {
+                  const columnNumber = index + 1;
+                  // Показываем только выбранные колонки
+                  if (!visibleColumns.has(columnNumber)) return null;
+                  
+                  return (
+                    <th 
+                      key={col} 
+                      className="column-header sticky-top sortable-header"
+                      onClick={() => handleSort(col)}
+                      title={`Сортировать по ${ColumnName[columnNumber]}`}
+                    >
+                      <div className="header-content">
+                        <span className="header-text">{ColumnName[columnNumber]}</span>
+                        <span className="sort-icon">
+                          {getSortIcon(col)}
+                        </span>
+                      </div>
+                    </th>
+                  );
+                })}
                 <th className="action-header sticky-top-right">Действия</th>
               </tr>
             </thead>
             <tbody>
               {sortedFilteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={42} className="no-data">
+                  <td colSpan={visibleColumns.size + 2} className="no-data">
                     {data.length === 0 ? 'Нет данных. Создайте первую запись.' : 'Нет результатов по вашему запросу.'}
                   </td>
                 </tr>
@@ -1780,7 +2199,6 @@ const EditableTable = () => {
                     <tr key={`row-${row.id}`} className="table-row">
                       <td className="id-checkbox-cell sticky-left">
                         <div className="id-checkbox-container">
-                          <span className="id-value">{row.id || originalIndex + 1}</span>
                           <div className="checkbox-wrapper">
                             <input
                               type="checkbox"
@@ -1792,13 +2210,37 @@ const EditableTable = () => {
                         </div>
                       </td>
                       {columns.map((column) => {
+                        const columnNumber = parseInt(column.replace('column', ''));
+                        // Показываем только выбранные колонки
+                        if (!visibleColumns.has(columnNumber)) return null;
+                        
                         let cellValue = row[column] || '';
+                        const isEditing = editingCell.rowId === row.id && editingCell.column === column;
+                        
                         if (column === 'column18') {
                           cellValue = formatPreparationForm(cellValue);
                         }
+
+                        if (isEditing) {
+                          return (
+                            <InlineCellEditor
+                              key={`cell-${row.id}-${column}`}
+                              editingCell={editingCell}
+                              editValue={editValue}
+                              setEditValue={setEditValue}
+                              onSave={handleCellSave}
+                              onCancel={handleCellCancel}
+                            />
+                          );
+                        }
+
                         return (
-                          <td key={`cell-${row.id}-${column}`}>
-                            <span className="cell-value">
+                          <td 
+                            key={`cell-${row.id}-${column}`}
+                            onDoubleClick={() => handleCellDoubleClick(row.id, column, cellValue, rowIndex)}
+                            className={isEditAllowed ? 'editable-cell' : ''}
+                          >
+                            <span className="cell-value" title={cellValue}>
                               {searchTerm && String(cellValue || '').toLowerCase().includes(searchTerm.toLowerCase()) && 
                                (searchColumn === 'all' || searchColumn === column) ? (
                                 <mark>{cellValue}</mark>
@@ -1867,8 +2309,8 @@ const EditableTable = () => {
                 {modalState.mode === 'create' 
                   ? 'Создание нового ординатора' 
                   : modalState.mode === 'view'
-                    ? `Просмотр ординатора #${modalState.selectedRow?.id || modalState.selectedRow?.index + 1}`
-                    : `Редактирование ординатора #${modalState.selectedRow?.id || modalState.selectedRow?.index + 1}`}
+                    ? `Просмотр ординатора ID: ${modalState.selectedRow?.id || modalState.selectedRow?.index + 1}`
+                    : `Редактирование ординатора ID: ${modalState.selectedRow?.id || modalState.selectedRow?.index + 1}`}
               </h2>
               <button onClick={handleCancel} className="close-button">&times;</button>
             </div>
@@ -1883,12 +2325,6 @@ const EditableTable = () => {
                         ? 'Просмотр данных ординатора'
                         : 'Редактирование данных ординатора'}
                   </p>
-                  {modalState.mode === 'edit' && (
-                    <p className="editor-note">ID: {modalState.selectedRow?.id}</p>
-                  )}
-                  {modalState.mode === 'view' && (
-                    <p className="editor-note">ID: {modalState.selectedRow?.id}</p>
-                  )}
                 </div>
                 
                 <div className="columns-editor">
