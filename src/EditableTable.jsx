@@ -1175,19 +1175,15 @@ const EditableTable = () => {
           };
         
           const handleDateBlur = () => {
-            // При потере фокуса ничего не делаем, оставляем как есть
           };
         
-          // Форматируем значение для отображения в input
           const displayDate = (() => {
             if (!editValue) return '';
             
-            // Если уже в формате ГГГГ-ММ-ДД, показываем как есть
             if (/^\d{4}-\d{2}-\d{2}$/.test(editValue)) {
               return editValue;
             }
             
-            // Если в формате ДД.ММ.ГГГГ, преобразуем для input
             const ddmmyyyy = editValue.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
             if (ddmmyyyy) {
               return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
