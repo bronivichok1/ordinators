@@ -463,12 +463,12 @@ const EditableTable = () => {
       alert('Выберите хотя бы один тип справки');
       return;
     }
-
+  
     setGeneratingCertificates(true);
     
     try {
       const selectedData = data.filter(row => selectedRows.has(row.id));
-      const { successCount, errorCount } = await generateMultipleCertificates(selectedData, selectedCertificateTypes);
+      const { successCount, errorCount } = await generateMultipleCertificates(selectedData, selectedCertificateTypes, userData);
       
       if (errorCount > 0) {
         alert(`Справки сгенерированы: ${successCount} успешно, ${errorCount} с ошибками`);

@@ -84,7 +84,31 @@ const parseContractInfo = (contractStr) => {
   };
 };
 
-const prepareData = (row) => {
+const getContactInfo = (userData) => {
+  const contactMap = {
+    'Бакей С.Л.': { name: 'Бакей', phone: '311 27 44' },
+    'Буяк О.Ю.': { name: 'Буяк', phone: '311 27 49' },
+    'Калечиц С.К.': { name: 'Калечиц', phone: '311 27 36' },
+    'Лацепова Т.Л.': { name: 'Лацепова', phone: '311 27 44' },
+    'Пензикова Л.В.': { name: 'Пензикова', phone: '311 27 49' }
+  };
+  
+  if (!userData) {
+    return { contactPerson: 'Бакей', contactPhone: '311 27 44' };
+  }
+  
+  const userFio = userData.fio || userData.login || '';
+  
+  for (const [fullName, info] of Object.entries(contactMap)) {
+    if (userFio.includes(fullName.split(' ')[0]) || userFio === fullName) {
+      return { contactPerson: info.name, contactPhone: info.phone };
+    }
+  }
+  
+  return { contactPerson: 'Бакей', contactPhone: '311 27 44' };
+};
+
+const prepareData = (row, userData) => {
   const isMale = row.column4 === 'М';
   const country = row.column5;
   const contractInfo = parseContractInfo(row.column29 || '');
@@ -135,6 +159,7 @@ const prepareData = (row) => {
   
   const countryGenitive = getCountryInGenitive(country);
   const citizenPhrase = `${isMale ? 'гражданин' : 'гражданка'} ${countryGenitive}`;
+  const { contactPerson, contactPhone } = getContactInfo(userData);
 
   return {
     fio: row.column1 || '',
@@ -150,7 +175,9 @@ const prepareData = (row) => {
     contractNumber: contractInfo.number,
     studyPeriod: formatStudyPeriod(years, months),
     startDate: enrollmentDate,
-    endDate: dismissalDate
+    endDate: dismissalDate,
+    contactPerson: contactPerson,
+    contactPhone: contactPhone
   };
 };
 
@@ -162,14 +189,14 @@ const loadTemplate = async (templateFile) => {
   return await response.arrayBuffer();
 };
 
-export const generateCertificate = async (certificateTypeId, rowData, outputFileName = null) => {
+export const generateCertificate = async (certificateTypeId, rowData, userData, outputFileName = null) => {
   try {
     const templateFile = TEMPLATE_FILES[certificateTypeId];
     if (!templateFile) {
       throw new Error(`Неизвестный тип справки: ${certificateTypeId}`);
     }
     
-    const data = prepareData(rowData);
+    const data = prepareData(rowData, userData);
     const templateContent = await loadTemplate(templateFile);
     
     const zip = new PizZip(templateContent);
@@ -204,7 +231,7 @@ export const generateCertificate = async (certificateTypeId, rowData, outputFile
   }
 };
 
-export const generateMultipleCertificates = async (selectedRows, selectedTypeIds) => {
+export const generateMultipleCertificates = async (selectedRows, selectedTypeIds, userData) => {
   const results = [];
   let successCount = 0;
   let errorCount = 0;
@@ -215,7 +242,7 @@ export const generateMultipleCertificates = async (selectedRows, selectedTypeIds
         const certificateType = CERTIFICATE_TYPES.find(t => t.id === typeId);
         const fileName = `${row.column1 || 'ординатор'}_${certificateType?.name || 'справка'}.docx`;
         
-        await generateCertificate(typeId, row, fileName);
+        await generateCertificate(typeId, row, userData, fileName);
         
         successCount++;
         results.push({ 
