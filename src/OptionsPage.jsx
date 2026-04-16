@@ -297,7 +297,7 @@ const OptionsPage = () => {
         <header className="options-header">
           <div className="header-left">
             <button 
-              onClick={() => navigate('/main')} 
+              onClick={() => navigate('/')} 
               className="back-button"
               disabled={saving}
             >

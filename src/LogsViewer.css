@@ -301,7 +301,7 @@
     color: white;
   }
   
-  .pagination {
+  .pagination-logs {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -313,7 +313,7 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   
-  .pagination button {
+  .pagination-logs button {
     padding: 8px 12px;
     border: 1px solid #dee2e6;
     background-color: white;
@@ -323,16 +323,16 @@
     min-width: 40px;
   }
   
-  .pagination button:hover:not(:disabled) {
+  .pagination-logs button:hover:not(:disabled) {
     background-color: #e9ecef;
   }
   
-  .pagination button:disabled {
+  .pagination-logs button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
   
-  .pagination span {
+  .pagination-logs span {
     font-size: 14px;
     color: #495057;
   }

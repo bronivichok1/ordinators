@@ -8,6 +8,7 @@ import LogsViewer from './LogsViewer';
 import OptionsPage from './OptionsPage';
 import Unauthorized from './Unauthorized';
 import NotFound from './NotFound';
+import ImportData from './ImportData';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <BrowserRouter>
@@ -18,6 +19,7 @@ root.render(
       <Route path="/options" element={<OptionsPage />}/>
       <Route path="/unauthorized" element={<Unauthorized />}/>
       <Route path="*" element={<NotFound />} />
+      <Route path="/import" element={<ImportData />} />
   </Routes>
 </BrowserRouter>
 );

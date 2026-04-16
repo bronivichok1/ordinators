@@ -473,7 +473,7 @@ const LogsViewer = () => {
         </div>
 
         {totalPages > 1 && (
-          <div className="pagination">
+          <div className="pagination-logs">
             <button 
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1 || loading}
