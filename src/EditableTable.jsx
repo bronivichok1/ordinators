@@ -725,7 +725,7 @@ const EditableTable = () => {
       const row = {};
       row.column1 = ordinator.fio || '';
       row.column2 = ordinator.fioEn || '';
-      row.column3 = ordinator.birthYear || '';
+      row.column3 = formatDateToDisplay(ordinator.birthYear) || ''; 
       row.column4 = ordinator.gender || 'М';
       row.column5 = ordinator.country || '';
       row.column6 = formatDateToDisplay(ordinator.enrollmentDate) || '';
@@ -760,7 +760,7 @@ const EditableTable = () => {
       row.column20 = ordinator.documentNumber || '';
       row.column21 = '';
       row.column22 = ordinator.residenceAddress || 'общежитие';
-      row.column23 = ordinator.livingAddress || ''; 
+      row.column23 = ordinator.livingAddress || '';
       row.column24 = formatDateToDisplay(ordinator.registrationExpiry) || '';
       row.column25 = ordinator.enrollmentOrderNumber || '';
       row.column26 = formatDateToDisplay(ordinator.enrollmentOrderDate) || '';
@@ -778,7 +778,7 @@ const EditableTable = () => {
         row.column31 = '';
       }
       row.column32 = ordinator.login || '';
-      row.column33 = ordinator.password; 
+      row.column33 = ordinator.password;
       row.column34 = ordinator.supervisorId ? String(ordinator.supervisorId) : '';
       if (ordinator.session) {
         row.column35 = formatDateToDisplay(ordinator.session.sessionStart) || '';
