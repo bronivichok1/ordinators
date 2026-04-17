@@ -18,7 +18,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { CERTIFICATE_TYPES, generateMultipleCertificates } from './utils/certificateGenerator';
 
-const ROWS_PER_PAGE = 50;
+const ROWS_PER_PAGE = 25;
 
 const EditableTable = () => {
   const navigate = useNavigate();
@@ -111,6 +111,31 @@ const EditableTable = () => {
     'Въезд по приглашению',
     'Распределение клинических ординаторов',
   ];
+
+  const formatDateToDisplay = (dateString) => {
+    if (!dateString) return '';
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateString)) return dateString;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [year, month, day] = dateString.split('-');
+      return `${day}.${month}.${year}`;
+    }
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) return dateString.replace(/-/g, '.');
+    return dateString;
+  };
+
+  const formatDateToAPI = (dateString) => {
+    if (!dateString) return null;
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateString)) {
+      const [day, month, year] = dateString.split('.');
+      return `${year}-${month}-${day}`;
+    }
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+      const [day, month, year] = dateString.split('-');
+      return `${year}-${month}-${day}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+    return null;
+  };
 
   useEffect(() => {
     const allColumns = new Set();
@@ -621,7 +646,7 @@ const EditableTable = () => {
             <p>Дата экспорта: ${new Date().toLocaleString('ru-RU')}</p>
             <p>Всего записей: ${exportData.length}</p>
           </div>
-          <table>
+          <table border="1">
             <thead>
               <tr>
       `;
@@ -631,11 +656,7 @@ const EditableTable = () => {
         html += `<th>${header}</th>`;
       });
       
-      html += `
-              </tr>
-            </thead>
-            <tbody>
-      `;
+      html += `<tr></thead><tbody>`;
       
       exportData.forEach(row => {
         html += '<tr>';
@@ -645,12 +666,7 @@ const EditableTable = () => {
         html += '</tr>';
       });
       
-      html += `
-            </tbody>
-          </table>
-        </body>
-        </html>
-      `;
+      html += `</tbody></table></body></html>`;
       
       const blob = new Blob([html], { type: 'application/msword' });
       const fileName = `ординаторы_${new Date().toISOString().split('T')[0]}_${selectedRows.size}записей.doc`;
@@ -712,12 +728,12 @@ const EditableTable = () => {
       row.column3 = ordinator.birthYear || '';
       row.column4 = ordinator.gender || 'М';
       row.column5 = ordinator.country || '';
-      row.column6 = ordinator.enrollmentDate || '';
-      row.column7 = ordinator.dismissalDate || '';
+      row.column6 = formatDateToDisplay(ordinator.enrollmentDate) || '';
+      row.column7 = formatDateToDisplay(ordinator.dismissalDate) || '';
       row.column8 = ordinator.dismissalReason || '';
       row.column9 = ordinator.socialLeave || '';
-      row.column10 = ordinator.socialLeaveStart || '';
-      row.column11 = ordinator.socialLeaveEnd || '';
+      row.column10 = formatDateToDisplay(ordinator.socialLeaveStart) || '';
+      row.column11 = formatDateToDisplay(ordinator.socialLeaveEnd) || '';
       row.column12 = ordinator.mobilePhone || '';
       if (ordinator.university) {
         row.column13 = ordinator.university.name || 'БГМУ';
@@ -745,11 +761,11 @@ const EditableTable = () => {
       row.column21 = '';
       row.column22 = ordinator.residenceAddress || 'общежитие';
       row.column23 = ordinator.livingAddress || ''; 
-      row.column24 = ordinator.registrationExpiry || '';
+      row.column24 = formatDateToDisplay(ordinator.registrationExpiry) || '';
       row.column25 = ordinator.enrollmentOrderNumber || '';
-      row.column26 = ordinator.enrollmentOrderDate || '';
+      row.column26 = formatDateToDisplay(ordinator.enrollmentOrderDate) || '';
       row.column27 = ordinator.dismissalOrderNumber || '';
-      row.column28 = ordinator.dismissalOrderDate || '';
+      row.column28 = formatDateToDisplay(ordinator.dismissalOrderDate) || '';
       row.column29 = ordinator.contractInfo || '';
       row.column30 = ordinator.medicalCertificate || 'есть';
       if (ordinator.currentControl) {
@@ -765,15 +781,15 @@ const EditableTable = () => {
       row.column33 = ordinator.password; 
       row.column34 = ordinator.supervisorId ? String(ordinator.supervisorId) : '';
       if (ordinator.session) {
-        row.column35 = ordinator.session.sessionStart || '';
-        row.column36 = ordinator.session.sessionEnd || '';
+        row.column35 = formatDateToDisplay(ordinator.session.sessionStart) || '';
+        row.column36 = formatDateToDisplay(ordinator.session.sessionEnd) || '';
       } else {
         row.column35 = '';
         row.column36 = '';
       }
       if (ordinator.money) {
-        row.column37 = ordinator.money.allowanceStartDate || '';
-        row.column38 = ordinator.money.allowanceEndDate || '';
+        row.column37 = formatDateToDisplay(ordinator.money.allowanceStartDate) || '';
+        row.column38 = formatDateToDisplay(ordinator.money.allowanceEndDate) || '';
       } else {
         row.column37 = '';
         row.column38 = '';
@@ -790,26 +806,25 @@ const EditableTable = () => {
   };
 
   const transformTableDataToApi = (tableData, mode = 'create') => {
-
-  let preparationFormValue = tableData.column18 || '';
-  
-  if (typeof preparationFormValue === 'string') {
-    try {
-      const parsed = JSON.parse(preparationFormValue);
-      if (Array.isArray(parsed)) {
-        preparationFormValue = JSON.stringify(parsed);
+    let preparationFormValue = tableData.column18 || '';
+    
+    if (typeof preparationFormValue === 'string') {
+      try {
+        const parsed = JSON.parse(preparationFormValue);
+        if (Array.isArray(parsed)) {
+          preparationFormValue = JSON.stringify(parsed);
+        }
+      } catch {
+        if (preparationFormValue.includes(',')) {
+          const options = preparationFormValue.split(',').map(s => s.trim());
+          preparationFormValue = JSON.stringify(options);
+        } else {
+          preparationFormValue = JSON.stringify([preparationFormValue]);
+        }
       }
-    } catch {
-      if (preparationFormValue.includes(',')) {
-        const options = preparationFormValue.split(',').map(s => s.trim());
-        preparationFormValue = JSON.stringify(options);
-      } else {
-        preparationFormValue = JSON.stringify([preparationFormValue]);
-      }
+    } else if (Array.isArray(preparationFormValue)) {
+      preparationFormValue = JSON.stringify(preparationFormValue);
     }
-  } else if (Array.isArray(preparationFormValue)) {
-    preparationFormValue = JSON.stringify(preparationFormValue);
-  }
 
     const apiData = {
       fio: tableData.column1 || '',
@@ -817,12 +832,12 @@ const EditableTable = () => {
       birthYear: tableData.column3 || null,
       gender: tableData.column4 || 'М',
       country: tableData.column5 || 'Беларусь',
-      enrollmentDate: tableData.column6 || null,
-      dismissalDate: tableData.column7 || null,
+      enrollmentDate: formatDateToAPI(tableData.column6),
+      dismissalDate: formatDateToAPI(tableData.column7),
       dismissalReason: tableData.column8 === 'иное' ? modalState.otherDismissalReason : tableData.column8 || '',
       socialLeave: tableData.column9 || '',
-      socialLeaveStart: tableData.column10 || null,
-      socialLeaveEnd: tableData.column11 || null,
+      socialLeaveStart: formatDateToAPI(tableData.column10),
+      socialLeaveEnd: formatDateToAPI(tableData.column11),
       mobilePhone: tableData.column12 || '',
       universityName: tableData.column13 === 'другое' ? modalState.otherUniversity : tableData.column13 || 'БГМУ',
       graduationYear: tableData.column14 ? parseInt(tableData.column14) : null,
@@ -835,21 +850,21 @@ const EditableTable = () => {
       identNumber: tableData.column21 || '',
       residenceAddress: tableData.column22 || 'общежитие',
       livingAddress: tableData.column23 || '',
-      registrationExpiry: tableData.column24 || null,
+      registrationExpiry: formatDateToAPI(tableData.column24),
       enrollmentOrderNumber: tableData.column25 || '',
-      enrollmentOrderDate: tableData.column26 || null,
+      enrollmentOrderDate: formatDateToAPI(tableData.column26),
       dismissalOrderNumber: tableData.column27 || '',
-      dismissalOrderDate: tableData.column28 || null,
+      dismissalOrderDate: formatDateToAPI(tableData.column28),
       contractInfo: tableData.column29 || '',
       medicalCertificate: tableData.column30 || 'есть',
       scores: tableData.column31 || '',
       login: tableData.column32 || '',
       password: tableData.column33 || '',
       supervisorId: tableData.column34 ? parseInt(tableData.column34) : null,
-      sessionStart: tableData.column35 || null,
-      sessionEnd: tableData.column36 || null,
-      allowanceStartDate: tableData.column37 || null,
-      allowanceEndDate: tableData.column38 || null,
+      sessionStart: formatDateToAPI(tableData.column35),
+      sessionEnd: formatDateToAPI(tableData.column36),
+      allowanceStartDate: formatDateToAPI(tableData.column37),
+      allowanceEndDate: formatDateToAPI(tableData.column38),
       rivshCertificate: tableData.column39 || 'нет',
       entryByInvitation: tableData.column40 || 'нет',
       distributionInfo: tableData.column41 || ''
@@ -984,12 +999,8 @@ const EditableTable = () => {
       let valueToSave = editValue;
     
       if (fieldType === 'date' && valueToSave) {
-        if (/^\d{4}-\d{2}-\d{2}$/.test(valueToSave)) {
-          const [year, month, day] = valueToSave.split('-');
-          valueToSave = `${day}.${month}.${year}`;
-        }
+        valueToSave = formatDateToAPI(valueToSave);
       }
-  
 
       const updatedRow = { ...data[rowIndex] };
       updatedRow[column] = editValue;
@@ -1026,7 +1037,6 @@ const EditableTable = () => {
     const { fieldType, columnNumber } = editingCell;
     const fieldName = ColumnName[columnNumber];
     
-    const [otherValue, setOtherValue] = useState('');
     const [selectedOptions, setSelectedOptions] = useState(() => {
       if (columnNumber === 18 && editValue) {
         try {
@@ -1109,7 +1119,6 @@ const EditableTable = () => {
     };
 
     const renderEditor = () => {
-
       if (columnNumber === 18) {
         return (
           <div className="inline-checkbox-group">
@@ -1175,41 +1184,26 @@ const EditableTable = () => {
 
       switch(fieldType) {
         case 'date':
-          const handleDateChange = (e) => {
-            const value = e.target.value;
-            setEditValue(value);
-          };
-        
-          const handleDateBlur = () => {
-          };
-        
           const displayDate = (() => {
             if (!editValue) return '';
-            
+            if (/^\d{2}\.\d{2}\.\d{4}$/.test(editValue)) return editValue;
             if (/^\d{4}-\d{2}-\d{2}$/.test(editValue)) {
-              return editValue;
+              const [year, month, day] = editValue.split('-');
+              return `${day}.${month}.${year}`;
             }
-            
-            const ddmmyyyy = editValue.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-            if (ddmmyyyy) {
-              return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
-            }
-            
             return editValue;
           })();
-        
           return (
             <input
               ref={selectRef}
-              type="input"
+              type="text"
               value={displayDate}
-              onChange={handleDateChange}
-              onBlur={handleDateBlur}
+              onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
               className="inline-input"
+              placeholder="ДД.ММ.ГГГГ"
             />
           );
-
         case 'tel':
           return (
             <input
@@ -1222,7 +1216,6 @@ const EditableTable = () => {
               placeholder="+375XXXXXXXXX"
             />
           );
-
         case 'password':
           return (
             <input
@@ -1235,7 +1228,6 @@ const EditableTable = () => {
               placeholder="Введите пароль"
             />
           );
-
         case 'textarea':
           return (
             <textarea
@@ -1247,32 +1239,6 @@ const EditableTable = () => {
               rows="3"
             />
           );
-
-        case 'checkbox-group':
-          return (
-            <div className="inline-checkbox-group">
-              {selectOptions.preparationForm.map(option => (
-                <label key={option} className="inline-checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={selectedOptions.includes(option)}
-                    onChange={(e) => {
-                      let newOptions;
-                      if (e.target.checked) {
-                        newOptions = [...selectedOptions, option];
-                      } else {
-                        newOptions = selectedOptions.filter(o => o !== option);
-                      }
-                      setSelectedOptions(newOptions);
-                      setEditValue(JSON.stringify(newOptions));
-                    }}
-                  />
-                  <span>{option}</span>
-                </label>
-              ))}
-            </div>
-          );
-
         default:
           return (
             <input
@@ -1293,20 +1259,8 @@ const EditableTable = () => {
         <div className="inline-editor-container">
           {renderEditor()}
           <div className="inline-editor-actions">
-            <button 
-              onClick={onSave}
-              className="inline-save-button"
-              title="Сохранить"
-            >
-              ✓ Сохранить
-            </button>
-            <button 
-              onClick={onCancel}
-              className="inline-cancel-button"
-              title="Отмена"
-            >
-              ✗ Отмена
-            </button>
+            <button onClick={onSave} className="inline-save-button">✓ Сохранить</button>
+            <button onClick={onCancel} className="inline-cancel-button">✗ Отмена</button>
           </div>
         </div>
       </td>
@@ -1630,12 +1584,8 @@ const EditableTable = () => {
   );
 
   const sortedFilteredData = getSortedData(filteredData);
-  
   const totalPages = Math.ceil(sortedFilteredData.length / ROWS_PER_PAGE);
-  const paginatedData = sortedFilteredData.slice(
-    (currentPage - 1) * ROWS_PER_PAGE,
-    currentPage * ROWS_PER_PAGE
-  );
+  const paginatedData = sortedFilteredData.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE);
 
   useEffect(() => {
     const allFilteredIds = sortedFilteredData.map(row => row.id);
@@ -1644,9 +1594,7 @@ const EditableTable = () => {
   }, [selectedRows, sortedFilteredData]);
 
   const getSortIcon = (columnKey) => {
-    if (sortConfig.key !== columnKey) {
-      return '↕️'; 
-    }
+    if (sortConfig.key !== columnKey) return '↕️';
     return sortConfig.direction === 'ascending' ? '↑' : '↓';
   };
 
@@ -1723,7 +1671,6 @@ const EditableTable = () => {
           options={options}
           value={value ? { value: value, label: value } : null}
           onChange={handleChange}
-          placeholder={``}
           isClearable
           noOptionsMessage={() => "Нет вариантов, введите свой"}
           formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
@@ -1776,12 +1723,14 @@ const EditableTable = () => {
       case 'Дата окончания надбавки':
       case 'Дата начала сессии(циклов)':
       case 'Дата окончания сессии(циклов)':
+        const displayDate = formatDateToDisplay(value);
         return (
           <input
-            type="date"
-            value={value}
+            type="text"
+            value={displayDate}
             onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
+            placeholder="ДД.ММ.ГГГГ"
           />
         );
       case 'Мобильный телефон':
@@ -1812,7 +1761,6 @@ const EditableTable = () => {
             value={value}
             onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
-            rows="3"
           />
         );
       default:
@@ -1858,7 +1806,7 @@ const EditableTable = () => {
 
   const columns = Array.from({ length: 41 }, (_, i) => `column${i + 1}`);
 
-  const Pagination = () => {
+  const PaginationComponent = () => {
     const pages = [];
     const maxVisible = 5;
     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
@@ -1951,7 +1899,7 @@ const EditableTable = () => {
 
         <div className="header-right">
           <div className="header-actions">
-            {(userData.role === 'admin'||userData.role === 'dispatcher') && (
+            {(userData.role === 'admin' || userData.role === 'dispatcher') && (
               <button className="admin-panel-button" onClick={goToAdminPanel}>
                 <Shield size={18} />
                 <span>Админ-панель</span>
@@ -1963,6 +1911,47 @@ const EditableTable = () => {
             </button>
           </div>
         </div>
+
+        {isMobileMenuOpen && (
+          <div className="mobile-menu">
+            <div className="mobile-user-info">
+              <div className="user-avatar">
+                <User size={24} />
+              </div>
+              <div className="user-details">
+                <div className="user-name">{userData.fio || userData.login}</div>
+                <div className="user-role">
+                  <span className={`role-badge role-${userData.role}`}>
+                    {userData.role === 'admin' ? 'Администратор' : 
+                    userData.role === 'dispatcher' ? 'Диспетчер' :
+                    userData.role === 'passportist' ? 'Паспортист' :
+                    userData.role === 'supervisor' ? 'Руководитель' : 'Пользователь'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="mobile-menu-items">
+              <div className="mobile-menu-item" onClick={() => setIsMobileMenuOpen(false)}>
+                <User size={20} />
+                <span>Мой профиль</span>
+              </div>
+              {userData.role === 'admin' && (
+                <div className="mobile-menu-item" onClick={goToAdminPanel}>
+                  <Shield size={20} />
+                  <span>Панель администратора</span>
+                </div>
+              )}
+              <div className="mobile-menu-item" onClick={fetchOrdinators}>
+                <span>🔄 Обновить данные</span>
+              </div>
+              <div className="menu-divider"></div>
+              <div className="mobile-menu-item logout-item" onClick={handleLogout}>
+                <LogOut size={20} />
+                <span>Выйти из системы</span>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <div className="table-container">
@@ -2069,7 +2058,7 @@ const EditableTable = () => {
               </div>
               
               <div className="filters-list">
-                {filters.map((filter, index) => (
+                {filters.map((filter) => (
                   <div key={filter.id} className="filter-item">
                     <select
                       value={filter.column}
@@ -2474,7 +2463,7 @@ const EditableTable = () => {
           </table>
         </div>
         
-        <Pagination />
+        <PaginationComponent />
         
         <div className="pagination-info">
           Показано {paginatedData.length} из {sortedFilteredData.length} записей (стр. {currentPage} из {totalPages})
