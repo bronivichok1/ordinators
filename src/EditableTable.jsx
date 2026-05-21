@@ -823,7 +823,7 @@ const EditableTable = () => {
         row.column11 = ordinator.university.name || 'БГМУ';
         let graduationYear = ordinator.university.graduationYear;
           if (graduationYear) {
-            if (typeof graduationYear === 'string' && graduationYear.includes('-')) {
+            if (typeof graduationYear === 'string') {
               graduationYear = graduationYear.split('-')[0];
             } else if (graduationYear instanceof Date) {
               graduationYear = graduationYear.getFullYear().toString();
@@ -831,6 +831,7 @@ const EditableTable = () => {
               graduationYear = graduationYear.toString();
             }
           }
+          row.column12 = graduationYear || '';
         row.column12 = graduationYear || '';
         row.column13 = ordinator.university.department || '';
         row.column14 = ordinator.university.specialtyProfile || '';
@@ -970,7 +971,7 @@ try {
       socialLeaves: socialLeavesValue,
       mobilePhone: tableData.column10 || '',
       universityName: tableData.column11 === 'другое' ? modalState.otherUniversity : tableData.column11 || 'БГМУ',
-      graduationYear: tableData.column12 ? parseInt(tableData.column12) : null,
+      graduationYear: tableData.column12 ? `${tableData.column12}-01-01` : null,
       department: tableData.column13 || '',
       specialtyProfile: tableData.column14 || '',
       specialty: tableData.column15 || '',
