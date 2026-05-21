@@ -821,7 +821,17 @@ const EditableTable = () => {
       row.column10 = ordinator.mobilePhone || '';
       if (ordinator.university) {
         row.column11 = ordinator.university.name || 'БГМУ';
-        row.column12 = ordinator.university.graduationYear || '';
+        let graduationYear = ordinator.university.graduationYear;
+          if (graduationYear) {
+            if (typeof graduationYear === 'string' && graduationYear.includes('-')) {
+              graduationYear = graduationYear.split('-')[0];
+            } else if (graduationYear instanceof Date) {
+              graduationYear = graduationYear.getFullYear().toString();
+            } else if (typeof graduationYear === 'number') {
+              graduationYear = graduationYear.toString();
+            }
+          }
+        row.column12 = graduationYear || '';
         row.column13 = ordinator.university.department || '';
         row.column14 = ordinator.university.specialtyProfile || '';
         row.column15 = ordinator.university.specialty || '';
