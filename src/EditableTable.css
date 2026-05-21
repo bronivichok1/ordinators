@@ -1041,12 +1041,8 @@ mark {
 
 .checkbox-group {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 8px;
-  background-color: white;
-  border-radius: 6px;
-  border: 1px solid #ddd;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .checkbox-label {
@@ -1054,10 +1050,13 @@ mark {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 6px 14px;
-  background-color: #f5f5f5;
-  border-radius: 20px;
-  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.modal-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
 .checkbox-label:hover {
@@ -1077,7 +1076,7 @@ mark {
 
 .modal-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 15px;
   padding-top: 20px;
   border-top: 1px solid #e0e0e0;
@@ -1485,4 +1484,109 @@ mark {
 
 .react-select-inline .react-select__control {
   min-height: 40px;
+}
+
+.modal-nested-header {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 0 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+.modal-nested-header .nested-header-start,
+.modal-nested-header .nested-header-end,
+.modal-nested-header .nested-header-reason,
+.modal-nested-header .nested-header-supervisor {
+  flex: 1;
+}
+
+.modal-nested-header .nested-header-actions {
+  width: 30px;
+}
+
+.modal-nested-container {
+  width: 100%;
+}
+
+.modal-nested-header {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 0 5px;
+}
+
+.modal-nested-header div {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
+
+.nested-header-start,
+.nested-header-end,
+.nested-header-reason,
+.nested-header-supervisor {
+  flex: 1;
+}
+
+.nested-header-actions {
+  width: 30px;
+}
+
+.modal-nested-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.modal-nested-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.modal-nested-input:focus {
+  outline: none;
+  border-color: #2196f3;
+}
+
+.modal-nested-remove {
+  width: 30px;
+  height: 32px;
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  color: #f44336;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-nested-remove:hover {
+  background: #f44336;
+  color: white;
+}
+
+.modal-nested-add {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 4px;
+  color: #1976d2;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.modal-nested-add:hover {
+  background: #bbdef5;
 }

@@ -12,13 +12,15 @@ import {
   Filter,
   Eye,
   X,
-  FileSignature
+  FileSignature,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { CERTIFICATE_TYPES, generateMultipleCertificates } from './utils/certificateGenerator';
 
-const ROWS_PER_PAGE = 25;
+const ROWS_PER_PAGE = 10;
 
 const EditableTable = () => {
   const navigate = useNavigate();
@@ -54,7 +56,9 @@ const EditableTable = () => {
     value: '',
     rowIndex: null,
     fieldType: null,
-    columnNumber: null
+    columnNumber: null,
+    subField: null,
+    subIndex: null
   });
   const [editValue, setEditValue] = useState('');
   const [pendingChanges, setPendingChanges] = useState({});
@@ -78,8 +82,6 @@ const EditableTable = () => {
     'Дата отчисления',
     'Причина отчисления',
     'Социальный отпуск',
-    'Дата начала социального отпуска',
-    'Дата окончания социального отпуска',
     'Мобильный телефон',
     'ВУЗ',
     'Год окончания',
@@ -102,7 +104,7 @@ const EditableTable = () => {
     'Текущий контроль',
     'Логин',
     'Пароль',
-    'Руководитель ординатора',
+    'Руководители',
     'Дата начала сессии(циклов)',
     'Дата окончания сессии(циклов)',
     'Дата установки надбавки',
@@ -139,17 +141,20 @@ const EditableTable = () => {
 
   useEffect(() => {
     const allColumns = new Set();
-    for (let i = 1; i <= 41; i++) {
-      allColumns.add(i);
+    const initialVisible = new Set();
+    for (let i = 1; i <= 39; i++) {
+      if (i !== 9 && i !== 32) {
+        allColumns.add(i);
+        initialVisible.add(i);
+      }
     }
     setSelectedColumns(allColumns);
-    setVisibleColumns(allColumns);
+    setVisibleColumns(initialVisible);
   }, []);
 
   const [selectOptions, setSelectOptions] = useState({
     gender: [],
     dismissalReason: [],
-    socialLeave: [],
     university: [],
     preparationForm: [],
     identityDocument: [],
@@ -157,7 +162,8 @@ const EditableTable = () => {
     medicalCertificate: [],
     rivshCertificate: [],
     entryByInvitation: [],
-    country: []
+    country: [],
+    supervisors: []
   });
 
   const [selectData, setSelectData] = useState({
@@ -166,14 +172,14 @@ const EditableTable = () => {
     countries: [],
     gender: [],
     dismissalReason: [],
-    socialLeave: [],
     university: [],
     preparationForm: [],
     identityDocument: [],
     residence: [],
     medicalCertificate: [],
     rivshCertificate: [],
-    entryByInvitation: []
+    entryByInvitation: [],
+    supervisors: []
   });
 
   const [data, setData] = useState([]);
@@ -211,8 +217,6 @@ const EditableTable = () => {
         return 'creatable-specialty';
       case 'Причина отчисления':
         return 'creatable-dismissal';
-      case 'Социальный отпуск':
-        return 'creatable-social';
       case 'ВУЗ':
         return 'creatable-university';
       case 'Форма подготовки':
@@ -227,11 +231,13 @@ const EditableTable = () => {
         return 'creatable-rivsh';
       case 'Въезд по приглашению':
         return 'creatable-entry';
+      case 'Социальный отпуск':
+        return 'nested-social-leave';
+      case 'Руководители':
+        return 'nested-supervisors';
       case 'Год рождения':
       case 'Дата зачисления':
       case 'Дата отчисления':
-      case 'Дата начала социального отпуска':
-      case 'Дата окончания социального отпуска':
       case 'Дата приказа о зачислении':
       case 'Дата приказа об отчислении':
       case 'Срок окончания регистрации':
@@ -245,6 +251,7 @@ const EditableTable = () => {
       case 'Пароль':
         return 'password';
       case 'Текущий контроль':
+        return 'date';
       case 'Распределение клинических ординаторов':
       case 'Адрес проживания':
         return 'textarea';
@@ -324,15 +331,45 @@ const EditableTable = () => {
 
     return rows.filter(row => {
       const results = filters.map(filter => {
-        const columnValue = row[filter.column] || '';
-        let filterValue = filter.value;
+        let columnValue = row[filter.column] || '';
         
-        let processedValue = columnValue;
         if (filter.column === 'column18') {
-          processedValue = formatPreparationForm(columnValue);
+          try {
+            const parsed = JSON.parse(columnValue);
+            columnValue = Array.isArray(parsed) ? parsed.join(', ') : columnValue;
+          } catch {
+            columnValue = columnValue;
+          }
         }
         
-        const processedValueStr = String(processedValue || '').toLowerCase();
+        if (filter.column === 'column9') {
+          try {
+            const leaves = JSON.parse(columnValue);
+            if (Array.isArray(leaves)) {
+              columnValue = leaves.map(l => `${l.startDate || ''} - ${l.endDate || ''} (${l.reason || ''})`).join('; ');
+            }
+          } catch {
+            columnValue = columnValue;
+          }
+        }
+        
+        if (filter.column === 'column33') {
+          try {
+            const supervisors = JSON.parse(columnValue);
+            if (Array.isArray(supervisors)) {
+              const supervisorNames = supervisors.map(s => {
+                const found = selectData.supervisors.find(sup => sup.id == s.supervisorId);
+                return found ? found.name : s.supervisorId;
+              });
+              columnValue = supervisorNames.join('; ');
+            }
+          } catch {
+            columnValue = columnValue;
+          }
+        }
+        
+        let filterValue = filter.value;
+        const processedValueStr = String(columnValue || '').toLowerCase();
         const filterValueStr = String(filterValue || '').toLowerCase();
 
         switch (filter.operator) {
@@ -416,7 +453,6 @@ const EditableTable = () => {
       setSelectOptions({
         gender: data.gender || ['М', 'Ж'],
         dismissalReason: data.dismissalReason || [],
-        socialLeave: data.socialLeave || [],
         university: data.university || [],
         preparationForm: preparationForm,
         identityDocument: data.identityDocument || [],
@@ -424,7 +460,8 @@ const EditableTable = () => {
         medicalCertificate: data.medicalCertificate || [],
         rivshCertificate: data.rivshCertificate || [],
         entryByInvitation: data.entryByInvitation || [],
-        country: data.country || []
+        country: data.country || [],
+        supervisors: data.supervisors || []
       });
 
       setSelectData({
@@ -433,14 +470,14 @@ const EditableTable = () => {
         countries: data.country || [],
         gender: data.gender || ['М', 'Ж'],
         dismissalReason: data.dismissalReason || [],
-        socialLeave: data.socialLeave || [],
         university: data.university || [],
         preparationForm: preparationForm,
         identityDocument: data.identityDocument || [],
         residence: data.residence || [],
         medicalCertificate: data.medicalCertificate || [],
         rivshCertificate: data.rivshCertificate || [],
-        entryByInvitation: data.entryByInvitation || []
+        entryByInvitation: data.entryByInvitation || [],
+        supervisors: data.supervisors || []
       });
     } catch (error) {
       console.error('Error loading server options:', error);
@@ -460,15 +497,28 @@ const EditableTable = () => {
 
   const formatPreparationForm = (formData) => {
     if (!formData) return '';
-    try {
-      if (Array.isArray(formData)) {
-        return formData.join(', ');
-      }
-      const parsed = JSON.parse(formData);
-      return Array.isArray(parsed) ? parsed.join(', ') : String(formData);
-    } catch {
-      return String(formData);
+    
+    if (Array.isArray(formData)) {
+      return formData.join(', ');
     }
+    
+    if (typeof formData === 'string') {
+      try {
+        const parsed = JSON.parse(formData);
+        if (Array.isArray(parsed)) {
+          const result = parsed.join(', ');
+          return result;
+        }
+        return String(parsed);
+      } catch (e) {
+        if (formData.includes(',') && !formData.startsWith('[')) {
+          return formData;
+        }
+        return formData;
+      }
+    }
+    
+    return String(formData);
   };
 
   const handleCertificateTypeChange = (typeId) => {
@@ -545,18 +595,22 @@ const EditableTable = () => {
   };
 
   const handleSelectAllColumns = () => {
-    if (selectedColumns.size === 41) {
-      setSelectedColumns(new Set());
-    } else {
-      const allColumns = new Set();
-      for (let i = 1; i <= 41; i++) {
+    const allColumns = new Set();
+    for (let i = 1; i <= 39; i++) {
+      if (i !== 9 && i !== 32) {
         allColumns.add(i);
       }
+    }
+    
+    if (selectedColumns.size === allColumns.size) {
+      setSelectedColumns(new Set());
+    } else {
       setSelectedColumns(allColumns);
     }
   };
 
   const handleToggleColumn = (columnIndex) => {
+    if (columnIndex === 9 || columnIndex === 32) return;
     const newVisible = new Set(visibleColumns);
     if (newVisible.has(columnIndex)) {
       newVisible.delete(columnIndex);
@@ -568,8 +622,10 @@ const EditableTable = () => {
 
   const handleShowAllColumns = () => {
     const allColumns = new Set();
-    for (let i = 1; i <= 41; i++) {
-      allColumns.add(i);
+    for (let i = 1; i <= 39; i++) {
+      if (i !== 9 && i !== 32) {
+        allColumns.add(i);
+      }
     }
     setVisibleColumns(allColumns);
   };
@@ -602,6 +658,30 @@ const EditableTable = () => {
           let value = row[columnKey] || '';
           if (colIndex === 18) {
             value = formatPreparationForm(value);
+          }
+          if (colIndex === 9) {
+            try {
+              const leaves = JSON.parse(value);
+              if (Array.isArray(leaves)) {
+                value = leaves.map(l => `${l.startDate || ''} - ${l.endDate || ''} (${l.reason || ''})`).join('; ');
+              }
+            } catch {
+              value = value;
+            }
+          }
+          if (colIndex === 33) {
+            try {
+              const supervisors = JSON.parse(value);
+              if (Array.isArray(supervisors)) {
+                const supervisorNames = supervisors.map(s => {
+                  const found = selectData.supervisors.find(sup => sup.id == s.supervisorId);
+                  return found ? `${found.name} (${s.startDate || ''} - ${s.endDate || ''})` : s.supervisorId;
+                });
+                value = supervisorNames.join('; ');
+              }
+            } catch {
+              value = value;
+            }
           }
           exportRow[ColumnName[colIndex]] = value;
         }
@@ -725,78 +805,89 @@ const EditableTable = () => {
       const row = {};
       row.column1 = ordinator.fio || '';
       row.column2 = ordinator.fioEn || '';
-      row.column3 = formatDateToDisplay(ordinator.birthYear) || ''; 
+      row.column3 = formatDateToDisplay(ordinator.birthYear) || '';
       row.column4 = ordinator.gender || 'М';
       row.column5 = ordinator.country || '';
       row.column6 = formatDateToDisplay(ordinator.enrollmentDate) || '';
       row.column7 = formatDateToDisplay(ordinator.dismissalDate) || '';
       row.column8 = ordinator.dismissalReason || '';
-      row.column9 = ordinator.socialLeave || '';
-      row.column10 = formatDateToDisplay(ordinator.socialLeaveStart) || '';
-      row.column11 = formatDateToDisplay(ordinator.socialLeaveEnd) || '';
-      row.column12 = ordinator.mobilePhone || '';
+      
+      if (ordinator.socialLeaves && Array.isArray(ordinator.socialLeaves)) {
+        row.column9 = JSON.stringify(ordinator.socialLeaves);
+      } else {
+        row.column9 = JSON.stringify([]);
+      }
+      
+      row.column10 = ordinator.mobilePhone || '';
       if (ordinator.university) {
-        row.column13 = ordinator.university.name || 'БГМУ';
-        row.column14 = ordinator.university.graduationYear || '';
-        row.column15 = ordinator.university.department || '';
-        row.column16 = ordinator.university.specialtyProfile || '';
-        row.column17 = ordinator.university.specialty || '';
+        row.column11 = ordinator.university.name || 'БГМУ';
+        row.column12 = ordinator.university.graduationYear || '';
+        row.column13 = ordinator.university.department || '';
+        row.column14 = ordinator.university.specialtyProfile || '';
+        row.column15 = ordinator.university.specialty || '';
         let prepForm = ordinator.university.preparationForm;
         if (prepForm && typeof prepForm === 'object') {
           prepForm = JSON.stringify(prepForm);
         } else if (!prepForm) {
           prepForm = JSON.stringify(['очная']);
         }
-        row.column18 = prepForm;
+        row.column16 = prepForm;
+
       } else {
-        row.column13 = 'БГМУ';
+        row.column11 = 'БГМУ';
+        row.column12 = '';
+        row.column13 = '';
         row.column14 = '';
         row.column15 = '';
-        row.column16 = '';
-        row.column17 = '';
-        row.column18 = JSON.stringify(['очная']);
+        row.column16 = JSON.stringify(['очная']);
       }
-      row.column19 = ordinator.identityDocument || 'паспорт';
-      row.column20 = ordinator.documentNumber || '';
-      row.column21 = '';
-      row.column22 = ordinator.residenceAddress || 'общежитие';
-      row.column23 = ordinator.livingAddress || '';
-      row.column24 = formatDateToDisplay(ordinator.registrationExpiry) || '';
-      row.column25 = ordinator.enrollmentOrderNumber || '';
-      row.column26 = formatDateToDisplay(ordinator.enrollmentOrderDate) || '';
-      row.column27 = ordinator.dismissalOrderNumber || '';
-      row.column28 = formatDateToDisplay(ordinator.dismissalOrderDate) || '';
-      row.column29 = ordinator.contractInfo || '';
-      row.column30 = ordinator.medicalCertificate || 'есть';
+      row.column17 = ordinator.identityDocument || 'паспорт';
+      row.column18 = ordinator.documentNumber || '';
+      row.column19 = '';
+      row.column20 = ordinator.residenceAddress || 'общежитие';
+      row.column21 = ordinator.livingAddress || '';
+      row.column22 = formatDateToDisplay(ordinator.registrationExpiry) || '';
+      row.column23 = ordinator.enrollmentOrderNumber || '';
+      row.column24 = formatDateToDisplay(ordinator.enrollmentOrderDate) || '';
+      row.column25 = ordinator.dismissalOrderNumber || '';
+      row.column26 = formatDateToDisplay(ordinator.dismissalOrderDate) || '';
+      row.column27 = ordinator.contractInfo || '';
+      row.column28 = ordinator.medicalCertificate || 'есть';
       if (ordinator.currentControl) {
         if (typeof ordinator.currentControl === 'object') {
-          row.column31 = ordinator.currentControl.scores || '';
+          row.column29 = ordinator.currentControl.scores || '';
         } else {
-          row.column31 = String(ordinator.currentControl) || '';
+          row.column29 = formatDateToDisplay(ordinator.currentControl) || '';
         }
       } else {
-        row.column31 = '';
+        row.column29 = '';
       }
-      row.column32 = ordinator.login || '';
-      row.column33 = ordinator.password;
-      row.column34 = ordinator.supervisorId ? String(ordinator.supervisorId) : '';
+      row.column30 = ordinator.login || '';
+      row.column31 = ordinator.password;
+      
+      if (ordinator.supervisors && Array.isArray(ordinator.supervisors)) {
+        row.column32 = JSON.stringify(ordinator.supervisors);
+      } else {
+        row.column32 = JSON.stringify([]);
+      }
+      
       if (ordinator.session) {
-        row.column35 = formatDateToDisplay(ordinator.session.sessionStart) || '';
-        row.column36 = formatDateToDisplay(ordinator.session.sessionEnd) || '';
+        row.column33 = formatDateToDisplay(ordinator.session.sessionStart) || '';
+        row.column34 = formatDateToDisplay(ordinator.session.sessionEnd) || '';
+      } else {
+        row.column33 = '';
+        row.column34 = '';
+      }
+      if (ordinator.money) {
+        row.column35 = formatDateToDisplay(ordinator.money.allowanceStartDate) || '';
+        row.column36 = formatDateToDisplay(ordinator.money.allowanceEndDate) || '';
       } else {
         row.column35 = '';
         row.column36 = '';
       }
-      if (ordinator.money) {
-        row.column37 = formatDateToDisplay(ordinator.money.allowanceStartDate) || '';
-        row.column38 = formatDateToDisplay(ordinator.money.allowanceEndDate) || '';
-      } else {
-        row.column37 = '';
-        row.column38 = '';
-      }
-      row.column39 = ordinator.rivshCertificate || 'нет';
-      row.column40 = ordinator.entryByInvitation || 'нет';
-      row.column41 = ordinator.distributionInfo || '';
+      row.column37 = ordinator.rivshCertificate || 'нет';
+      row.column38 = ordinator.entryByInvitation || 'нет';
+      row.column39 = ordinator.distributionInfo || '';
       return {
         ...row,
         id: ordinator.id,
@@ -806,25 +897,56 @@ const EditableTable = () => {
   };
 
   const transformTableDataToApi = (tableData, mode = 'create') => {
-    let preparationFormValue = tableData.column18 || '';
-    
-    if (typeof preparationFormValue === 'string') {
-      try {
-        const parsed = JSON.parse(preparationFormValue);
-        if (Array.isArray(parsed)) {
-          preparationFormValue = JSON.stringify(parsed);
-        }
-      } catch {
-        if (preparationFormValue.includes(',')) {
-          const options = preparationFormValue.split(',').map(s => s.trim());
-          preparationFormValue = JSON.stringify(options);
-        } else {
-          preparationFormValue = JSON.stringify([preparationFormValue]);
-        }
-      }
-    } else if (Array.isArray(preparationFormValue)) {
-      preparationFormValue = JSON.stringify(preparationFormValue);
+    let preparationFormValue = tableData.column16 || '';
+
+if (typeof preparationFormValue === 'string') {
+  try {
+    const parsed = JSON.parse(preparationFormValue);
+    if (Array.isArray(parsed)) {
+      preparationFormValue = JSON.stringify(parsed);
+    } else {
+      preparationFormValue = JSON.stringify([parsed]);
     }
+  } catch {
+    if (preparationFormValue) {
+      preparationFormValue = JSON.stringify([preparationFormValue]);
+    } else {
+      preparationFormValue = JSON.stringify([]);
+    }
+  }
+} else if (Array.isArray(preparationFormValue)) {
+  preparationFormValue = JSON.stringify(preparationFormValue);
+} else {
+  preparationFormValue = JSON.stringify([]);
+}
+
+    let socialLeavesValue = [];
+try {
+  const parsed = JSON.parse(tableData.column9 || '[]');
+  if (Array.isArray(parsed)) {
+    socialLeavesValue = parsed.map(leave => ({
+      startDate: leave.startDate ? new Date(formatDateToAPI(leave.startDate)) : null,
+      endDate: leave.endDate ? new Date(formatDateToAPI(leave.endDate)) : null,
+      reason: leave.reason || ''
+    }));
+  }
+} catch {
+  socialLeavesValue = [];
+}
+
+let supervisorsValue = [];
+try {
+  const parsed = JSON.parse(tableData.column32 || '[]');
+  if (Array.isArray(parsed)) {
+    supervisorsValue = parsed.map(sup => ({
+      supervisorName: sup.supervisorName || sup.supervisorId || '',
+      startDate: sup.startDate ? new Date(formatDateToAPI(sup.startDate)) : null,
+      endDate: sup.endDate ? new Date(formatDateToAPI(sup.endDate)) : null
+    }));
+  }
+} catch {
+  supervisorsValue = [];
+}
 
     const apiData = {
       fio: tableData.column1 || '',
@@ -835,39 +957,37 @@ const EditableTable = () => {
       enrollmentDate: formatDateToAPI(tableData.column6),
       dismissalDate: formatDateToAPI(tableData.column7),
       dismissalReason: tableData.column8 === 'иное' ? modalState.otherDismissalReason : tableData.column8 || '',
-      socialLeave: tableData.column9 || '',
-      socialLeaveStart: formatDateToAPI(tableData.column10),
-      socialLeaveEnd: formatDateToAPI(tableData.column11),
-      mobilePhone: tableData.column12 || '',
-      universityName: tableData.column13 === 'другое' ? modalState.otherUniversity : tableData.column13 || 'БГМУ',
-      graduationYear: tableData.column14 ? parseInt(tableData.column14) : null,
-      department: tableData.column15 || '',
-      specialtyProfile: tableData.column16 || '',
-      specialty: tableData.column17 || '',
+      socialLeaves: socialLeavesValue,
+      mobilePhone: tableData.column10 || '',
+      universityName: tableData.column11 === 'другое' ? modalState.otherUniversity : tableData.column11 || 'БГМУ',
+      graduationYear: tableData.column12 ? parseInt(tableData.column12) : null,
+      department: tableData.column13 || '',
+      specialtyProfile: tableData.column14 || '',
+      specialty: tableData.column15 || '',
       preparationForm: preparationFormValue,
-      identityDocument: tableData.column19 === 'иное' ? modalState.otherDocument : tableData.column19 || 'паспорт',
-      documentNumber: tableData.column20 || '',
-      identNumber: tableData.column21 || '',
-      residenceAddress: tableData.column22 || 'общежитие',
-      livingAddress: tableData.column23 || '',
-      registrationExpiry: formatDateToAPI(tableData.column24),
-      enrollmentOrderNumber: tableData.column25 || '',
-      enrollmentOrderDate: formatDateToAPI(tableData.column26),
-      dismissalOrderNumber: tableData.column27 || '',
-      dismissalOrderDate: formatDateToAPI(tableData.column28),
-      contractInfo: tableData.column29 || '',
-      medicalCertificate: tableData.column30 || 'есть',
-      scores: tableData.column31 || '',
-      login: tableData.column32 || '',
-      password: tableData.column33 || '',
-      supervisorId: tableData.column34 ? parseInt(tableData.column34) : null,
-      sessionStart: formatDateToAPI(tableData.column35),
-      sessionEnd: formatDateToAPI(tableData.column36),
-      allowanceStartDate: formatDateToAPI(tableData.column37),
-      allowanceEndDate: formatDateToAPI(tableData.column38),
-      rivshCertificate: tableData.column39 || 'нет',
-      entryByInvitation: tableData.column40 || 'нет',
-      distributionInfo: tableData.column41 || ''
+      identityDocument: tableData.column17 === 'иное' ? modalState.otherDocument : tableData.column17 || 'паспорт',
+      documentNumber: tableData.column18 || '',
+      identNumber: tableData.column19 || '',
+      residenceAddress: tableData.column20 || 'общежитие',
+      livingAddress: tableData.column21 || '',
+      registrationExpiry: formatDateToAPI(tableData.column22),
+      enrollmentOrderNumber: tableData.column23 || '',
+      enrollmentOrderDate: formatDateToAPI(tableData.column24),
+      dismissalOrderNumber: tableData.column25 || '',
+      dismissalOrderDate: formatDateToAPI(tableData.column26),
+      contractInfo: tableData.column27 || '',
+      medicalCertificate: tableData.column28 || 'есть',
+      scores: tableData.column29 || '',
+      login: tableData.column30 || '',
+      password: tableData.column31 || '',
+      supervisors: supervisorsValue,
+      sessionStart: formatDateToAPI(tableData.column33),
+      sessionEnd: formatDateToAPI(tableData.column34),
+      allowanceStartDate: formatDateToAPI(tableData.column35),
+      allowanceEndDate: formatDateToAPI(tableData.column36),
+      rivshCertificate: tableData.column37 || 'нет',
+      entryByInvitation: tableData.column38 || 'нет',
+      distributionInfo: tableData.column39 || ''
     };
 
     Object.keys(apiData).forEach(key => apiData[key] === undefined && delete apiData[key]);
@@ -962,6 +1082,184 @@ const EditableTable = () => {
     navigate('/');
   };
 
+  const addSocialLeave = (rowId) => {
+    const rowIndex = data.findIndex(row => row.id === rowId);
+    if (rowIndex === -1) return;
+    
+    const currentLeaves = (() => {
+      try {
+        const parsed = JSON.parse(data[rowIndex].column9 || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+    
+    const newLeave = {
+      startDate: '',
+      endDate: '',
+      reason: ''
+    };
+    
+    const updatedLeaves = [...currentLeaves, newLeave];
+    const updatedData = [...data];
+    updatedData[rowIndex].column9 = JSON.stringify(updatedLeaves);
+    setData(updatedData);
+    
+    setPendingChanges(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        column9: JSON.stringify(updatedLeaves)
+      }
+    }));
+  };
+
+  const updateSocialLeave = (rowId, leaveIndex, field, value) => {
+    const rowIndex = data.findIndex(row => row.id === rowId);
+    if (rowIndex === -1) return;
+    
+    const currentLeaves = (() => {
+      try {
+        const parsed = JSON.parse(data[rowIndex].column9 || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+    
+    if (leaveIndex >= currentLeaves.length) return;
+    
+    currentLeaves[leaveIndex] = { ...currentLeaves[leaveIndex], [field]: value };
+    const updatedData = [...data];
+    updatedData[rowIndex].column9 = JSON.stringify(currentLeaves);
+    setData(updatedData);
+    
+    setPendingChanges(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        column9: JSON.stringify(currentLeaves)
+      }
+    }));
+  };
+
+  const removeSocialLeave = (rowId, leaveIndex) => {
+    const rowIndex = data.findIndex(row => row.id === rowId);
+    if (rowIndex === -1) return;
+    
+    const currentLeaves = (() => {
+      try {
+        const parsed = JSON.parse(data[rowIndex].column9 || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+    
+    const updatedLeaves = currentLeaves.filter((_, idx) => idx !== leaveIndex);
+    const updatedData = [...data];
+    updatedData[rowIndex].column9 = JSON.stringify(updatedLeaves);
+    setData(updatedData);
+    
+    setPendingChanges(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        column9: JSON.stringify(updatedLeaves)
+      }
+    }));
+  };
+
+  const addSupervisor = (rowId) => {
+    const rowIndex = data.findIndex(row => row.id === rowId);
+    if (rowIndex === -1) return;
+    
+    const currentSupervisors = (() => {
+      try {
+        const parsed = JSON.parse(data[rowIndex].column32 || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+    
+    const newSupervisor = {
+      supervisorName: '',
+      startDate: '',
+      endDate: ''
+    };
+    
+    const updatedSupervisors = [...currentSupervisors, newSupervisor];
+    const updatedData = [...data];
+    updatedData[rowIndex].column32 = JSON.stringify(updatedSupervisors);
+    setData(updatedData);
+    
+    setPendingChanges(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        column32: JSON.stringify(updatedSupervisors)
+      }
+    }));
+  };
+
+  const updateSupervisor = (rowId, supervisorIndex, field, value) => {
+    const rowIndex = data.findIndex(row => row.id === rowId);
+    if (rowIndex === -1) return;
+    
+    const currentSupervisors = (() => {
+      try {
+        const parsed = JSON.parse(data[rowIndex].column32 || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+    
+    if (supervisorIndex >= currentSupervisors.length) return;
+    
+    currentSupervisors[supervisorIndex] = { ...currentSupervisors[supervisorIndex], [field]: value };
+    const updatedData = [...data];
+    updatedData[rowIndex].column32 = JSON.stringify(currentSupervisors);
+    setData(updatedData);
+    
+    setPendingChanges(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        column32: JSON.stringify(currentSupervisors)
+      }
+    }));
+  };
+
+  const removeSupervisor = (rowId, supervisorIndex) => {
+    const rowIndex = data.findIndex(row => row.id === rowId);
+    if (rowIndex === -1) return;
+    
+    const currentSupervisors = (() => {
+      try {
+        const parsed = JSON.parse(data[rowIndex].column32 || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+    
+    const updatedSupervisors = currentSupervisors.filter((_, idx) => idx !== supervisorIndex);
+    const updatedData = [...data];
+    updatedData[rowIndex].column32 = JSON.stringify(updatedSupervisors);
+    setData(updatedData);
+    
+    setPendingChanges(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        column32: JSON.stringify(updatedSupervisors)
+      }
+    }));
+  };
+
   const handleCellDoubleClick = (rowId, column, currentValue, rowIndex) => {
     if (!canEditRow()) {
       alert('У вас нет прав для редактирования');
@@ -972,7 +1270,7 @@ const EditableTable = () => {
     const fieldType = getFieldType(columnNumber);
     
     let displayValue = currentValue;
-    if (column === 'column18') {
+    if (column === 'column16') {
       displayValue = formatPreparationForm(currentValue);
     }
 
@@ -1020,7 +1318,7 @@ const EditableTable = () => {
       const apiData = transformTableDataToApi(updatedRow, 'update');
       await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
 
-      setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null });
+      setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null, subField: null, subIndex: null });
 
     } catch (error) {
       console.error('Error saving cell:', error);
@@ -1029,7 +1327,7 @@ const EditableTable = () => {
   };
 
   const handleCellCancel = () => {
-    setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null });
+    setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null, subField: null, subIndex: null });
     setEditValue('');
   };
 
@@ -1038,7 +1336,7 @@ const EditableTable = () => {
     const fieldName = ColumnName[columnNumber];
     
     const [selectedOptions, setSelectedOptions] = useState(() => {
-      if (columnNumber === 18 && editValue) {
+      if (columnNumber === 16 && editValue) {
         try {
           const parsed = JSON.parse(editValue);
           return Array.isArray(parsed) ? parsed : [];
@@ -1078,8 +1376,6 @@ const EditableTable = () => {
           return selectData.specialtyProfiles.map(option => ({ value: option, label: option }));
         case 'creatable-dismissal':
           return selectData.dismissalReason.map(option => ({ value: option, label: option }));
-        case 'creatable-social':
-          return selectData.socialLeave.map(option => ({ value: option, label: option }));
         case 'creatable-university':
           return selectData.university.map(option => ({ value: option, label: option }));
         case 'creatable-preparation':
@@ -1106,7 +1402,6 @@ const EditableTable = () => {
         case 'creatable-department': return 'departments';
         case 'creatable-specialty': return 'specialtyProfiles';
         case 'creatable-dismissal': return 'dismissalReason';
-        case 'creatable-social': return 'socialLeave';
         case 'creatable-university': return 'university';
         case 'creatable-preparation': return 'preparationForm';
         case 'creatable-document': return 'identityDocument';
@@ -1119,7 +1414,7 @@ const EditableTable = () => {
     };
 
     const renderEditor = () => {
-      if (columnNumber === 18) {
+      if (columnNumber === 16) {
         return (
           <div className="inline-checkbox-group">
             {selectOptions.preparationForm.map(option => (
@@ -1267,13 +1562,175 @@ const EditableTable = () => {
     );
   };
 
+  const NestedSocialLeaveRenderer = ({ rowId, value }) => {
+    const leaves = (() => {
+      try {
+        const parsed = JSON.parse(value || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+
+    return (
+      <div className="nested-cell">
+        {leaves.length === 0 && (
+          <div className="nested-empty">Нет записей</div>
+        )}
+        {leaves.map((leave, idx) => (
+          <div key={leave.id || idx} className="nested-item-row">
+            <div className="nested-fields-row">
+              <input
+                type="text"
+                className="nested-date-input"
+                placeholder="Дата начала"
+                value={leave.startDate || ''}
+                onChange={(e) => updateSocialLeave(rowId, idx, 'startDate', e.target.value)}
+                onBlur={async () => {
+                  const rowIndex = data.findIndex(row => row.id === rowId);
+                  if (rowIndex !== -1) {
+                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
+                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+                  }
+                }}
+              />
+              <input
+                type="text"
+                className="nested-date-input"
+                placeholder="Дата окончания"
+                value={leave.endDate || ''}
+                onChange={(e) => updateSocialLeave(rowId, idx, 'endDate', e.target.value)}
+                onBlur={async () => {
+                  const rowIndex = data.findIndex(row => row.id === rowId);
+                  if (rowIndex !== -1) {
+                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
+                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+                  }
+                }}
+              />
+              <input
+                type="text"
+                className="nested-reason-input"
+                placeholder="Причина"
+                value={leave.reason || ''}
+                onChange={(e) => updateSocialLeave(rowId, idx, 'reason', e.target.value)}
+                onBlur={async () => {
+                  const rowIndex = data.findIndex(row => row.id === rowId);
+                  if (rowIndex !== -1) {
+                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
+                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+                  }
+                }}
+              />
+              <button
+                onClick={() => removeSocialLeave(rowId, idx)}
+                className="nested-remove-btn"
+                title="Удалить период"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={() => addSocialLeave(rowId)}
+          className="nested-add-btn"
+        >
+          <Plus size={14} />
+          <span>Добавить период</span>
+        </button>
+      </div>
+    );
+  };
+
+  const NestedSupervisorsRenderer = ({ rowId, value }) => {
+    const supervisors = (() => {
+      try {
+        const parsed = JSON.parse(value || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+
+    return (
+      <div className="nested-cell">
+        {supervisors.length === 0 && (
+          <div className="nested-empty">Нет записей</div>
+        )}
+        {supervisors.map((sup, idx) => (
+          <div key={sup.id || idx} className="nested-item-row">
+            <div className="nested-fields-row">
+              <select
+                className="nested-select-input"
+                value={sup.supervisorId || ''}
+                onChange={(e) => updateSupervisor(rowId, idx, 'supervisorId', e.target.value)}
+                onBlur={async () => {
+                  const rowIndex = data.findIndex(row => row.id === rowId);
+                  if (rowIndex !== -1) {
+                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
+                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+                  }
+                }}
+              >
+
+              </select>
+              <input
+                type="text"
+                className="nested-date-input"
+                placeholder="Дата начала"
+                value={sup.startDate || ''}
+                onChange={(e) => updateSupervisor(rowId, idx, 'startDate', e.target.value)}
+                onBlur={async () => {
+                  const rowIndex = data.findIndex(row => row.id === rowId);
+                  if (rowIndex !== -1) {
+                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
+                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+                  }
+                }}
+              />
+              <input
+                type="text"
+                className="nested-date-input"
+                placeholder="Дата окончания"
+                value={sup.endDate || ''}
+                onChange={(e) => updateSupervisor(rowId, idx, 'endDate', e.target.value)}
+                onBlur={async () => {
+                  const rowIndex = data.findIndex(row => row.id === rowId);
+                  if (rowIndex !== -1) {
+                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
+                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+                  }
+                }}
+              />
+              <button
+                onClick={() => removeSupervisor(rowId, idx)}
+                className="nested-remove-btn"
+                title="Удалить руководителя"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={() => addSupervisor(rowId)}
+          className="nested-add-btn"
+        >
+          <Plus size={14} />
+          <span>Добавить руководителя</span>
+        </button>
+      </div>
+    );
+  };
+
   const initCreateRow = () => {
     if (!canCreateRow()) {
       alert('У вас нет прав для создания новой записи');
       return;
     }
     const initialRowData = {};
-    for (let i = 1; i <= 41; i++) {
+    for (let i = 1; i <= 39; i++) {
       const columnKey = `column${i}`;
       const fieldName = ColumnName[i];
       switch(fieldName) {
@@ -1284,13 +1741,14 @@ const EditableTable = () => {
           initialRowData[columnKey] = selectOptions.dismissalReason[0] || '';
           break;
         case 'Социальный отпуск':
-          initialRowData[columnKey] = '';
+          initialRowData[columnKey] = JSON.stringify([]);
           break;
         case 'ВУЗ':
           initialRowData[columnKey] = selectOptions.university[0] || 'БГМУ';
           break;
         case 'Форма подготовки':
-          initialRowData[columnKey] = JSON.stringify(modalState.selectedPreparationForm);
+          const defaultPrepForm = modalState.selectedPreparationForm;
+          initialRowData[columnKey] = JSON.stringify(defaultPrepForm);
           break;
         case 'Документ, удостоверяющий личность':
           initialRowData[columnKey] = selectOptions.identityDocument[0] || 'паспорт';
@@ -1309,6 +1767,9 @@ const EditableTable = () => {
           break;
         case 'Страна':
           initialRowData[columnKey] = selectOptions.country[0] || 'Беларусь';
+          break;
+        case 'Руководители':
+          initialRowData[columnKey] = JSON.stringify([]);
           break;
         default:
           initialRowData[columnKey] = '';
@@ -1338,7 +1799,7 @@ const EditableTable = () => {
       const response = await apiRequest(`/ordinators/${row.id}`);
       const ordinator = response;
       const rowValues = [];
-      for (let i = 1; i <= 41; i++) {
+      for (let i = 1; i <= 39; i++) {
         const columnKey = `column${i}`;
         const value = row[columnKey] || '';
         rowValues.push({
@@ -1354,19 +1815,19 @@ const EditableTable = () => {
       let otherDismissal = '';
       let prepForm = selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная'];
       
-      if (row['column13'] && !selectOptions.university.includes(row['column13'])) {
-        otherUni = row['column13'];
+      if (row['column11'] && !selectOptions.university.includes(row['column11'])) {
+        otherUni = row['column11'];
       }
-      if (row['column19'] && !selectOptions.identityDocument.includes(row['column19'])) {
-        otherDoc = row['column19'];
+      if (row['column17'] && !selectOptions.identityDocument.includes(row['column17'])) {
+        otherDoc = row['column17'];
       }
       if (row['column8'] && !selectOptions.dismissalReason.includes(row['column8'])) {
         otherDismissal = row['column8'];
       }
       
       try {
-        if (row['column18']) {
-          const parsed = JSON.parse(row['column18']);
+        if (row['column16']) {
+          const parsed = JSON.parse(row['column16']);
           prepForm = Array.isArray(parsed) ? parsed : (selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная']);
         }
       } catch (e) {
@@ -1413,18 +1874,54 @@ const EditableTable = () => {
     }
   };
 
-  const handlePreparationFormChange = (option) => {
-    const newSelection = [...modalState.selectedPreparationForm];
-    if (newSelection.includes(option)) {
-      const index = newSelection.indexOf(option);
-      newSelection.splice(index, 1);
-    } else {
-      newSelection.push(option);
+  const handleBulkDelete = async () => {
+    if (!canDeleteRow()) {
+      alert('У вас нет прав для удаления записей');
+      return;
     }
-    setModalState(prev => ({
-      ...prev,
-      selectedPreparationForm: newSelection
-    }));
+    
+    if (selectedRows.size === 0) {
+      alert('Выберите хотя бы одну запись для удаления');
+      return;
+    }
+    
+    const confirmed = window.confirm(`Вы уверены, что хотите удалить ${selectedRows.size} запись(ей)? Это действие нельзя отменить.`);
+    
+    if (!confirmed) return;
+    
+    setLoading(true);
+    
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+      const failedIds = [];
+      
+      for (const rowId of selectedRows) {
+        try {
+          await apiRequest(`/ordinators/${rowId}`, 'DELETE');
+          successCount++;
+        } catch (error) {
+          console.error(`Ошибка удаления записи ${rowId}:`, error);
+          errorCount++;
+          failedIds.push(rowId);
+        }
+      }
+      
+      await fetchOrdinators();
+      setSelectedRows(new Set());
+      setSelectAll(false);
+      
+      if (errorCount > 0) {
+        alert(`Удалено: ${successCount} записей. Ошибок: ${errorCount}\nНе удалось удалить ID: ${failedIds.join(', ')}`);
+      } else {
+        alert(`Успешно удалено ${successCount} записей`);
+      }
+    } catch (error) {
+      console.error('Ошибка массового удаления:', error);
+      alert('Ошибка при массовом удалении: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleModalChange = (column, value) => {
@@ -1442,7 +1939,6 @@ const EditableTable = () => {
       else if (fieldName === 'Профиль специальности') optionField = 'specialtyProfiles';
       else if (fieldName === 'Пол') optionField = 'gender';
       else if (fieldName === 'Причина отчисления') optionField = 'dismissalReason';
-      else if (fieldName === 'Социальный отпуск') optionField = 'socialLeave';
       else if (fieldName === 'ВУЗ') optionField = 'university';
       else if (fieldName === 'Форма подготовки') optionField = 'preparationForm';
       else if (fieldName === 'Документ, удостоверяющий личность') optionField = 'identityDocument';
@@ -1541,7 +2037,7 @@ const EditableTable = () => {
       let aValue = a[sortConfig.key];
       let bValue = b[sortConfig.key];
       
-      if (sortConfig.key === 'column18') {
+      if (sortConfig.key === 'column16') {
         aValue = formatPreparationForm(aValue);
         bValue = formatPreparationForm(bValue);
       }
@@ -1566,7 +2062,7 @@ const EditableTable = () => {
         return Object.entries(row).some(([key, value]) => {
           if (key !== 'id' && key !== 'originalData') {
             let displayValue = value;
-            if (key === 'column18') {
+            if (key === 'column16') {
               displayValue = formatPreparationForm(value);
             }
             return String(displayValue || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -1575,7 +2071,7 @@ const EditableTable = () => {
         });
       } else {
         let displayValue = row[searchColumn];
-        if (searchColumn === 'column18') {
+        if (searchColumn === 'column16') {
           displayValue = formatPreparationForm(displayValue);
         }
         return String(displayValue || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -1603,7 +2099,7 @@ const EditableTable = () => {
     const columnKey = `column${columnNumber}`;
     let value = isEditMode ? currentValue : (newRowData[columnKey] || '');
     
-    if (columnNumber === 18 && !isEditMode && modalState.mode === 'create') {
+    if (columnNumber === 16 && !isEditMode && modalState.mode === 'create') {
       value = JSON.stringify(modalState.selectedPreparationForm);
     }
     
@@ -1618,7 +2114,7 @@ const EditableTable = () => {
 
     if (isReadOnly) {
       let displayValue = value;
-      if (columnNumber === 18) {
+      if (columnNumber === 16) {
         displayValue = formatPreparationForm(value);
       }
       return <div className="readonly-field">{displayValue}</div>;
@@ -1636,8 +2132,6 @@ const EditableTable = () => {
           return selectData.specialtyProfiles.map(option => ({ value: option, label: option }));
         case 'Причина отчисления':
           return selectData.dismissalReason.map(option => ({ value: option, label: option }));
-        case 'Социальный отпуск':
-          return selectData.socialLeave.map(option => ({ value: option, label: option }));
         case 'ВУЗ':
           return selectData.university.map(option => ({ value: option, label: option }));
         case 'Форма подготовки':
@@ -1659,7 +2153,7 @@ const EditableTable = () => {
 
     const selectFields = [
       'Пол', 'Страна', 'Кафедра', 'Профиль специальности', 'Причина отчисления',
-      'Социальный отпуск', 'ВУЗ', 'Документ, удостоверяющий личность',
+      'ВУЗ', 'Документ, удостоверяющий личность',
       'Место проживания, регистрации', 'Медицинская справка',
       'Наличие сертификата РИВШ', 'Въезд по приглашению'
     ];
@@ -1668,15 +2162,16 @@ const EditableTable = () => {
       const options = getModalOptions(fieldName);
       return (
         <CreatableSelect
-          options={options}
-          value={value ? { value: value, label: value } : null}
-          onChange={handleChange}
-          isClearable
-          noOptionsMessage={() => "Нет вариантов, введите свой"}
-          formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
-          className="react-select-container"
-          classNamePrefix="react-select"
-        />
+        options={options}
+        value={value ? { value: value, label: value } : null}
+        onChange={handleChange}
+        isClearable
+        placeholder="Выберите..."
+        noOptionsMessage={() => "Нет вариантов, введите свой"}
+        formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
+        className="react-select-container"
+        classNamePrefix="react-select"
+      />
       );
     }
 
@@ -1695,27 +2190,221 @@ const EditableTable = () => {
             placeholder="ГГГГ"
           />
         );
-      case 'Форма подготовки':
-        return (
-          <div className="checkbox-group">
-            {selectOptions.preparationForm.map(option => (
-              <label key={option} className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={modalState.selectedPreparationForm.includes(option)}
-                  onChange={() => handlePreparationFormChange(option)}
-                  className="modal-checkbox"
-                />
-                <span>{option}</span>
-              </label>
-            ))}
-          </div>
-        );
+        case 'Форма подготовки':
+          let parsedPrepForm = [];
+          try {
+            if (typeof value === 'string') {
+              const parsed = JSON.parse(value);
+              if (Array.isArray(parsed)) {
+                parsedPrepForm = parsed;
+              } else {
+                parsedPrepForm = [value];
+              }
+            } else if (Array.isArray(value)) {
+              parsedPrepForm = value;
+            } else if (value) {
+              parsedPrepForm = [value];
+            }
+          } catch (e) {
+            parsedPrepForm = value ? [value] : [];
+          }
+          
+          return (
+            <div className="checkbox-group">
+              {selectOptions.preparationForm.map(option => (
+                <label key={option} className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={parsedPrepForm.includes(option)}
+                    onChange={() => {
+                      let newSelection;
+                      if (parsedPrepForm.includes(option)) {
+                        newSelection = parsedPrepForm.filter(item => item !== option);
+                      } else {
+                        newSelection = [...parsedPrepForm, option];
+                      }
+                      
+                      setModalState(prev => ({
+                        ...prev,
+                        selectedPreparationForm: newSelection
+                      }));
+                      
+                      const stringValue = JSON.stringify(newSelection);
+                      if (modalState.mode === 'create') {
+                        setNewRowData(prev => ({
+                          ...prev,
+                          column16: stringValue
+                        }));
+                      } else {
+                        const updatedRowData = [...modalState.rowData];
+                        const itemIndex = updatedRowData.findIndex(item => item.columnName === 'column16');
+                        if (itemIndex !== -1) {
+                          updatedRowData[itemIndex].value = stringValue;
+                          setModalState(prev => ({
+                            ...prev,
+                            rowData: updatedRowData
+                          }));
+                        }
+                      }
+                    }}
+                    className="modal-checkbox"
+                  />
+                  <span>{option}</span>
+                </label>
+              ))}
+            </div>
+          );
+        case 'Социальный отпуск':
+          const socialLeaves = (() => {
+            try {
+              const parsed = JSON.parse(value || '[]');
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return [];
+            }
+          })();
+          return (
+            <div className="modal-nested-container">
+              <div className="modal-nested-header">
+                <div className="nested-header-start">Дата начала</div>
+                <div className="nested-header-end">Дата окончания</div>
+                <div className="nested-header-reason">Причина</div>
+                <div className="nested-header-actions"></div>
+              </div>
+              {socialLeaves.map((leave, idx) => (
+                <div key={leave.id || idx} className="modal-nested-item">
+                  <input
+                    type="text"
+                    placeholder="ДД.ММ.ГГГГ"
+                    value={formatDateToDisplay(leave.startDate)}
+                    onChange={(e) => {
+                      const newLeaves = [...socialLeaves];
+                      newLeaves[idx] = { ...newLeaves[idx], startDate: e.target.value };
+                      handleChange(JSON.stringify(newLeaves));
+                    }}
+                    className="modal-nested-input date-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="ДД.ММ.ГГГГ"
+                    value={formatDateToDisplay(leave.endDate)}
+                    onChange={(e) => {
+                      const newLeaves = [...socialLeaves];
+                      newLeaves[idx] = { ...newLeaves[idx], endDate: e.target.value };
+                      handleChange(JSON.stringify(newLeaves));
+                    }}
+                    className="modal-nested-input date-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Причина отпуска"
+                    value={leave.reason || ''}
+                    onChange={(e) => {
+                      const newLeaves = [...socialLeaves];
+                      newLeaves[idx] = { ...newLeaves[idx], reason: e.target.value };
+                      handleChange(JSON.stringify(newLeaves));
+                    }}
+                    className="modal-nested-input reason-input"
+                  />
+                  <button
+                    onClick={() => {
+                      const newLeaves = socialLeaves.filter((_, i) => i !== idx);
+                      handleChange(JSON.stringify(newLeaves));
+                    }}
+                    className="modal-nested-remove"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const newLeaves = [...socialLeaves, { startDate: '', endDate: '', reason: '' }];
+                  handleChange(JSON.stringify(newLeaves));
+                }}
+                className="modal-nested-add"
+              >
+                <Plus size={14} /> Добавить период отпуска
+              </button>
+            </div>
+          );
+          case 'Руководители':
+            const supervisors = (() => {
+              try {
+                const parsed = JSON.parse(value || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+              } catch {
+                return [];
+              }
+            })();
+            return (
+              <div className="modal-nested-container">
+                <div className="modal-nested-header">
+                  <div className="nested-header-supervisor">Руководитель</div>
+                  <div className="nested-header-start">Дата начала</div>
+                  <div className="nested-header-end">Дата окончания</div>
+                  <div className="nested-header-actions"></div>
+                </div>
+                {supervisors.map((sup, idx) => (
+                  <div key={idx} className="modal-nested-item">
+                    <input
+                      type="text"
+                      placeholder="ФИО руководителя"
+                      value={sup.supervisorName || sup.supervisorId || ''}
+                      onChange={(e) => {
+                        const newSupervisors = [...supervisors];
+                        newSupervisors[idx] = { ...newSupervisors[idx], supervisorName: e.target.value };
+                        handleChange(JSON.stringify(newSupervisors));
+                      }}
+                      className="modal-nested-input supervisor-input"
+                    />
+                    <input
+                      type="text"
+                      placeholder="ДД.ММ.ГГГГ"
+                      value={formatDateToDisplay(sup.startDate)}
+                      onChange={(e) => {
+                        const newSupervisors = [...supervisors];
+                        newSupervisors[idx] = { ...newSupervisors[idx], startDate: e.target.value };
+                        handleChange(JSON.stringify(newSupervisors));
+                      }}
+                      className="modal-nested-input date-input"
+                    />
+                    <input
+                      type="text"
+                      placeholder="ДД.ММ.ГГГГ"
+                      value={formatDateToDisplay(sup.endDate)}
+                      onChange={(e) => {
+                        const newSupervisors = [...supervisors];
+                        newSupervisors[idx] = { ...newSupervisors[idx], endDate: e.target.value };
+                        handleChange(JSON.stringify(newSupervisors));
+                      }}
+                      className="modal-nested-input date-input"
+                    />
+                    <button
+                      onClick={() => {
+                        const newSupervisors = supervisors.filter((_, i) => i !== idx);
+                        handleChange(JSON.stringify(newSupervisors));
+                      }}
+                      className="modal-nested-remove"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const newSupervisors = [...supervisors, { supervisorName: '', startDate: '', endDate: '' }];
+                    handleChange(JSON.stringify(newSupervisors));
+                  }}
+                  className="modal-nested-add"
+                >
+                  <Plus size={14} /> Добавить руководителя
+                </button>
+              </div>
+            );
       case 'Год рождения':
       case 'Дата зачисления':
       case 'Дата отчисления':
-      case 'Дата начала социального отпуска':
-      case 'Дата окончания социального отпуска':
       case 'Дата приказа о зачислении':
       case 'Дата приказа об отчислении':
       case 'Срок окончания регистрации':
@@ -1754,6 +2443,15 @@ const EditableTable = () => {
           />
         );
       case 'Текущий контроль':
+          const displayCurrentControlDate = formatDateToDisplay(value);
+          return (
+            <input
+              type="date"
+              value={value ? value.split('T')[0] : ''}
+              onChange={(e) => handleChange(e.target.value)}
+              className="modal-input"
+            />
+          );
       case 'Распределение клинических ординаторов':
       case 'Адрес проживания':
         return (
@@ -1804,7 +2502,7 @@ const EditableTable = () => {
     );
   }
 
-  const columns = Array.from({ length: 41 }, (_, i) => `column${i + 1}`);
+  const columns = Array.from({ length: 39 }, (_, i) => `column${i + 1}`);
 
   const PaginationComponent = () => {
     const pages = [];
@@ -1993,15 +2691,14 @@ const EditableTable = () => {
             >
               Сброс
             </button>
-            <button 
-              onClick={() => setShowColumnsPanel(!showColumnsPanel)}
-              className={`columns-button ${visibleColumns.size < 41 ? 'active' : ''}`}
-              title="Выбор колонок для отображения"
-            >
-              <Eye size={18} />
-              <span>Колонки</span>
-            </button>
-
+              <button 
+                onClick={() => setShowColumnsPanel(!showColumnsPanel)}
+                className={`columns-button ${visibleColumns.size < 37 ? 'active' : ''}`}
+                title="Выбор колонок для отображения"
+              >
+                <Eye size={18} />
+                <span>Колонки</span>
+              </button>
             <button 
               onClick={() => setShowCertificatePanel(!showCertificatePanel)}
               className={`certificate-button ${selectedCertificateTypes.size > 0 ? 'active' : ''}`}
@@ -2027,6 +2724,15 @@ const EditableTable = () => {
                 title="Создать новую запись"
               >
                 📋 Создать
+              </button>
+            )}
+            {canDeleteRow() && selectedRows.size > 0 && (
+              <button 
+                onClick={handleBulkDelete}
+                className="create-row-button"
+                title="Удалить выбранные записи"
+              >
+                🗑️ Удалить выбранные ({selectedRows.size})
               </button>
             )}
           </div>
@@ -2140,17 +2846,21 @@ const EditableTable = () => {
                 </div>
               </div>
               <div className="columns-grid">
-                {ColumnName.slice(1).map((name, index) => (
-                  <label key={index + 1} className={`column-checkbox-label ${visibleColumns.has(index + 1) ? 'selected' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={visibleColumns.has(index + 1)}
-                      onChange={() => handleToggleColumn(index + 1)}
-                      className="column-checkbox"
-                    />
-                    <span className="column-name">{name}</span>
-                  </label>
-                ))}
+                {ColumnName.slice(1).map((name, index) => {
+                  const columnNumber = index + 1;
+                  if (columnNumber === 9 || columnNumber === 32) return null;
+                  return (
+                    <label key={columnNumber} className={`column-checkbox-label ${visibleColumns.has(columnNumber) ? 'selected' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns.has(columnNumber)}
+                        onChange={() => handleToggleColumn(columnNumber)}
+                        className="column-checkbox"
+                      />
+                      <span className="column-name">{name}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -2206,21 +2916,25 @@ const EditableTable = () => {
                     onClick={handleSelectAllColumns}
                     className="select-all-columns-button"
                   >
-                    {selectedColumns.size === 41 ? 'Снять все' : 'Выбрать все'}
+                    {selectedColumns.size === 39 ? 'Снять все' : 'Выбрать все'}
                   </button>
                 </div>
                 <div className="column-selector-grid">
-                  {ColumnName.slice(1).map((name, index) => (
-                    <label key={index + 1} className="column-checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={selectedColumns.has(index + 1)}
-                        onChange={() => handleSelectColumn(index + 1)}
-                        className="column-checkbox"
-                      />
-                      <span className="column-name">{name}</span>
-                    </label>
-                  ))}
+                  {ColumnName.slice(1).map((name, index) => {
+                    const colNum = index + 1;
+                    if (colNum === 9 || colNum === 32) return null;
+                    return (
+                      <label key={colNum} className="column-checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={selectedColumns.has(colNum)}
+                          onChange={() => handleSelectColumn(colNum)}
+                          className="column-checkbox"
+                        />
+                        <span className="column-name">{name}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -2279,9 +2993,9 @@ const EditableTable = () => {
                 Активных фильтров: {filters.length} (логика: {filterLogic === 'AND' ? 'И' : 'ИЛИ'})
               </p>
             )}
-            {visibleColumns.size < 41 && (
+            {visibleColumns.size < 37 && (
               <p className="columns-info">
-                Отображается колонок: {visibleColumns.size} из 41
+                Отображается колонок: {visibleColumns.size} из 37
               </p>
             )}
             {showCertificatePanel && selectedCertificateTypes.size > 0 && (
@@ -2289,9 +3003,9 @@ const EditableTable = () => {
                 Выбрано типов справок: {selectedCertificateTypes.size}
               </p>
             )}
-            {showExportPanel && selectedColumns.size >= 0 && selectedColumns.size <= 41 && (
+            {showExportPanel && selectedColumns.size >= 0 && selectedColumns.size <= 39 && (
               <p className="selected-columns-info">
-                Выбрано колонок для экспорта: {selectedColumns.size} из 41
+                Выбрано колонок для экспорта: {selectedColumns.size} из 39
               </p>
             )}
           </div>
@@ -2386,11 +3100,11 @@ const EditableTable = () => {
                         let cellValue = row[column] || '';
                         const isEditing = editingCell.rowId === row.id && editingCell.column === column;
                         
-                        if (column === 'column18') {
+                        if (column === 'column16') {
                           cellValue = formatPreparationForm(cellValue);
                         }
 
-                        if (isEditing) {
+                        if (isEditing && !['column9', 'column32'].includes(column)) {
                           return (
                             <InlineCellEditor
                               key={`cell-${row.id}-${column}`}
@@ -2400,6 +3114,22 @@ const EditableTable = () => {
                               onSave={handleCellSave}
                               onCancel={handleCellCancel}
                             />
+                          );
+                        }
+
+                        if (column === 'column9') {
+                          return (
+                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
+                              <NestedSocialLeaveRenderer rowId={row.id} value={row[column]} />
+                             </td>
+                          );
+                        }
+
+                        if (column === 'column32') {
+                          return (
+                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
+                              <NestedSupervisorsRenderer rowId={row.id} value={row[column]} />
+                             </td>
                           );
                         }
 
@@ -2417,7 +3147,7 @@ const EditableTable = () => {
                                 cellValue
                               )}
                             </span>
-                          </td>
+                           </td>
                         );
                       })}
                       <td className="action-cell sticky-right">
@@ -2454,13 +3184,13 @@ const EditableTable = () => {
                             )}
                           </>
                         )}
-                      </td>
-                    </tr>
+                       </td>
+                     </tr>
                   );
                 })
               )}
             </tbody>
-          </table>
+           </table>
         </div>
         
         <PaginationComponent />
@@ -2492,16 +3222,6 @@ const EditableTable = () => {
             
             <div className="modal-content">
               <div className="row-editor">
-                <div className="editor-info">
-                  <p>
-                    {modalState.mode === 'create' 
-                      ? 'Заполните данные нового ординатора' 
-                      : modalState.mode === 'view'
-                        ? 'Просмотр данных ординатора'
-                        : 'Редактирование данных ординатора'}
-                  </p>
-                </div>
-                
                 <div className="columns-editor">
                   {columns.map((column, index) => {
                     const columnNumber = parseInt(column.replace('column', ''));

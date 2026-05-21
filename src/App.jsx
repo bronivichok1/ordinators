@@ -8,9 +8,11 @@ import {
   FileText, Settings
 } from 'lucide-react';
 
+const URL=process.env.REACT_APP_API_URL
+
 const api = {
   async request(endpoint, options = {}) {
-    const response = await fetch(`${process.env.REACT_APP_API_URL}${endpoint}`, {
+    const response = await fetch(`${URL}${endpoint}`, {
       ...options,
       headers: { 'Content-Type': 'application/json', ...options.headers },
       credentials: 'include'
