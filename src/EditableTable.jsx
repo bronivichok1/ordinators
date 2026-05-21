@@ -254,7 +254,7 @@ const EditableTable = () => {
         return 'date';
       case 'Распределение клинических ординаторов':
       case 'Адрес проживания':
-        return 'textarea';
+        return 'text';
       default:
         return 'text';
     }
@@ -1523,14 +1523,14 @@ try {
               placeholder="Введите пароль"
             />
           );
-        case 'textarea':
+        case 'text':
           return (
-            <textarea
+            <input
               ref={selectRef}
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="inline-textarea"
+              className="inline-input"
               rows="3"
             />
           );
