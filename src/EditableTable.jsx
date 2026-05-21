@@ -2457,7 +2457,7 @@ try {
           const displayCurrentControlDate = formatDateToDisplay(value);
           return (
             <input
-              type="date"
+              type="text"
               value={value ? value.split('T')[0] : ''}
               onChange={(e) => handleChange(e.target.value)}
               className="modal-input"
