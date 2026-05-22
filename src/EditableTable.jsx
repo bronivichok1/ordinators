@@ -1470,6 +1470,9 @@ try {
               }}
               onKeyDown={handleKeyDown}
               isClearable
+              placeholder="Выберите..."
+              noOptionsMessage={() => "Нет вариантов, введите свой"}
+              formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
               menuPortalTarget={document.body}
               onCreateOption={(inputValue) => {
                 if (optionField) {
