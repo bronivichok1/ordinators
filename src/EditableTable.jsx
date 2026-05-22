@@ -801,6 +801,7 @@ const EditableTable = () => {
   };
 
   const transformApiDataToTable = (apiData) => {
+    console.log('API Response:', apiData)
     return apiData.map((ordinator) => {
       const row = {};
       row.column1 = ordinator.fio || '';
@@ -865,11 +866,7 @@ const EditableTable = () => {
       row.column27 = ordinator.contractInfo || '';
       row.column28 = ordinator.medicalCertificate || 'есть';
       if (ordinator.currentControl) {
-        if (typeof ordinator.currentControl === 'object') {
-          row.column29 = ordinator.currentControl.scores || '';
-        } else {
-          row.column29 = formatDateToDisplay(ordinator.currentControl) || '';
-        }
+        row.column29 = formatDateToDisplay(ordinator.currentControl.scores) || '';
       } else {
         row.column29 = '';
       }
@@ -988,7 +985,7 @@ try {
       dismissalOrderDate: formatDateToAPI(tableData.column26),
       contractInfo: tableData.column27 || '',
       medicalCertificate: tableData.column28 || 'есть',
-      scores: tableData.column29 || '',
+      scores: tableData.column29 || null,
       login: tableData.column30 || '',
       password: tableData.column31 || '',
       supervisors: supervisorsValue,
@@ -2456,14 +2453,15 @@ try {
             placeholder={modalState.mode === 'edit' ? 'Оставьте пустым, чтобы не менять' : 'Введите пароль'}
           />
         );
-      case 'Текущий контроль':
+        case 'Текущий контроль':
           const displayCurrentControlDate = formatDateToDisplay(value);
           return (
             <input
               type="text"
-              value={value ? value.split('T')[0] : ''}
+              value={displayCurrentControlDate}
               onChange={(e) => handleChange(e.target.value)}
               className="modal-input"
+              placeholder="ДД.ММ.ГГГГ"
             />
           );
       case 'Распределение клинических ординаторов':
