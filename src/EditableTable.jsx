@@ -143,7 +143,7 @@ const EditableTable = () => {
     const allColumns = new Set();
     const initialVisible = new Set();
     for (let i = 1; i <= 39; i++) {
-      if (i !== 9 && i !== 32) {
+      if (i !== 9) {
         allColumns.add(i);
         initialVisible.add(i);
       }
@@ -353,21 +353,48 @@ const EditableTable = () => {
           }
         }
         
-        if (filter.column === 'column33') {
+        if (filter.column === 'column32') {
           try {
-            const supervisors = JSON.parse(columnValue);
-            if (Array.isArray(supervisors)) {
-              const supervisorNames = supervisors.map(s => {
-                const found = selectData.supervisors.find(sup => sup.id == s.supervisorId);
-                return found ? found.name : s.supervisorId;
-              });
-              columnValue = supervisorNames.join('; ');
+            const supervisors = JSON.parse(row[filter.column] || '[]');
+            
+            if (Array.isArray(supervisors) && supervisors.length > 0) {
+              let lastSupervisor = supervisors[0];
+              let maxDate = lastSupervisor.startDate ? new Date(lastSupervisor.startDate).getTime() : 0;
+              
+              for (let i = 1; i < supervisors.length; i++) {
+                const currentDate = supervisors[i].startDate ? new Date(supervisors[i].startDate).getTime() : 0;
+                if (currentDate > maxDate) {
+                  maxDate = currentDate;
+                  lastSupervisor = supervisors[i];
+                }
+              }
+              
+              const searchValue = (lastSupervisor.supervisorName || '').toLowerCase();
+              const filterValue = String(filter.value || '').toLowerCase();
+              
+              switch (filter.operator) {
+                case 'contains':
+                  return searchValue.includes(filterValue);
+                case 'equals':
+                  return searchValue === filterValue;
+                case 'startsWith':
+                  return searchValue.startsWith(filterValue);
+                case 'endsWith':
+                  return searchValue.endsWith(filterValue);
+                case 'notContains':
+                  return !searchValue.includes(filterValue);
+                case 'notEquals':
+                  return searchValue !== filterValue;
+                default:
+                  return searchValue.includes(filterValue);
+              }
             }
-          } catch {
-            columnValue = columnValue;
+            return false;
+          } catch (e) {
+            return false;
           }
         }
-        
+
         let filterValue = filter.value;
         const processedValueStr = String(columnValue || '').toLowerCase();
         const filterValueStr = String(filterValue || '').toLowerCase();
@@ -597,7 +624,7 @@ const EditableTable = () => {
   const handleSelectAllColumns = () => {
     const allColumns = new Set();
     for (let i = 1; i <= 39; i++) {
-      if (i !== 9 && i !== 32) {
+      if (i !== 9) {
         allColumns.add(i);
       }
     }
@@ -610,7 +637,7 @@ const EditableTable = () => {
   };
 
   const handleToggleColumn = (columnIndex) => {
-    if (columnIndex === 9 || columnIndex === 32) return;
+    if (columnIndex === 9) return;
     const newVisible = new Set(visibleColumns);
     if (newVisible.has(columnIndex)) {
       newVisible.delete(columnIndex);
@@ -623,7 +650,7 @@ const EditableTable = () => {
   const handleShowAllColumns = () => {
     const allColumns = new Set();
     for (let i = 1; i <= 39; i++) {
-      if (i !== 9 && i !== 32) {
+      if (i !== 9) {
         allColumns.add(i);
       }
     }
@@ -669,7 +696,7 @@ const EditableTable = () => {
               value = value;
             }
           }
-          if (colIndex === 33) {
+          if (colIndex === 32) {
             try {
               const supervisors = JSON.parse(value);
               if (Array.isArray(supervisors)) {
@@ -947,7 +974,9 @@ try {
   const parsed = JSON.parse(tableData.column32 || '[]');
   if (Array.isArray(parsed)) {
     supervisorsValue = parsed.map(sup => ({
-      supervisorName: sup.supervisorName || sup.supervisorId || '',
+      supervisorName: sup.supervisorName || '',
+      position: sup.position || '',    
+      rank: sup.rank || '',              
       startDate: sup.startDate ? new Date(formatDateToAPI(sup.startDate)) : null,
       endDate: sup.endDate ? new Date(formatDateToAPI(sup.endDate)) : null
     }));
@@ -1194,6 +1223,8 @@ try {
     
     const newSupervisor = {
       supervisorName: '',
+      position: '',    
+      rank: '',         
       startDate: '',
       endDate: ''
     };
@@ -1532,6 +1563,7 @@ try {
               onKeyDown={handleKeyDown}
               className="inline-input"
               placeholder="Введите пароль"
+              autoComplete="off"
             />
           );
         case 'text':
@@ -1654,7 +1686,11 @@ try {
     );
   };
 
-  const NestedSupervisorsRenderer = ({ rowId, value }) => {
+  const LastSupervisorRenderer = ({ value }) => {
+    const [showTooltip, setShowTooltip] = useState(false);
+    const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+    const cellRef = useRef(null);
+    
     const supervisors = (() => {
       try {
         const parsed = JSON.parse(value || '[]');
@@ -1664,6 +1700,120 @@ try {
       }
     })();
 
+    const getLastSupervisor = () => {
+      if (supervisors.length === 0) return null;
+      
+      const sorted = [...supervisors].sort((a, b) => {
+        const dateA = a.startDate ? new Date(a.startDate) : new Date(0);
+        const dateB = b.startDate ? new Date(b.startDate) : new Date(0);
+        return dateB - dateA;
+      });
+      
+      return sorted[0];
+    };
+
+    const lastSupervisor = getLastSupervisor();
+
+    const getAllSupervisorsList = () => {
+      if (supervisors.length === 0) return 'Нет руководителей';
+      
+      return supervisors.map((s, idx) => {
+        let name = s.supervisorName || '—';
+        if (s.position) name += `, ${s.position}`;
+        if (s.rank) name += ` (${s.rank})`;
+        if (s.startDate) name += `\n   с ${formatDateToDisplay(s.startDate)}`;
+        if (s.endDate) name += ` по ${formatDateToDisplay(s.endDate)}`;
+        return `${idx + 1}. ${name}`;
+      }).join('\n\n');
+    };
+
+    const handleMouseEnter = (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setTooltipPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+      });
+      setShowTooltip(true);
+    };
+
+    const handleMouseLeave = () => {
+      setShowTooltip(false);
+    };
+
+    if (!lastSupervisor || !lastSupervisor.supervisorName) {
+      return <span className="no-supervisor">—</span>;
+    }
+
+    let displayName = lastSupervisor.supervisorName;
+    if (lastSupervisor.position) displayName += `, ${lastSupervisor.position}`;
+    if (lastSupervisor.rank) displayName += ` (${lastSupervisor.rank})`;
+
+    return (
+      <>
+        <span
+          ref={cellRef}
+          className="last-supervisor-name"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          style={{ cursor: 'help', borderBottom: '1px dashed #999' }}
+        >
+          {displayName}
+        </span>
+        {showTooltip && (
+          <div
+            className="supervisors-tooltip"
+            style={{
+              position: 'fixed',
+              top: tooltipPosition.y - 10,
+              left: tooltipPosition.x,
+              transform: 'translateX(-50%) translateY(-100%)',
+              backgroundColor: '#333',
+              color: '#fff',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              maxWidth: '350px',
+              whiteSpace: 'pre-line',
+              wordBreak: 'break-word',
+              zIndex: 10000,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+              pointerEvents: 'none',
+              fontFamily: 'inherit'
+            }}
+          >
+            <div style={{ fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #555', paddingBottom: '5px' }}>
+              Все руководители ({supervisors.length}):
+            </div>
+            <div>{getAllSupervisorsList()}</div>
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '-6px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 0,
+                height: 0,
+                borderLeft: '6px solid transparent',
+                borderRight: '6px solid transparent',
+                borderTop: '6px solid #333'
+              }}
+            />
+          </div>
+        )}
+      </>
+    );
+  };
+
+  const NestedSupervisorsRenderer = ({ rowId, value }) => {
+    const supervisors = (() => {
+      try {
+        const parsed = JSON.parse(value || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+  
     return (
       <div className="nested-cell">
         {supervisors.length === 0 && (
@@ -1672,10 +1822,12 @@ try {
         {supervisors.map((sup, idx) => (
           <div key={sup.id || idx} className="nested-item-row">
             <div className="nested-fields-row">
-              <select
-                className="nested-select-input"
-                value={sup.supervisorId || ''}
-                onChange={(e) => updateSupervisor(rowId, idx, 'supervisorId', e.target.value)}
+              <input
+                type="text"
+                className="nested-name-input"
+                placeholder="ФИО руководителя"
+                value={sup.supervisorName || ''}
+                onChange={(e) => updateSupervisor(rowId, idx, 'supervisorName', e.target.value)}
                 onBlur={async () => {
                   const rowIndex = data.findIndex(row => row.id === rowId);
                   if (rowIndex !== -1) {
@@ -1683,9 +1835,38 @@ try {
                     await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
                   }
                 }}
-              >
-
-              </select>
+              />
+              
+              <input
+                type="text"
+                className="nested-position-input"
+                placeholder="Должность"
+                value={sup.position || ''}
+                onChange={(e) => updateSupervisor(rowId, idx, 'position', e.target.value)}
+                onBlur={async () => {
+                  const rowIndex = data.findIndex(row => row.id === rowId);
+                  if (rowIndex !== -1) {
+                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
+                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+                  }
+                }}
+              />
+              
+              <input
+                type="text"
+                className="nested-rank-input"
+                placeholder="Звание"
+                value={sup.rank || ''}
+                onChange={(e) => updateSupervisor(rowId, idx, 'rank', e.target.value)}
+                onBlur={async () => {
+                  const rowIndex = data.findIndex(row => row.id === rowId);
+                  if (rowIndex !== -1) {
+                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
+                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+                  }
+                }}
+              />
+              
               <input
                 type="text"
                 className="nested-date-input"
@@ -1700,6 +1881,7 @@ try {
                   }
                 }}
               />
+              
               <input
                 type="text"
                 className="nested-date-input"
@@ -1714,6 +1896,7 @@ try {
                   }
                 }}
               />
+              
               <button
                 onClick={() => removeSupervisor(rowId, idx)}
                 className="nested-remove-btn"
@@ -2069,23 +2252,81 @@ try {
   const filteredData = applyFilters(
     data.filter(row => {
       if (!searchTerm.trim()) return true;
+      
+      const searchTermLower = searchTerm.toLowerCase();
+      
       if (searchColumn === 'all') {
-        return Object.entries(row).some(([key, value]) => {
+        // Для поиска по всем колонкам
+        for (const [key, value] of Object.entries(row)) {
           if (key !== 'id' && key !== 'originalData') {
             let displayValue = value;
+            
             if (key === 'column16') {
               displayValue = formatPreparationForm(value);
             }
-            return String(displayValue || '').toLowerCase().includes(searchTerm.toLowerCase());
+            
+            // Специальная обработка для руководителей
+            if (key === 'column32') {
+              try {
+                const supervisors = JSON.parse(value || '[]');
+                if (Array.isArray(supervisors) && supervisors.length > 0) {
+                  // Находим последнего руководителя
+                  let lastSupervisor = supervisors[0];
+                  let maxDate = lastSupervisor.startDate ? new Date(lastSupervisor.startDate).getTime() : 0;
+                  
+                  for (let i = 1; i < supervisors.length; i++) {
+                    const currentDate = supervisors[i].startDate ? new Date(supervisors[i].startDate).getTime() : 0;
+                    if (currentDate > maxDate) {
+                      maxDate = currentDate;
+                      lastSupervisor = supervisors[i];
+                    }
+                  }
+                  
+                  const searchString = (lastSupervisor.supervisorName || '').toLowerCase();
+                  if (searchString.includes(searchTermLower)) return true;
+                }
+              } catch (e) {
+                // игнорируем ошибку парсинга
+              }
+              continue;
+            }
+            
+            if (String(displayValue || '').toLowerCase().includes(searchTermLower)) return true;
           }
-          return false;
-        });
+        }
+        return false;
       } else {
         let displayValue = row[searchColumn];
+        
         if (searchColumn === 'column16') {
           displayValue = formatPreparationForm(displayValue);
         }
-        return String(displayValue || '').toLowerCase().includes(searchTerm.toLowerCase());
+        
+        if (searchColumn === 'column32') {
+          try {
+            const supervisors = JSON.parse(row[searchColumn] || '[]');
+            if (Array.isArray(supervisors) && supervisors.length > 0) {
+              let lastSupervisor = supervisors[0];
+              let maxDate = lastSupervisor.startDate ? new Date(lastSupervisor.startDate).getTime() : 0;
+              
+              for (let i = 1; i < supervisors.length; i++) {
+                const currentDate = supervisors[i].startDate ? new Date(supervisors[i].startDate).getTime() : 0;
+                if (currentDate > maxDate) {
+                  maxDate = currentDate;
+                  lastSupervisor = supervisors[i];
+                }
+              }
+              
+              const searchString = (lastSupervisor.supervisorName || '').toLowerCase();
+              return searchString.includes(searchTermLower);
+            }
+            return false;
+          } catch (e) {
+            return false;
+          }
+        }
+        
+        return String(displayValue || '').toLowerCase().includes(searchTermLower);
       }
     })
   );
@@ -2352,6 +2593,8 @@ try {
               <div className="modal-nested-container">
                 <div className="modal-nested-header">
                   <div className="nested-header-supervisor">Руководитель</div>
+                  <div className="nested-header-position">Должность</div>
+                  <div className="nested-header-rank">Звания</div>
                   <div className="nested-header-start">Дата начала</div>
                   <div className="nested-header-end">Дата окончания</div>
                   <div className="nested-header-actions"></div>
@@ -2361,13 +2604,35 @@ try {
                     <input
                       type="text"
                       placeholder="ФИО руководителя"
-                      value={sup.supervisorName || sup.supervisorId || ''}
+                      value={sup.supervisorName || ''}
                       onChange={(e) => {
                         const newSupervisors = [...supervisors];
                         newSupervisors[idx] = { ...newSupervisors[idx], supervisorName: e.target.value };
                         handleChange(JSON.stringify(newSupervisors));
                       }}
                       className="modal-nested-input supervisor-input"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Должность"
+                      value={sup.position || ''}
+                      onChange={(e) => {
+                        const newSupervisors = [...supervisors];
+                        newSupervisors[idx] = { ...newSupervisors[idx], position: e.target.value };
+                        handleChange(JSON.stringify(newSupervisors));
+                      }}
+                      className="modal-nested-input position-input"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Звания"
+                      value={sup.rank || ''}
+                      onChange={(e) => {
+                        const newSupervisors = [...supervisors];
+                        newSupervisors[idx] = { ...newSupervisors[idx], rank: e.target.value };
+                        handleChange(JSON.stringify(newSupervisors));
+                      }}
+                      className="modal-nested-input rank-input"
                     />
                     <input
                       type="text"
@@ -2404,7 +2669,7 @@ try {
                 ))}
                 <button
                   onClick={() => {
-                    const newSupervisors = [...supervisors, { supervisorName: '', startDate: '', endDate: '' }];
+                    const newSupervisors = [...supervisors, { supervisorName: '', position: '', rank: '', startDate: '', endDate: '' }];
                     handleChange(JSON.stringify(newSupervisors));
                   }}
                   className="modal-nested-add"
@@ -2451,6 +2716,7 @@ try {
             onChange={(e) => handleChange(e.target.value)}
             className="modal-input"
             placeholder={modalState.mode === 'edit' ? 'Оставьте пустым, чтобы не менять' : 'Введите пароль'}
+            autoComplete="off"
           />
         );
         case 'Текущий контроль':
@@ -2705,7 +2971,7 @@ try {
             </button>
               <button 
                 onClick={() => setShowColumnsPanel(!showColumnsPanel)}
-                className={`columns-button ${visibleColumns.size < 37 ? 'active' : ''}`}
+                className={`columns-button ${visibleColumns.size < 38 ? 'active' : ''}`}
                 title="Выбор колонок для отображения"
               >
                 <Eye size={18} />
@@ -2860,7 +3126,7 @@ try {
               <div className="columns-grid">
                 {ColumnName.slice(1).map((name, index) => {
                   const columnNumber = index + 1;
-                  if (columnNumber === 9 || columnNumber === 32) return null;
+                  if (columnNumber === 9) return null;
                   return (
                     <label key={columnNumber} className={`column-checkbox-label ${visibleColumns.has(columnNumber) ? 'selected' : ''}`}>
                       <input
@@ -2934,7 +3200,7 @@ try {
                 <div className="column-selector-grid">
                   {ColumnName.slice(1).map((name, index) => {
                     const colNum = index + 1;
-                    if (colNum === 9 || colNum === 32) return null;
+                    if (colNum === 9) return null;
                     return (
                       <label key={colNum} className="column-checkbox-label">
                         <input
@@ -3005,9 +3271,9 @@ try {
                 Активных фильтров: {filters.length} (логика: {filterLogic === 'AND' ? 'И' : 'ИЛИ'})
               </p>
             )}
-            {visibleColumns.size < 37 && (
+            {visibleColumns.size < 38 && (
               <p className="columns-info">
-                Отображается колонок: {visibleColumns.size} из 37
+                Отображается колонок: {visibleColumns.size} из 38
               </p>
             )}
             {showCertificatePanel && selectedCertificateTypes.size > 0 && (
@@ -3139,9 +3405,13 @@ try {
 
                         if (column === 'column32') {
                           return (
-                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
-                              <NestedSupervisorsRenderer rowId={row.id} value={row[column]} />
-                             </td>
+                            <td 
+                              key={`cell-${row.id}-${column}`}
+                              onDoubleClick={() => handleCellDoubleClick(row.id, column, cellValue, rowIndex)}
+                              className={isEditAllowed ? 'editable-cell' : ''}
+                            >
+                              <LastSupervisorRenderer value={row[column]} />
+                            </td>
                           );
                         }
 

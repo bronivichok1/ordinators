@@ -194,14 +194,14 @@ const RegisterPage = ({ onRegister, onBack, loading, message }) => {
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
             <label className="input-label"><Users size={18} /><span>ФИО</span></label>
-            <input type="text" className="input-field" placeholder="ФИО полностью"
+            <input type="text" className="input-field2" placeholder="ФИО полностью"
               value={formData.fio} onChange={(e) => setFormData({...formData, fio: e.target.value})}
               required disabled={loading} />
           </div>
 
           <div className="input-group">
             <label className="input-label"><Mail size={18} /><span>Логин</span></label>
-            <input type="text" className="input-field" placeholder="Логин"
+            <input type="text" className="input-field2" placeholder="Логин"
               value={formData.login} onChange={(e) => setFormData({...formData, login: e.target.value})}
               required disabled={loading} />
           </div>

@@ -918,7 +918,7 @@ mark {
   background-color: white;
   border-radius: 12px;
   width: 90%;
-  max-width: 800px;
+  max-width: 1200px;
   height: auto;
   max-height: 85vh;
   overflow: hidden;
@@ -1499,7 +1499,9 @@ mark {
 .modal-nested-header .nested-header-start,
 .modal-nested-header .nested-header-end,
 .modal-nested-header .nested-header-reason,
-.modal-nested-header .nested-header-supervisor {
+.modal-nested-header .nested-header-supervisor,
+.modal-nested-header .nested-header-position,
+.modal-nested-header .nested-header-rank {
   flex: 1;
 }
 
@@ -1527,7 +1529,9 @@ mark {
 .nested-header-start,
 .nested-header-end,
 .nested-header-reason,
-.nested-header-supervisor {
+.nested-header-supervisor,
+.nested-header-position,
+.nested-header-rank {
   flex: 1;
 }
 
@@ -1589,4 +1593,160 @@ mark {
 
 .modal-nested-add:hover {
   background: #bbdef5;
+}
+
+.nested-position-input,
+.nested-rank-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.nested-position-input:focus,
+.nested-rank-input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.nested-position-input:hover,
+.nested-rank-input:hover {
+  border-color: #999;
+}
+
+.modal-nested-input.position-input,
+.modal-nested-input.rank-input {
+  flex: 1;
+  min-width: 120px;
+}
+
+.nested-fields-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.nested-name-input {
+  flex: 1.2;
+  min-width: 150px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.nested-date-input {
+  flex: 0.8;
+  min-width: 100px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.nested-reason-input {
+  flex: 1;
+  min-width: 150px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.nested-name-input:focus,
+.nested-date-input:focus,
+.nested-reason-input:focus {
+  outline: none;
+  border-color: #2196f3;
+}
+
+.nested-remove-btn {
+  width: 28px;
+  height: 28px;
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  color: #f44336;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.nested-remove-btn:hover {
+  background: #f44336;
+  color: white;
+  transform: scale(1.05);
+}
+
+.nested-add-btn {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  border-radius: 4px;
+  color: #4caf50;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.nested-add-btn:hover {
+  background: #c8e6c9;
+  transform: translateY(-1px);
+}
+
+.nested-empty {
+  color: #999;
+  font-style: italic;
+  padding: 8px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.nested-cell {
+  min-width: 500px;
+  padding: 8px;
+}
+
+.nested-cell-td {
+  padding: 4px;
+  vertical-align: top;
+  background: #fafafa;
+}
+
+.last-supervisor-name {
+  cursor: help;
+  border-bottom: 1px dashed #999;
+  display: inline-block;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.supervisors-tooltip {
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-95%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-100%);
+  }
 }
