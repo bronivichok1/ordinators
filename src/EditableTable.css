@@ -1501,7 +1501,10 @@ mark {
 .modal-nested-header .nested-header-reason,
 .modal-nested-header .nested-header-supervisor,
 .modal-nested-header .nested-header-position,
-.modal-nested-header .nested-header-rank {
+.modal-nested-header .nested-header-rank,
+.modal-nested-header .nested-header-order,
+.modal-nested-header .nested-header-date,
+.modal-nested-header .nested-header-term {
   flex: 1;
 }
 
@@ -1749,4 +1752,20 @@ mark {
     opacity: 1;
     transform: translateX(-50%) translateY(-100%);
   }
+}
+
+.nested-order-input,
+.nested-date-term,
+.nested-term-select {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  background: white;
+}
+
+.nested-term-select {
+  cursor: pointer;
 }

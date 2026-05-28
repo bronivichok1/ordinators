@@ -99,6 +99,7 @@ const EditableTable = () => {
     'Дата приказа о зачислении',
     'Номер приказа об отчислении',
     'Дата приказа об отчислении',
+    'Номер приказа о продлении',
     'Договор, дополнительное соглашение',
     'Медицинская справка',
     'Текущий контроль',
@@ -142,7 +143,7 @@ const EditableTable = () => {
   useEffect(() => {
     const allColumns = new Set();
     const initialVisible = new Set();
-    for (let i = 1; i <= 39; i++) {
+    for (let i = 1; i <= 40; i++) {
       if (i !== 9) {
         allColumns.add(i);
         initialVisible.add(i);
@@ -353,7 +354,7 @@ const EditableTable = () => {
           }
         }
         
-        if (filter.column === 'column32') {
+        if (filter.column === 'column33') {
           try {
             const supervisors = JSON.parse(row[filter.column] || '[]');
             
@@ -623,7 +624,7 @@ const EditableTable = () => {
 
   const handleSelectAllColumns = () => {
     const allColumns = new Set();
-    for (let i = 1; i <= 39; i++) {
+    for (let i = 1; i <= 40; i++) {
       if (i !== 9) {
         allColumns.add(i);
       }
@@ -649,7 +650,7 @@ const EditableTable = () => {
 
   const handleShowAllColumns = () => {
     const allColumns = new Set();
-    for (let i = 1; i <= 39; i++) {
+    for (let i = 1; i <= 40; i++) {
       if (i !== 9) {
         allColumns.add(i);
       }
@@ -847,19 +848,19 @@ const EditableTable = () => {
       }
       
       row.column10 = ordinator.mobilePhone || '';
+      
       if (ordinator.university) {
         row.column11 = ordinator.university.name || 'БГМУ';
         let graduationYear = ordinator.university.graduationYear;
-          if (graduationYear) {
-            if (typeof graduationYear === 'string') {
-              graduationYear = graduationYear.split('-')[0];
-            } else if (graduationYear instanceof Date) {
-              graduationYear = graduationYear.getFullYear().toString();
-            } else if (typeof graduationYear === 'number') {
-              graduationYear = graduationYear.toString();
-            }
+        if (graduationYear) {
+          if (typeof graduationYear === 'string') {
+            graduationYear = graduationYear.split('-')[0];
+          } else if (graduationYear instanceof Date) {
+            graduationYear = graduationYear.getFullYear().toString();
+          } else if (typeof graduationYear === 'number') {
+            graduationYear = graduationYear.toString();
           }
-          row.column12 = graduationYear || '';
+        }
         row.column12 = graduationYear || '';
         row.column13 = ordinator.university.department || '';
         row.column14 = ordinator.university.specialtyProfile || '';
@@ -871,7 +872,6 @@ const EditableTable = () => {
           prepForm = JSON.stringify(['очная']);
         }
         row.column16 = prepForm;
-
       } else {
         row.column11 = 'БГМУ';
         row.column12 = '';
@@ -880,9 +880,10 @@ const EditableTable = () => {
         row.column15 = '';
         row.column16 = JSON.stringify(['очная']);
       }
+      
       row.column17 = ordinator.identityDocument || 'паспорт';
       row.column18 = ordinator.documentNumber || '';
-      row.column19 = '';
+      row.column19 = ordinator.identNumber || '';
       row.column20 = ordinator.residenceAddress || 'общежитие';
       row.column21 = ordinator.livingAddress || '';
       row.column22 = formatDateToDisplay(ordinator.registrationExpiry) || '';
@@ -890,39 +891,51 @@ const EditableTable = () => {
       row.column24 = formatDateToDisplay(ordinator.enrollmentOrderDate) || '';
       row.column25 = ordinator.dismissalOrderNumber || '';
       row.column26 = formatDateToDisplay(ordinator.dismissalOrderDate) || '';
-      row.column27 = ordinator.contractInfo || '';
-      row.column28 = ordinator.medicalCertificate || 'есть';
-      if (ordinator.currentControl) {
-        row.column29 = formatDateToDisplay(ordinator.currentControl.scores) || '';
+      
+      if (ordinator.extensions && Array.isArray(ordinator.extensions)) {
+        row.column27 = JSON.stringify(ordinator.extensions);
       } else {
-        row.column29 = '';
+        row.column27 = JSON.stringify([]);
       }
-      row.column30 = ordinator.login || '';
-      row.column31 = ordinator.password;
+      
+      row.column28 = ordinator.contractInfo || '';
+      row.column29 = ordinator.medicalCertificate || 'есть';
+      
+      if (ordinator.currentControl) {
+        row.column30 = formatDateToDisplay(ordinator.currentControl.scores) || '';
+      } else {
+        row.column30 = '';
+      }
+      
+      row.column31 = ordinator.login || '';
+      row.column32 = ordinator.password || '';
       
       if (ordinator.supervisors && Array.isArray(ordinator.supervisors)) {
-        row.column32 = JSON.stringify(ordinator.supervisors);
+        row.column33 = JSON.stringify(ordinator.supervisors);
       } else {
-        row.column32 = JSON.stringify([]);
+        row.column33 = JSON.stringify([]);
       }
       
       if (ordinator.session) {
-        row.column33 = formatDateToDisplay(ordinator.session.sessionStart) || '';
-        row.column34 = formatDateToDisplay(ordinator.session.sessionEnd) || '';
+        row.column34 = formatDateToDisplay(ordinator.session.sessionStart) || '';
+        row.column35 = formatDateToDisplay(ordinator.session.sessionEnd) || '';
       } else {
-        row.column33 = '';
         row.column34 = '';
-      }
-      if (ordinator.money) {
-        row.column35 = formatDateToDisplay(ordinator.money.allowanceStartDate) || '';
-        row.column36 = formatDateToDisplay(ordinator.money.allowanceEndDate) || '';
-      } else {
         row.column35 = '';
-        row.column36 = '';
       }
-      row.column37 = ordinator.rivshCertificate || 'нет';
-      row.column38 = ordinator.entryByInvitation || 'нет';
-      row.column39 = ordinator.distributionInfo || '';
+      
+      if (ordinator.money) {
+        row.column36 = formatDateToDisplay(ordinator.money.allowanceStartDate) || '';
+        row.column37 = formatDateToDisplay(ordinator.money.allowanceEndDate) || '';
+      } else {
+        row.column36 = '';
+        row.column37 = '';
+      }
+      
+      row.column38 = ordinator.rivshCertificate || 'нет';
+      row.column39 = ordinator.entryByInvitation || 'нет';
+      row.column40 = ordinator.distributionInfo || '';
+      
       return {
         ...row,
         id: ordinator.id,
@@ -933,58 +946,72 @@ const EditableTable = () => {
 
   const transformTableDataToApi = (tableData, mode = 'create') => {
     let preparationFormValue = tableData.column16 || '';
-
-if (typeof preparationFormValue === 'string') {
-  try {
-    const parsed = JSON.parse(preparationFormValue);
-    if (Array.isArray(parsed)) {
-      preparationFormValue = JSON.stringify(parsed);
-    } else {
-      preparationFormValue = JSON.stringify([parsed]);
-    }
-  } catch {
-    if (preparationFormValue) {
-      preparationFormValue = JSON.stringify([preparationFormValue]);
+  
+    if (typeof preparationFormValue === 'string') {
+      try {
+        const parsed = JSON.parse(preparationFormValue);
+        if (Array.isArray(parsed)) {
+          preparationFormValue = JSON.stringify(parsed);
+        } else {
+          preparationFormValue = JSON.stringify([parsed]);
+        }
+      } catch {
+        if (preparationFormValue) {
+          preparationFormValue = JSON.stringify([preparationFormValue]);
+        } else {
+          preparationFormValue = JSON.stringify([]);
+        }
+      }
+    } else if (Array.isArray(preparationFormValue)) {
+      preparationFormValue = JSON.stringify(preparationFormValue);
     } else {
       preparationFormValue = JSON.stringify([]);
     }
-  }
-} else if (Array.isArray(preparationFormValue)) {
-  preparationFormValue = JSON.stringify(preparationFormValue);
-} else {
-  preparationFormValue = JSON.stringify([]);
-}
-
+  
     let socialLeavesValue = [];
-try {
-  const parsed = JSON.parse(tableData.column9 || '[]');
-  if (Array.isArray(parsed)) {
-    socialLeavesValue = parsed.map(leave => ({
-      startDate: leave.startDate ? new Date(formatDateToAPI(leave.startDate)) : null,
-      endDate: leave.endDate ? new Date(formatDateToAPI(leave.endDate)) : null,
-      reason: leave.reason || ''
-    }));
-  }
-} catch {
-  socialLeavesValue = [];
-}
-
-let supervisorsValue = [];
-try {
-  const parsed = JSON.parse(tableData.column32 || '[]');
-  if (Array.isArray(parsed)) {
-    supervisorsValue = parsed.map(sup => ({
-      supervisorName: sup.supervisorName || '',
-      position: sup.position || '',    
-      rank: sup.rank || '',              
-      startDate: sup.startDate ? new Date(formatDateToAPI(sup.startDate)) : null,
-      endDate: sup.endDate ? new Date(formatDateToAPI(sup.endDate)) : null
-    }));
-  }
-} catch {
-  supervisorsValue = [];
-}
-
+    try {
+      const parsed = JSON.parse(tableData.column9 || '[]');
+      if (Array.isArray(parsed)) {
+        socialLeavesValue = parsed.map(leave => ({
+          startDate: leave.startDate ? new Date(formatDateToAPI(leave.startDate)) : null,
+          endDate: leave.endDate ? new Date(formatDateToAPI(leave.endDate)) : null,
+          reason: leave.reason || ''
+        }));
+      }
+    } catch {
+      socialLeavesValue = [];
+    }
+  
+    let supervisorsValue = [];
+    try {
+      const parsed = JSON.parse(tableData.column33 || '[]');
+      if (Array.isArray(parsed)) {
+        supervisorsValue = parsed.map(sup => ({
+          supervisorName: sup.supervisorName || '',
+          position: sup.position || '',
+          rank: sup.rank || '',
+          startDate: sup.startDate ? new Date(formatDateToAPI(sup.startDate)) : null,
+          endDate: sup.endDate ? new Date(formatDateToAPI(sup.endDate)) : null
+        }));
+      }
+    } catch {
+      supervisorsValue = [];
+    }
+  
+    let extensionsValue = [];
+    try {
+      const parsed = JSON.parse(tableData.column27 || '[]');
+      if (Array.isArray(parsed)) {
+        extensionsValue = parsed.map(ext => ({
+          orderNumber: ext.orderNumber || '',
+          orderDate: ext.orderDate ? formatDateToAPI(ext.orderDate) : null,
+          extensionTerm: ext.extensionTerm || '1 год'
+        }));
+      }
+    } catch {
+      extensionsValue = [];
+    }
+  
     const apiData = {
       fio: tableData.column1 || '',
       fioEn: tableData.column2 || '',
@@ -1012,21 +1039,22 @@ try {
       enrollmentOrderDate: formatDateToAPI(tableData.column24),
       dismissalOrderNumber: tableData.column25 || '',
       dismissalOrderDate: formatDateToAPI(tableData.column26),
-      contractInfo: tableData.column27 || '',
-      medicalCertificate: tableData.column28 || 'есть',
-      scores: tableData.column29 || null,
-      login: tableData.column30 || '',
-      password: tableData.column31 || '',
+      extensions: extensionsValue,
+      contractInfo: tableData.column28 || '',
+      medicalCertificate: tableData.column29 || 'есть',
+      scores: tableData.column30 || null,
+      login: tableData.column31 || '',
+      password: tableData.column32 || '',
       supervisors: supervisorsValue,
-      sessionStart: formatDateToAPI(tableData.column33),
-      sessionEnd: formatDateToAPI(tableData.column34),
-      allowanceStartDate: formatDateToAPI(tableData.column35),
-      allowanceEndDate: formatDateToAPI(tableData.column36),
-      rivshCertificate: tableData.column37 || 'нет',
-      entryByInvitation: tableData.column38 || 'нет',
-      distributionInfo: tableData.column39 || ''
+      sessionStart: formatDateToAPI(tableData.column34),
+      sessionEnd: formatDateToAPI(tableData.column35),
+      allowanceStartDate: formatDateToAPI(tableData.column36),
+      allowanceEndDate: formatDateToAPI(tableData.column37),
+      rivshCertificate: tableData.column38 || 'нет',
+      entryByInvitation: tableData.column39 || 'нет',
+      distributionInfo: tableData.column40 || ''
     };
-
+  
     Object.keys(apiData).forEach(key => apiData[key] === undefined && delete apiData[key]);
     return apiData;
   };
@@ -1214,7 +1242,7 @@ try {
     
     const currentSupervisors = (() => {
       try {
-        const parsed = JSON.parse(data[rowIndex].column32 || '[]');
+        const parsed = JSON.parse(data[rowIndex].column33 || '[]');
         return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
@@ -1238,7 +1266,7 @@ try {
       ...prev,
       [rowId]: {
         ...prev[rowId],
-        column32: JSON.stringify(updatedSupervisors)
+        column33: JSON.stringify(updatedSupervisors)
       }
     }));
   };
@@ -1249,7 +1277,7 @@ try {
     
     const currentSupervisors = (() => {
       try {
-        const parsed = JSON.parse(data[rowIndex].column32 || '[]');
+        const parsed = JSON.parse(data[rowIndex].column33 || '[]');
         return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
@@ -1278,7 +1306,7 @@ try {
     
     const currentSupervisors = (() => {
       try {
-        const parsed = JSON.parse(data[rowIndex].column32 || '[]');
+        const parsed = JSON.parse(data[rowIndex].column33 || '[]');
         return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
@@ -1294,7 +1322,7 @@ try {
       ...prev,
       [rowId]: {
         ...prev[rowId],
-        column32: JSON.stringify(updatedSupervisors)
+        column33: JSON.stringify(updatedSupervisors)
       }
     }));
   };
@@ -1686,6 +1714,108 @@ try {
     );
   };
 
+  const ExtensionsRenderer = ({ rowId, value }) => {
+    const extensionsList = (() => {
+      try {
+        const parsed = JSON.parse(value || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })();
+  
+    const addExtension = () => {
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex === -1) return;
+      
+      const newExtension = {
+        orderNumber: '',
+        orderDate: '',
+        extensionTerm: '1 год'
+      };
+      
+      const updatedExtensions = [...extensionsList, newExtension];
+      const updatedData = [...data];
+      updatedData[rowIndex].column27 = JSON.stringify(updatedExtensions);
+      setData(updatedData);
+    };
+  
+    const updateExtension = (idx, field, val) => {
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex === -1) return;
+      
+      const updatedExtensions = [...extensionsList];
+      updatedExtensions[idx] = { ...updatedExtensions[idx], [field]: val };
+      
+      const updatedData = [...data];
+      updatedData[rowIndex].column27 = JSON.stringify(updatedExtensions);
+      setData(updatedData);
+    };
+  
+    const removeExtension = (idx) => {
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex === -1) return;
+      
+      const updatedExtensions = extensionsList.filter((_, i) => i !== idx);
+      const updatedData = [...data];
+      updatedData[rowIndex].column27 = JSON.stringify(updatedExtensions);
+      setData(updatedData);
+    };
+  
+    const extensionTerms = ['1 год', '2 года', '3 года'];
+  
+    return (
+      <div className="nested-cell">
+        {extensionsList.length === 0 && (
+          <div className="nested-empty">Нет записей о продлении</div>
+        )}
+        {extensionsList.map((ext, idx) => (
+          <div key={idx} className="nested-item-row">
+            <div className="nested-fields-row">
+              <input
+                type="text"
+                className="nested-order-input"
+                placeholder="Номер приказа"
+                value={ext.orderNumber || ''}
+                onChange={(e) => updateExtension(idx, 'orderNumber', e.target.value)}
+              />
+              <input
+                type="text"
+                className="nested-date-term"
+                placeholder="Дата приказа (ДД.ММ.ГГГГ)"
+                value={formatDateToDisplay(ext.orderDate) || ''}
+                onChange={(e) => updateExtension(idx, 'orderDate', e.target.value)}
+              />
+              <select
+                className="nested-term-select"
+                value={ext.extensionTerm || '1 год'}
+                onChange={(e) => updateExtension(idx, 'extensionTerm', e.target.value)}
+              >
+                {extensionTerms.map(term => (
+                  <option key={term} value={term}>{term}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => removeExtension(idx)}
+                className="nested-remove-btn"
+                title="Удалить запись о продлении"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={addExtension}
+          className="nested-add-btn"
+        >
+          <Plus size={14} />
+          <span>Добавить продление</span>
+        </button>
+      </div>
+    );
+  };
+
   const LastSupervisorRenderer = ({ value }) => {
     const [showTooltip, setShowTooltip] = useState(false);
     const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -1924,7 +2054,7 @@ try {
       return;
     }
     const initialRowData = {};
-    for (let i = 1; i <= 39; i++) {
+    for (let i = 1; i <= 40; i++) {
       const columnKey = `column${i}`;
       const fieldName = ColumnName[i];
       switch(fieldName) {
@@ -1965,6 +2095,15 @@ try {
         case 'Руководители':
           initialRowData[columnKey] = JSON.stringify([]);
           break;
+        case 'Номер приказа о продлении':
+          initialRowData[columnKey] = JSON.stringify([]);
+          break;
+        case 'Дата приказа о продлении':
+          initialRowData[columnKey] = '';
+          break;
+        case 'Срок продления':
+          initialRowData[columnKey] = '';
+          break;
         default:
           initialRowData[columnKey] = '';
       }
@@ -1993,7 +2132,7 @@ try {
       const response = await apiRequest(`/ordinators/${row.id}`);
       const ordinator = response;
       const rowValues = [];
-      for (let i = 1; i <= 39; i++) {
+      for (let i = 1; i <= 40; i++) {
         const columnKey = `column${i}`;
         const value = row[columnKey] || '';
         rowValues.push({
@@ -2256,7 +2395,6 @@ try {
       const searchTermLower = searchTerm.toLowerCase();
       
       if (searchColumn === 'all') {
-        // Для поиска по всем колонкам
         for (const [key, value] of Object.entries(row)) {
           if (key !== 'id' && key !== 'originalData') {
             let displayValue = value;
@@ -2265,12 +2403,10 @@ try {
               displayValue = formatPreparationForm(value);
             }
             
-            // Специальная обработка для руководителей
-            if (key === 'column32') {
+            if (key === 'column33') {
               try {
                 const supervisors = JSON.parse(value || '[]');
                 if (Array.isArray(supervisors) && supervisors.length > 0) {
-                  // Находим последнего руководителя
                   let lastSupervisor = supervisors[0];
                   let maxDate = lastSupervisor.startDate ? new Date(lastSupervisor.startDate).getTime() : 0;
                   
@@ -2286,7 +2422,6 @@ try {
                   if (searchString.includes(searchTermLower)) return true;
                 }
               } catch (e) {
-                // игнорируем ошибку парсинга
               }
               continue;
             }
@@ -2302,7 +2437,7 @@ try {
           displayValue = formatPreparationForm(displayValue);
         }
         
-        if (searchColumn === 'column32') {
+        if (searchColumn === 'column33') {
           try {
             const supervisors = JSON.parse(row[searchColumn] || '[]');
             if (Array.isArray(supervisors) && supervisors.length > 0) {
@@ -2678,6 +2813,115 @@ try {
                 </button>
               </div>
             );
+            case 'Номер приказа о продлении':
+              const extensionsList = (() => {
+                try {
+                  const parsed = JSON.parse(value || '[]');
+                  return Array.isArray(parsed) ? parsed : [];
+                } catch {
+                  return [];
+                }
+              })();
+            
+              const addExtension = () => {
+                const newExtensions = [...extensionsList, {
+                  orderNumber: '',
+                  orderDate: '',
+                  extensionTerm: '1 год'
+                }];
+                handleChange(JSON.stringify(newExtensions));
+              };
+            
+              const updateExtension = (idx, field, val) => {
+                const newExtensions = [...extensionsList];
+                newExtensions[idx] = { ...newExtensions[idx], [field]: val };
+                handleChange(JSON.stringify(newExtensions));
+              };
+            
+              const removeExtension = (idx) => {
+                const newExtensions = extensionsList.filter((_, i) => i !== idx);
+                handleChange(JSON.stringify(newExtensions));
+              };
+            
+              const extensionTerms = ['1 год', '2 года', '3 года'];
+            
+              return (
+                <div className="modal-nested-container">
+                  <div className="modal-nested-header">
+                    <div className="nested-header-order">Номер приказа</div>
+                    <div className="nested-header-date">Дата приказа</div>
+                    <div className="nested-header-term">Срок продления</div>
+                    <div className="nested-header-actions"></div>
+                  </div>
+                  {extensionsList.length === 0 && (
+                    <div className="nested-empty">Нет записей</div>
+                  )}
+                  {extensionsList.map((ext, idx) => (
+                    <div key={idx} className="modal-nested-item">
+                      <input
+                        type="text"
+                        placeholder="Номер приказа"
+                        value={ext.orderNumber || ''}
+                        onChange={(e) => updateExtension(idx, 'orderNumber', e.target.value)}
+                        className="modal-nested-input"
+                      />
+                      <input
+                        type="text"
+                        placeholder="ДД.ММ.ГГГГ"
+                        value={ext.orderDate || ''}
+                        onChange={(e) => updateExtension(idx, 'orderDate', e.target.value)}
+                        className="modal-nested-input"
+                      />
+                      <select
+                        value={ext.extensionTerm || '1 год'}
+                        onChange={(e) => updateExtension(idx, 'extensionTerm', e.target.value)}
+                        className="modal-nested-input"
+                      >
+                        {extensionTerms.map(term => (
+                          <option key={term} value={term}>{term}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => removeExtension(idx)}
+                        className="modal-nested-remove"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addExtension}
+                    className="modal-nested-add"
+                  >
+                    <Plus size={14} /> Добавить продление
+                  </button>
+                </div>
+              );
+            
+      case 'Дата приказа о продлении':
+              return (
+                <input
+                  type="text"
+                  value={formatDateToDisplay(value)}
+                  onChange={(e) => handleChange(e.target.value)}
+                  className="modal-input"
+                  placeholder="ДД.ММ.ГГГГ"
+                />
+              );
+            
+      case 'Срок продления':
+              return (
+                <select
+                  value={value || ''}
+                  onChange={(e) => handleChange(e.target.value)}
+                  className="modal-input"
+                >
+                  <option value="">Выберите срок</option>
+                  <option value="1 год">1 год</option>
+                  <option value="2 года">2 года</option>
+                  <option value="3 года">3 года</option>
+                </select>
+              );
       case 'Год рождения':
       case 'Дата зачисления':
       case 'Дата отчисления':
@@ -2780,7 +3024,7 @@ try {
     );
   }
 
-  const columns = Array.from({ length: 39 }, (_, i) => `column${i + 1}`);
+  const columns = Array.from({ length: 40 }, (_, i) => `column${i + 1}`);
 
   const PaginationComponent = () => {
     const pages = [];
@@ -2971,7 +3215,7 @@ try {
             </button>
               <button 
                 onClick={() => setShowColumnsPanel(!showColumnsPanel)}
-                className={`columns-button ${visibleColumns.size < 38 ? 'active' : ''}`}
+                className={`columns-button ${visibleColumns.size < 39 ? 'active' : ''}`}
                 title="Выбор колонок для отображения"
               >
                 <Eye size={18} />
@@ -3194,7 +3438,7 @@ try {
                     onClick={handleSelectAllColumns}
                     className="select-all-columns-button"
                   >
-                    {selectedColumns.size === 39 ? 'Снять все' : 'Выбрать все'}
+                    {selectedColumns.size === 40 ? 'Снять все' : 'Выбрать все'}
                   </button>
                 </div>
                 <div className="column-selector-grid">
@@ -3271,9 +3515,9 @@ try {
                 Активных фильтров: {filters.length} (логика: {filterLogic === 'AND' ? 'И' : 'ИЛИ'})
               </p>
             )}
-            {visibleColumns.size < 38 && (
+            {visibleColumns.size <39 && (
               <p className="columns-info">
-                Отображается колонок: {visibleColumns.size} из 38
+                Отображается колонок: {visibleColumns.size} из 39
               </p>
             )}
             {showCertificatePanel && selectedCertificateTypes.size > 0 && (
@@ -3281,9 +3525,9 @@ try {
                 Выбрано типов справок: {selectedCertificateTypes.size}
               </p>
             )}
-            {showExportPanel && selectedColumns.size >= 0 && selectedColumns.size <= 39 && (
+            {showExportPanel && selectedColumns.size >= 0 && selectedColumns.size <= 40 && (
               <p className="selected-columns-info">
-                Выбрано колонок для экспорта: {selectedColumns.size} из 39
+                Выбрано колонок для экспорта: {selectedColumns.size} из 40
               </p>
             )}
           </div>
@@ -3403,7 +3647,7 @@ try {
                           );
                         }
 
-                        if (column === 'column32') {
+                        if (column === 'column33') {
                           return (
                             <td 
                               key={`cell-${row.id}-${column}`}
@@ -3411,6 +3655,14 @@ try {
                               className={isEditAllowed ? 'editable-cell' : ''}
                             >
                               <LastSupervisorRenderer value={row[column]} />
+                            </td>
+                          );
+                        }
+
+                        if (column === 'column27') {
+                          return (
+                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
+                              <ExtensionsRenderer rowId={row.id} value={row[column]} />
                             </td>
                           );
                         }
