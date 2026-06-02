@@ -108,11 +108,11 @@ const EditableTable = () => {
     'Руководители',
     'Дата начала сессии(циклов)',
     'Дата окончания сессии(циклов)',
-    'Дата установки надбавки',
-    'Дата окончания надбавки',
+    'Надбавка',
     'Наличие сертификата РИВШ',
     'Въезд по приглашению',
     'Распределение клинических ординаторов',
+    '',
   ];
 
   const formatDateToDisplay = (dateString) => {
@@ -144,10 +144,8 @@ const EditableTable = () => {
     const allColumns = new Set();
     const initialVisible = new Set();
     for (let i = 1; i <= 40; i++) {
-      if (i !== 9) {
         allColumns.add(i);
         initialVisible.add(i);
-      }
     }
     setSelectedColumns(allColumns);
     setVisibleColumns(initialVisible);
@@ -242,8 +240,6 @@ const EditableTable = () => {
       case 'Дата приказа о зачислении':
       case 'Дата приказа об отчислении':
       case 'Срок окончания регистрации':
-      case 'Дата установки надбавки':
-      case 'Дата окончания надбавки':
       case 'Дата начала сессии(циклов)':
       case 'Дата окончания сессии(циклов)':
         return 'date';
@@ -638,7 +634,6 @@ const EditableTable = () => {
   };
 
   const handleToggleColumn = (columnIndex) => {
-    if (columnIndex === 9) return;
     const newVisible = new Set(visibleColumns);
     if (newVisible.has(columnIndex)) {
       newVisible.delete(columnIndex);
@@ -711,8 +706,34 @@ const EditableTable = () => {
               value = value;
             }
           }
+
+          if (colIndex === 27) {
+            try {
+              const extensions = JSON.parse(value);
+              if (Array.isArray(extensions)) {
+                value = extensions.map(ext => 
+                  `${ext.orderNumber || ''} (${ext.orderDate || ''}, срок: ${ext.extensionTerm || ''})`
+                ).join('; ');
+              }
+            } catch {
+              value = value;
+            }
+          }
+
+          if (colIndex === 36) {
+            try {
+              const allowances = JSON.parse(value);
+              if (Array.isArray(allowances)) {
+                value = allowances.map(allow => 
+                  `${allow.orderNumber || ''} (${allow.startDate || ''} - ${allow.endDate || ''})`
+                ).join('; ');
+              }
+            } catch {
+              value = value;
+            }
+          }
           exportRow[ColumnName[colIndex]] = value;
-        }
+        }      
       });
       return exportRow;
     });
@@ -924,12 +945,10 @@ const EditableTable = () => {
         row.column35 = '';
       }
       
-      if (ordinator.money) {
-        row.column36 = formatDateToDisplay(ordinator.money.allowanceStartDate) || '';
-        row.column37 = formatDateToDisplay(ordinator.money.allowanceEndDate) || '';
+      if (ordinator.allowances && Array.isArray(ordinator.allowances)) {
+        row.column36 = JSON.stringify(ordinator.allowances);
       } else {
-        row.column36 = '';
-        row.column37 = '';
+        row.column36 = JSON.stringify([]);
       }
       
       row.column38 = ordinator.rivshCertificate || 'нет';
@@ -1012,6 +1031,20 @@ const EditableTable = () => {
       extensionsValue = [];
     }
   
+    let allowancesValue = [];
+    try {
+      const parsed = JSON.parse(tableData.column36 || '[]');
+      if (Array.isArray(parsed)) {
+        allowancesValue = parsed.map(item => ({
+          orderNumber: item.orderNumber || '',
+          startDate: item.startDate ? new Date(formatDateToAPI(item.startDate)) : null,
+          endDate: item.endDate ? new Date(formatDateToAPI(item.endDate)) : null
+        }));
+      }
+    } catch {
+      allowancesValue = [];
+    }
+
     const apiData = {
       fio: tableData.column1 || '',
       fioEn: tableData.column2 || '',
@@ -1048,8 +1081,7 @@ const EditableTable = () => {
       supervisors: supervisorsValue,
       sessionStart: formatDateToAPI(tableData.column34),
       sessionEnd: formatDateToAPI(tableData.column35),
-      allowanceStartDate: formatDateToAPI(tableData.column36),
-      allowanceEndDate: formatDateToAPI(tableData.column37),
+      allowances: allowancesValue,
       rivshCertificate: tableData.column38 || 'нет',
       entryByInvitation: tableData.column39 || 'нет',
       distributionInfo: tableData.column40 || ''
@@ -1634,142 +1666,281 @@ const EditableTable = () => {
   };
 
   const NestedSocialLeaveRenderer = ({ rowId, value }) => {
-    const leaves = (() => {
+    const [localLeaves, setLocalLeaves] = useState(() => {
       try {
         const parsed = JSON.parse(value || '[]');
         return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
       }
-    })();
-
+    });
+    const [hasChanges, setHasChanges] = useState(false);
+  
+    useEffect(() => {
+      try {
+        const parsed = JSON.parse(value || '[]');
+        const newValue = Array.isArray(parsed) ? parsed : [];
+        if (JSON.stringify(localLeaves) !== JSON.stringify(newValue)) {
+          setLocalLeaves(newValue);
+          setHasChanges(false);
+        }
+      } catch {
+        setLocalLeaves([]);
+        setHasChanges(false);
+      }
+    }, [value]);
+  
+    const updateLeave = (idx, field, val) => {
+      const updated = [...localLeaves];
+      updated[idx] = { ...updated[idx], [field]: val };
+      setLocalLeaves(updated);
+      setHasChanges(true);
+    };
+  
+    const addLeave = () => {
+      setLocalLeaves([...localLeaves, { startDate: '', endDate: '', reason: '' }]);
+      setHasChanges(true);
+    };
+  
+    const removeLeave = async (idx) => {
+      const updated = localLeaves.filter((_, i) => i !== idx);
+      setLocalLeaves(updated);
+      setHasChanges(updated.length > 0);
+      
+      const token = localStorage.getItem('auth_token');
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex !== -1) {
+        const updatedData = [...data];
+        updatedData[rowIndex].column9 = JSON.stringify(updated);
+        setData(updatedData);
+        const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
+        
+        try {
+          const response = await fetch(`${API_URL}/ordinators/${rowId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+            return;
+          }
+          alert('Запись успешно удалена');
+        } catch (error) {
+          console.error('Remove error:', error);
+          alert('Ошибка при удалении');
+        }
+      }
+    };
+  
+    const saveChanges = async () => {
+      const token = localStorage.getItem('auth_token');
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex !== -1) {
+        const updatedData = [...data];
+        updatedData[rowIndex].column9 = JSON.stringify(localLeaves);
+        setData(updatedData);
+        const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
+        
+        try {
+          const response = await fetch(`${API_URL}/ordinators/${rowId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+            return;
+          }
+          if (!response.ok) {
+            throw new Error('Ошибка сохранения');
+          }
+          setHasChanges(false);
+          alert('Изменения успешно сохранены');
+        } catch (error) {
+          console.error('Save error:', error);
+          alert('Ошибка при сохранении');
+        }
+      }
+    };
+  
     return (
       <div className="nested-cell">
-        {leaves.length === 0 && (
+        {localLeaves.length === 0 && (
           <div className="nested-empty">Нет записей</div>
         )}
-        {leaves.map((leave, idx) => (
-          <div key={leave.id || idx} className="nested-item-row">
+        {localLeaves.map((leave, idx) => (
+          <div key={idx} className="nested-item-row">
             <div className="nested-fields-row">
               <input
                 type="text"
                 className="nested-date-input"
                 placeholder="Дата начала"
-                value={leave.startDate || ''}
-                onChange={(e) => updateSocialLeave(rowId, idx, 'startDate', e.target.value)}
-                onBlur={async () => {
-                  const rowIndex = data.findIndex(row => row.id === rowId);
-                  if (rowIndex !== -1) {
-                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
-                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-                  }
-                }}
+                value={formatDateToDisplay(leave.startDate) || ''}
+                onChange={(e) => updateLeave(idx, 'startDate', e.target.value)}
               />
               <input
                 type="text"
                 className="nested-date-input"
                 placeholder="Дата окончания"
-                value={leave.endDate || ''}
-                onChange={(e) => updateSocialLeave(rowId, idx, 'endDate', e.target.value)}
-                onBlur={async () => {
-                  const rowIndex = data.findIndex(row => row.id === rowId);
-                  if (rowIndex !== -1) {
-                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
-                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-                  }
-                }}
+                value={formatDateToDisplay(leave.endDate) || ''}
+                onChange={(e) => updateLeave(idx, 'endDate', e.target.value)}
               />
               <input
                 type="text"
                 className="nested-reason-input"
                 placeholder="Причина"
                 value={leave.reason || ''}
-                onChange={(e) => updateSocialLeave(rowId, idx, 'reason', e.target.value)}
-                onBlur={async () => {
-                  const rowIndex = data.findIndex(row => row.id === rowId);
-                  if (rowIndex !== -1) {
-                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
-                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-                  }
-                }}
+                onChange={(e) => updateLeave(idx, 'reason', e.target.value)}
               />
-              <button
-                onClick={() => removeSocialLeave(rowId, idx)}
-                className="nested-remove-btn"
-                title="Удалить период"
-              >
+              <button onClick={() => removeLeave(idx)} className="nested-remove-btn">
                 <Trash2 size={14} />
               </button>
             </div>
           </div>
         ))}
-        <button
-          onClick={() => addSocialLeave(rowId)}
-          className="nested-add-btn"
-        >
-          <Plus size={14} />
-          <span>Добавить период</span>
-        </button>
+        <div className="nested-actions">
+          <button onClick={addLeave} className="nested-add-btn">
+            <Plus size={14} />
+            <span>Добавить период</span>
+          </button>
+          {hasChanges && (
+            <button onClick={saveChanges} className="nested-save-btn">
+              💾 Сохранить
+            </button>
+          )}
+        </div>
       </div>
     );
   };
 
   const ExtensionsRenderer = ({ rowId, value }) => {
-    const extensionsList = (() => {
+    const [localExtensions, setLocalExtensions] = useState(() => {
       try {
         const parsed = JSON.parse(value || '[]');
         return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
       }
-    })();
+    });
+    const [hasChanges, setHasChanges] = useState(false);
   
-    const addExtension = () => {
-      const rowIndex = data.findIndex(row => row.id === rowId);
-      if (rowIndex === -1) return;
-      
-      const newExtension = {
-        orderNumber: '',
-        orderDate: '',
-        extensionTerm: '1 год'
-      };
-      
-      const updatedExtensions = [...extensionsList, newExtension];
-      const updatedData = [...data];
-      updatedData[rowIndex].column27 = JSON.stringify(updatedExtensions);
-      setData(updatedData);
-    };
+    useEffect(() => {
+      try {
+        const parsed = JSON.parse(value || '[]');
+        const newValue = Array.isArray(parsed) ? parsed : [];
+        if (JSON.stringify(localExtensions) !== JSON.stringify(newValue)) {
+          setLocalExtensions(newValue);
+          setHasChanges(false);
+        }
+      } catch {
+        setLocalExtensions([]);
+        setHasChanges(false);
+      }
+    }, [value]);
   
     const updateExtension = (idx, field, val) => {
-      const rowIndex = data.findIndex(row => row.id === rowId);
-      if (rowIndex === -1) return;
-      
-      const updatedExtensions = [...extensionsList];
-      updatedExtensions[idx] = { ...updatedExtensions[idx], [field]: val };
-      
-      const updatedData = [...data];
-      updatedData[rowIndex].column27 = JSON.stringify(updatedExtensions);
-      setData(updatedData);
+      const updated = [...localExtensions];
+      updated[idx] = { ...updated[idx], [field]: val };
+      setLocalExtensions(updated);
+      setHasChanges(true);
     };
   
-    const removeExtension = (idx) => {
-      const rowIndex = data.findIndex(row => row.id === rowId);
-      if (rowIndex === -1) return;
+    const addExtension = () => {
+      setLocalExtensions([...localExtensions, { orderNumber: '', orderDate: '', extensionTerm: '1 год' }]);
+      setHasChanges(true);
+    };
+  
+    const removeExtension = async (idx) => {
+      const updated = localExtensions.filter((_, i) => i !== idx);
+      setLocalExtensions(updated);
+      setHasChanges(updated.length > 0);
       
-      const updatedExtensions = extensionsList.filter((_, i) => i !== idx);
-      const updatedData = [...data];
-      updatedData[rowIndex].column27 = JSON.stringify(updatedExtensions);
-      setData(updatedData);
+      const token = localStorage.getItem('auth_token');
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex !== -1) {
+        const updatedData = [...data];
+        updatedData[rowIndex].column27 = JSON.stringify(updated);
+        setData(updatedData);
+        const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
+        
+        try {
+          const response = await fetch(`${API_URL}/ordinators/${rowId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+            return;
+          }
+          alert('Запись успешно удалена');
+        } catch (error) {
+          console.error('Remove error:', error);
+          alert('Ошибка при удалении');
+        }
+      }
+    };
+  
+    const saveChanges = async () => {
+      const token = localStorage.getItem('auth_token');
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex !== -1) {
+        const updatedData = [...data];
+        updatedData[rowIndex].column27 = JSON.stringify(localExtensions);
+        setData(updatedData);
+        const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
+        
+        try {
+          const response = await fetch(`${API_URL}/ordinators/${rowId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+            return;
+          }
+          if (!response.ok) {
+            throw new Error('Ошибка сохранения');
+          }
+          setHasChanges(false);
+          alert('Изменения успешно сохранены');
+        } catch (error) {
+          console.error('Save error:', error);
+          alert('Ошибка при сохранении');
+        }
+      }
     };
   
     const extensionTerms = ['1 год', '2 года', '3 года'];
   
     return (
       <div className="nested-cell">
-        {extensionsList.length === 0 && (
+        {localExtensions.length === 0 && (
           <div className="nested-empty">Нет записей о продлении</div>
         )}
-        {extensionsList.map((ext, idx) => (
+        {localExtensions.map((ext, idx) => (
           <div key={idx} className="nested-item-row">
             <div className="nested-fields-row">
               <input
@@ -1795,30 +1966,188 @@ const EditableTable = () => {
                   <option key={term} value={term}>{term}</option>
                 ))}
               </select>
-              <button
-                onClick={() => removeExtension(idx)}
-                className="nested-remove-btn"
-                title="Удалить запись о продлении"
-              >
+              <button onClick={() => removeExtension(idx)} className="nested-remove-btn">
                 <Trash2 size={14} />
               </button>
             </div>
           </div>
         ))}
-        <button
-          onClick={addExtension}
-          className="nested-add-btn"
-        >
-          <Plus size={14} />
-          <span>Добавить продление</span>
-        </button>
+        <div className="nested-actions">
+          <button onClick={addExtension} className="nested-add-btn">
+            <Plus size={14} />
+            <span>Добавить продление</span>
+          </button>
+          {hasChanges && (
+            <button onClick={saveChanges} className="nested-save-btn">
+              💾 Сохранить
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  const AllowanceRenderer = ({ rowId, value }) => {
+    const [localAllowances, setLocalAllowances] = useState(() => {
+      try {
+        const parsed = JSON.parse(value || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    });
+    const [hasChanges, setHasChanges] = useState(false);
+  
+    useEffect(() => {
+      try {
+        const parsed = JSON.parse(value || '[]');
+        const newValue = Array.isArray(parsed) ? parsed : [];
+        if (JSON.stringify(localAllowances) !== JSON.stringify(newValue)) {
+          setLocalAllowances(newValue);
+          setHasChanges(false);
+        }
+      } catch {
+        setLocalAllowances([]);
+        setHasChanges(false);
+      }
+    }, [value]);
+  
+    const updateAllowance = (idx, field, val) => {
+      const updated = [...localAllowances];
+      updated[idx] = { ...updated[idx], [field]: val };
+      setLocalAllowances(updated);
+      setHasChanges(true);
+    };
+  
+    const addAllowance = () => {
+      setLocalAllowances([...localAllowances, { orderNumber: '', startDate: '', endDate: '' }]);
+      setHasChanges(true);
+    };
+  
+    const removeAllowance = async (idx) => {
+      const updated = localAllowances.filter((_, i) => i !== idx);
+      setLocalAllowances(updated);
+      setHasChanges(updated.length > 0);
+      
+      const token = localStorage.getItem('auth_token');
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex !== -1) {
+        const updatedData = [...data];
+        updatedData[rowIndex].column36 = JSON.stringify(updated);
+        setData(updatedData);
+        const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
+        
+        try {
+          const response = await fetch(`${API_URL}/ordinators/${rowId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+            return;
+          }
+          alert('Запись успешно удалена');
+        } catch (error) {
+          console.error('Remove error:', error);
+          alert('Ошибка при удалении');
+        }
+      }
+    };
+  
+    const saveChanges = async () => {
+      const token = localStorage.getItem('auth_token');
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex !== -1) {
+        const updatedData = [...data];
+        updatedData[rowIndex].column36 = JSON.stringify(localAllowances);
+        setData(updatedData);
+        const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
+        
+        try {
+          const response = await fetch(`${API_URL}/ordinators/${rowId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+            return;
+          }
+          if (!response.ok) {
+            throw new Error('Ошибка сохранения');
+          }
+          setHasChanges(false);
+          alert('Изменения успешно сохранены');
+        } catch (error) {
+          console.error('Save error:', error);
+          alert('Ошибка при сохранении');
+        }
+      }
+    };
+  
+    return (
+      <div className="nested-cell">
+        {localAllowances.length === 0 && (
+          <div className="nested-empty">Нет записей о надбавках</div>
+        )}
+        {localAllowances.map((item, idx) => (
+          <div key={idx} className="nested-item-row">
+            <div className="nested-fields-row">
+              <input
+                type="text"
+                className="nested-order-input"
+                placeholder="Номер приказа"
+                value={item.orderNumber || ''}
+                onChange={(e) => updateAllowance(idx, 'orderNumber', e.target.value)}
+              />
+              <input
+                type="text"
+                className="nested-date-term"
+                placeholder="Дата начала (ДД.ММ.ГГГГ)"
+                value={formatDateToDisplay(item.startDate) || ''}
+                onChange={(e) => updateAllowance(idx, 'startDate', e.target.value)}
+              />
+              <input
+                type="text"
+                className="nested-date-term"
+                placeholder="Дата окончания (ДД.ММ.ГГГГ)"
+                value={formatDateToDisplay(item.endDate) || ''}
+                onChange={(e) => updateAllowance(idx, 'endDate', e.target.value)}
+              />
+              <button onClick={() => removeAllowance(idx)} className="nested-remove-btn">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <div className="nested-actions">
+          <button onClick={addAllowance} className="nested-add-btn">
+            <Plus size={14} />
+            <span>Добавить надбавку</span>
+          </button>
+          {hasChanges && (
+            <button onClick={saveChanges} className="nested-save-btn">
+              💾 Сохранить
+            </button>
+          )}
+        </div>
       </div>
     );
   };
 
   const LastSupervisorRenderer = ({ value }) => {
     const [showTooltip, setShowTooltip] = useState(false);
-    const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
     const cellRef = useRef(null);
     
     const supervisors = (() => {
@@ -1857,12 +2186,7 @@ const EditableTable = () => {
       }).join('\n\n');
     };
 
-    const handleMouseEnter = (e) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      setTooltipPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 10
-      });
+    const handleMouseEnter = () => {
       setShowTooltip(true);
     };
 
@@ -1885,49 +2209,16 @@ const EditableTable = () => {
           className="last-supervisor-name"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          style={{ cursor: 'help', borderBottom: '1px dashed #999' }}
         >
           {displayName}
         </span>
         {showTooltip && (
-          <div
-            className="supervisors-tooltip"
-            style={{
-              position: 'fixed',
-              top: tooltipPosition.y - 10,
-              left: tooltipPosition.x,
-              transform: 'translateX(-50%) translateY(-100%)',
-              backgroundColor: '#333',
-              color: '#fff',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              fontSize: '13px',
-              maxWidth: '350px',
-              whiteSpace: 'pre-line',
-              wordBreak: 'break-word',
-              zIndex: 10000,
-              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-              pointerEvents: 'none',
-              fontFamily: 'inherit'
-            }}
-          >
-            <div style={{ fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #555', paddingBottom: '5px' }}>
+          <div className="supervisors-tooltip">
+            <div className='supervizor-label' >
               Все руководители ({supervisors.length}):
             </div>
             <div>{getAllSupervisorsList()}</div>
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '-6px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 0,
-                height: 0,
-                borderLeft: '6px solid transparent',
-                borderRight: '6px solid transparent',
-                borderTop: '6px solid #333'
-              }}
-            />
+            <div className='supervizor-all'/>
           </div>
         )}
       </>
@@ -1935,115 +2226,174 @@ const EditableTable = () => {
   };
 
   const NestedSupervisorsRenderer = ({ rowId, value }) => {
-    const supervisors = (() => {
+    const [localSupervisors, setLocalSupervisors] = useState(() => {
       try {
         const parsed = JSON.parse(value || '[]');
         return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
       }
-    })();
+    });
+    const [hasChanges, setHasChanges] = useState(false);
+  
+    useEffect(() => {
+      try {
+        const parsed = JSON.parse(value || '[]');
+        const newValue = Array.isArray(parsed) ? parsed : [];
+        if (JSON.stringify(localSupervisors) !== JSON.stringify(newValue)) {
+          setLocalSupervisors(newValue);
+          setHasChanges(false);
+        }
+      } catch {
+        setLocalSupervisors([]);
+        setHasChanges(false);
+      }
+    }, [value]);
+  
+    const updateSupervisor = (idx, field, val) => {
+      const updated = [...localSupervisors];
+      updated[idx] = { ...updated[idx], [field]: val };
+      setLocalSupervisors(updated);
+      setHasChanges(true);
+    };
+  
+    const addSupervisor = () => {
+      setLocalSupervisors([...localSupervisors, { supervisorName: '', position: '', rank: '', startDate: '', endDate: '' }]);
+      setHasChanges(true);
+    };
+  
+    const removeSupervisor = async (idx) => {
+      const updated = localSupervisors.filter((_, i) => i !== idx);
+      setLocalSupervisors(updated);
+      setHasChanges(updated.length > 0);
+      
+      const token = localStorage.getItem('auth_token');
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex !== -1) {
+        const updatedData = [...data];
+        updatedData[rowIndex].column33 = JSON.stringify(updated);
+        setData(updatedData);
+        const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
+        
+        try {
+          const response = await fetch(`${API_URL}/ordinators/${rowId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+            return;
+          }
+          alert('Руководитель успешно удален');
+        } catch (error) {
+          console.error('Remove error:', error);
+          alert('Ошибка при удалении');
+        }
+      }
+    };
+  
+    const saveChanges = async () => {
+      const token = localStorage.getItem('auth_token');
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex !== -1) {
+        const updatedData = [...data];
+        updatedData[rowIndex].column33 = JSON.stringify(localSupervisors);
+        setData(updatedData);
+        const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
+        
+        try {
+          const response = await fetch(`${API_URL}/ordinators/${rowId}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(apiData),
+          });
+          if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            window.location.href = '/';
+            return;
+          }
+          if (!response.ok) {
+            throw new Error('Ошибка сохранения');
+          }
+          setHasChanges(false);
+          alert('Изменения успешно сохранены');
+        } catch (error) {
+          console.error('Save error:', error);
+          alert('Ошибка при сохранении');
+        }
+      }
+    };
   
     return (
       <div className="nested-cell">
-        {supervisors.length === 0 && (
+        {localSupervisors.length === 0 && (
           <div className="nested-empty">Нет записей</div>
         )}
-        {supervisors.map((sup, idx) => (
-          <div key={sup.id || idx} className="nested-item-row">
+        {localSupervisors.map((sup, idx) => (
+          <div key={idx} className="nested-item-row">
             <div className="nested-fields-row">
               <input
                 type="text"
                 className="nested-name-input"
                 placeholder="ФИО руководителя"
                 value={sup.supervisorName || ''}
-                onChange={(e) => updateSupervisor(rowId, idx, 'supervisorName', e.target.value)}
-                onBlur={async () => {
-                  const rowIndex = data.findIndex(row => row.id === rowId);
-                  if (rowIndex !== -1) {
-                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
-                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-                  }
-                }}
+                onChange={(e) => updateSupervisor(idx, 'supervisorName', e.target.value)}
               />
-              
               <input
                 type="text"
                 className="nested-position-input"
                 placeholder="Должность"
                 value={sup.position || ''}
-                onChange={(e) => updateSupervisor(rowId, idx, 'position', e.target.value)}
-                onBlur={async () => {
-                  const rowIndex = data.findIndex(row => row.id === rowId);
-                  if (rowIndex !== -1) {
-                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
-                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-                  }
-                }}
+                onChange={(e) => updateSupervisor(idx, 'position', e.target.value)}
               />
-              
               <input
                 type="text"
                 className="nested-rank-input"
                 placeholder="Звание"
                 value={sup.rank || ''}
-                onChange={(e) => updateSupervisor(rowId, idx, 'rank', e.target.value)}
-                onBlur={async () => {
-                  const rowIndex = data.findIndex(row => row.id === rowId);
-                  if (rowIndex !== -1) {
-                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
-                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-                  }
-                }}
+                onChange={(e) => updateSupervisor(idx, 'rank', e.target.value)}
               />
-              
               <input
                 type="text"
                 className="nested-date-input"
                 placeholder="Дата начала"
-                value={sup.startDate || ''}
-                onChange={(e) => updateSupervisor(rowId, idx, 'startDate', e.target.value)}
-                onBlur={async () => {
-                  const rowIndex = data.findIndex(row => row.id === rowId);
-                  if (rowIndex !== -1) {
-                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
-                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-                  }
-                }}
+                value={formatDateToDisplay(sup.startDate) || ''}
+                onChange={(e) => updateSupervisor(idx, 'startDate', e.target.value)}
               />
-              
               <input
                 type="text"
                 className="nested-date-input"
                 placeholder="Дата окончания"
-                value={sup.endDate || ''}
-                onChange={(e) => updateSupervisor(rowId, idx, 'endDate', e.target.value)}
-                onBlur={async () => {
-                  const rowIndex = data.findIndex(row => row.id === rowId);
-                  if (rowIndex !== -1) {
-                    const apiData = transformTableDataToApi(data[rowIndex], 'update');
-                    await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-                  }
-                }}
+                value={formatDateToDisplay(sup.endDate) || ''}
+                onChange={(e) => updateSupervisor(idx, 'endDate', e.target.value)}
               />
-              
-              <button
-                onClick={() => removeSupervisor(rowId, idx)}
-                className="nested-remove-btn"
-                title="Удалить руководителя"
-              >
+              <button onClick={() => removeSupervisor(idx)} className="nested-remove-btn">
                 <Trash2 size={14} />
               </button>
             </div>
           </div>
         ))}
-        <button
-          onClick={() => addSupervisor(rowId)}
-          className="nested-add-btn"
-        >
-          <Plus size={14} />
-          <span>Добавить руководителя</span>
-        </button>
+        <div className="nested-actions">
+          <button onClick={addSupervisor} className="nested-add-btn">
+            <Plus size={14} />
+            <span>Добавить руководителя</span>
+          </button>
+          {hasChanges && (
+            <button onClick={saveChanges} className="nested-save-btn">
+              💾 Сохранить
+            </button>
+          )}
+        </div>
       </div>
     );
   };
@@ -2098,6 +2448,9 @@ const EditableTable = () => {
         case 'Номер приказа о продлении':
           initialRowData[columnKey] = JSON.stringify([]);
           break;
+        case 'Надбавка':
+          initialRowData[columnKey] = JSON.stringify([]);
+          break;
         case 'Дата приказа о продлении':
           initialRowData[columnKey] = '';
           break;
@@ -2130,7 +2483,6 @@ const EditableTable = () => {
     
     try {
       const response = await apiRequest(`/ordinators/${row.id}`);
-      const ordinator = response;
       const rowValues = [];
       for (let i = 1; i <= 40; i++) {
         const columnKey = `column${i}`;
@@ -2897,7 +3249,7 @@ const EditableTable = () => {
                   </button>
                 </div>
               );
-            
+          
       case 'Дата приказа о продлении':
               return (
                 <input
@@ -2922,14 +3274,88 @@ const EditableTable = () => {
                   <option value="3 года">3 года</option>
                 </select>
               );
+              case 'Надбавка':
+                const allowancesList = (() => {
+                  try {
+                    const parsed = JSON.parse(value || '[]');
+                    return Array.isArray(parsed) ? parsed : [];
+                  } catch {
+                    return [];
+                  }
+                })();
+              
+                const addAllowanceModal = () => {
+                  const newAllowances = [...allowancesList, { orderNumber: '', startDate: '', endDate: '' }];
+                  handleChange(JSON.stringify(newAllowances));
+                };
+              
+                const updateAllowanceModal = (idx, field, val) => {
+                  const newAllowances = [...allowancesList];
+                  newAllowances[idx] = { ...newAllowances[idx], [field]: val };
+                  handleChange(JSON.stringify(newAllowances));
+                };
+              
+                const removeAllowanceModal = (idx) => {
+                  const newAllowances = allowancesList.filter((_, i) => i !== idx);
+                  handleChange(JSON.stringify(newAllowances));
+                };
+              
+                return (
+                  <div className="modal-nested-container">
+                    <div className="modal-nested-header">
+                      <div className="nested-header-order">Номер приказа</div>
+                      <div className="nested-header-start">Дата начала</div>
+                      <div className="nested-header-end">Дата окончания</div>
+                      <div className="nested-header-actions"></div>
+                    </div>
+                    {allowancesList.length === 0 && (
+                      <div className="nested-empty">Нет записей</div>
+                    )}
+                    {allowancesList.map((item, idx) => (
+                      <div key={idx} className="modal-nested-item">
+                        <input
+                          type="text"
+                          placeholder="Номер приказа"
+                          value={item.orderNumber || ''}
+                          onChange={(e) => updateAllowanceModal(idx, 'orderNumber', e.target.value)}
+                          className="modal-nested-input"
+                        />
+                        <input
+                          type="text"
+                          placeholder="ДД.ММ.ГГГГ"
+                          value={formatDateToDisplay(item.startDate)}
+                          onChange={(e) => updateAllowanceModal(idx, 'startDate', e.target.value)}
+                          className="modal-nested-input date-input"
+                        />
+                        <input
+                          type="text"
+                          placeholder="ДД.ММ.ГГГГ"
+                          value={formatDateToDisplay(item.endDate)}
+                          onChange={(e) => updateAllowanceModal(idx, 'endDate', e.target.value)}
+                          className="modal-nested-input date-input"
+                        />
+                        <button
+                          onClick={() => removeAllowanceModal(idx)}
+                          className="modal-nested-remove"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={addAllowanceModal}
+                      className="modal-nested-add"
+                    >
+                      <Plus size={14} /> Добавить надбавку
+                    </button>
+                  </div>
+                );
       case 'Год рождения':
       case 'Дата зачисления':
       case 'Дата отчисления':
       case 'Дата приказа о зачислении':
       case 'Дата приказа об отчислении':
       case 'Срок окончания регистрации':
-      case 'Дата установки надбавки':
-      case 'Дата окончания надбавки':
       case 'Дата начала сессии(циклов)':
       case 'Дата окончания сессии(циклов)':
         const displayDate = formatDateToDisplay(value);
@@ -3293,11 +3719,16 @@ const EditableTable = () => {
                       onChange={(e) => updateFilter(filter.id, 'column', e.target.value)}
                       className="filter-column-select"
                     >
-                      {columns.map((col, idx) => (
-                        <option key={col} value={col}>
-                          {ColumnName[idx + 1]}
-                        </option>
-                      ))}
+                      {columns.map((col, idx) => {
+                        const columnNumber = idx + 1;
+                        const fieldName = ColumnName[columnNumber];
+                        if (!fieldName || fieldName === '') return null;
+                        return (
+                          <option key={col} value={col}>
+                            {fieldName}
+                          </option>
+                        );
+                      })}
                     </select>
                     
                     <select
@@ -3370,7 +3801,7 @@ const EditableTable = () => {
               <div className="columns-grid">
                 {ColumnName.slice(1).map((name, index) => {
                   const columnNumber = index + 1;
-                  if (columnNumber === 9) return null;
+                  if (!name || name === '') return null;
                   return (
                     <label key={columnNumber} className={`column-checkbox-label ${visibleColumns.has(columnNumber) ? 'selected' : ''}`}>
                       <input
@@ -3444,7 +3875,7 @@ const EditableTable = () => {
                 <div className="column-selector-grid">
                   {ColumnName.slice(1).map((name, index) => {
                     const colNum = index + 1;
-                    if (colNum === 9) return null;
+                    if (!name || name === '') return null;
                     return (
                       <label key={colNum} className="column-checkbox-label">
                         <input
@@ -3567,6 +3998,8 @@ const EditableTable = () => {
                 </th>
                 {columns.map((col, index) => {
                   const columnNumber = index + 1;
+                  const fieldName = ColumnName[columnNumber];
+                  if (!fieldName || fieldName === '') return null;
                   if (!visibleColumns.has(columnNumber)) return null;
                   
                   return (
@@ -3617,6 +4050,8 @@ const EditableTable = () => {
                       </td>
                       {columns.map((column) => {
                         const columnNumber = parseInt(column.replace('column', ''));
+                        const fieldName = ColumnName[columnNumber];
+                        if (!fieldName || fieldName === '') return null;
                         if (!visibleColumns.has(columnNumber)) return null;
                         
                         let cellValue = row[column] || '';
@@ -3649,12 +4084,8 @@ const EditableTable = () => {
 
                         if (column === 'column33') {
                           return (
-                            <td 
-                              key={`cell-${row.id}-${column}`}
-                              onDoubleClick={() => handleCellDoubleClick(row.id, column, cellValue, rowIndex)}
-                              className={isEditAllowed ? 'editable-cell' : ''}
-                            >
-                              <LastSupervisorRenderer value={row[column]} />
+                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
+                              <NestedSupervisorsRenderer rowId={row.id} value={row[column]} />
                             </td>
                           );
                         }
@@ -3663,6 +4094,14 @@ const EditableTable = () => {
                           return (
                             <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
                               <ExtensionsRenderer rowId={row.id} value={row[column]} />
+                            </td>
+                          );
+                        }
+
+                        if (column === 'column36') {
+                          return (
+                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
+                              <AllowanceRenderer rowId={row.id} value={row[column]} />
                             </td>
                           );
                         }
@@ -3757,27 +4196,32 @@ const EditableTable = () => {
             <div className="modal-content">
               <div className="row-editor">
                 <div className="columns-editor">
-                  {columns.map((column, index) => {
-                    const columnNumber = parseInt(column.replace('column', ''));
-                    const fieldName = ColumnName[columnNumber];
-                    const currentValue = modalState.mode === 'edit' || modalState.mode === 'view'
-                      ? modalState.rowData.find(item => item.columnName === column)?.value || ''
-                      : '';
-                    
-                    return (
-                      <div key={column} className="column-editor-item">
-                        <div className="column-label">
-                          <span className="column-number">{fieldName}:</span>
-                        </div>
-                        {renderModalField(
-                          column, 
-                          columnNumber, 
-                          modalState.mode === 'edit' || modalState.mode === 'view', 
-                          currentValue
-                        )}
+                {columns.map((column, index) => {
+                  const columnNumber = parseInt(column.replace('column', ''));
+                  const fieldName = ColumnName[columnNumber];
+                  
+                  if (!fieldName || fieldName === '') return null;
+                  
+                  if (fieldName === 'Дата установки надбавки' || fieldName === 'Дата окончания надбавки') return null;
+                  
+                  const currentValue = modalState.mode === 'edit' || modalState.mode === 'view'
+                    ? modalState.rowData.find(item => item.columnName === column)?.value || ''
+                    : '';
+                  
+                  return (
+                    <div key={column} className="column-editor-item">
+                      <div className="column-label">
+                        <span className="column-number">{fieldName}:</span>
                       </div>
-                    );
-                  })}
+                      {renderModalField(
+                        column, 
+                        columnNumber, 
+                        modalState.mode === 'edit' || modalState.mode === 'view', 
+                        currentValue
+                      )}
+                    </div>
+                  );
+                })}
                 </div>
                 
                 <div className="modal-actions">
