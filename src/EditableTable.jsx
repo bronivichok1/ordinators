@@ -1666,52 +1666,103 @@ const EditableTable = () => {
   };
 
   const NestedSocialLeaveRenderer = ({ rowId, value }) => {
-    const [localLeaves, setLocalLeaves] = useState(() => {
-      try {
-        const parsed = JSON.parse(value || '[]');
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    });
+    const [editingLeaves, setEditingLeaves] = useState([]);
     const [hasChanges, setHasChanges] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [originalLeaves, setOriginalLeaves] = useState([]);
+    const [socialLeaveOptions, setSocialLeaveOptions] = useState([]);
+  
+    useEffect(() => {
+      loadSocialLeaveOptions();
+    }, []);
+  
+    const loadSocialLeaveOptions = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_URL}/options`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        setSocialLeaveOptions(data.socialLeave || [
+          'по беременности и родам',
+          'по уходу за ребёнком',
+          'мед показаниям',
+          'служба в армии'
+        ]);
+      } catch (error) {
+        console.error('Error loading social leave options:', error);
+        setSocialLeaveOptions([
+          'по беременности и родам',
+          'по уходу за ребёнком',
+          'мед показаниям',
+          'служба в армии'
+        ]);
+      }
+    };
+  
+    const addCustomSocialLeaveOption = async (value) => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch(`${API_URL}/options/socialLeave/add`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ value }),
+        });
+        if (response.ok) {
+          await loadSocialLeaveOptions();
+        }
+      } catch (error) {
+        console.error('Error adding custom social leave option:', error);
+      }
+    };
   
     useEffect(() => {
       try {
         const parsed = JSON.parse(value || '[]');
         const newValue = Array.isArray(parsed) ? parsed : [];
-        if (JSON.stringify(localLeaves) !== JSON.stringify(newValue)) {
-          setLocalLeaves(newValue);
-          setHasChanges(false);
-        }
+        const sorted = sortLeaves(newValue);
+        setOriginalLeaves(sorted);
+        setEditingLeaves(JSON.parse(JSON.stringify(sorted)));
+        setHasChanges(false);
       } catch {
-        setLocalLeaves([]);
+        setOriginalLeaves([]);
+        setEditingLeaves([]);
         setHasChanges(false);
       }
     }, [value]);
   
     const updateLeave = (idx, field, val) => {
-      const updated = [...localLeaves];
-      updated[idx] = { ...updated[idx], [field]: val };
-      setLocalLeaves(updated);
-      setHasChanges(true);
+      const updated = [...editingLeaves];
+      if (updated[idx]) {
+        updated[idx] = { ...updated[idx], [field]: val };
+        setEditingLeaves(updated);
+        setHasChanges(true);
+      }
     };
   
     const addLeave = () => {
-      setLocalLeaves([...localLeaves, { startDate: '', endDate: '', reason: '' }]);
+      const newLeave = { startDate: '', endDate: '', reason: '' };
+      const updated = [...editingLeaves, newLeave];
+      setEditingLeaves(updated);
       setHasChanges(true);
     };
   
     const removeLeave = async (idx) => {
-      const updated = localLeaves.filter((_, i) => i !== idx);
-      setLocalLeaves(updated);
+      const updated = editingLeaves.filter((_, i) => i !== idx);
+      setEditingLeaves(updated);
       setHasChanges(updated.length > 0);
       
       const token = localStorage.getItem('auth_token');
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex !== -1) {
         const updatedData = [...data];
-        updatedData[rowIndex].column9 = JSON.stringify(updated);
+        const toSave = sortLeaves(updated);
+        updatedData[rowIndex].column9 = JSON.stringify(toSave);
         setData(updatedData);
         const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
         
@@ -1730,6 +1781,9 @@ const EditableTable = () => {
             window.location.href = '/';
             return;
           }
+          setOriginalLeaves(toSave);
+          setEditingLeaves(JSON.parse(JSON.stringify(toSave)));
+          setHasChanges(false);
           alert('Запись успешно удалена');
         } catch (error) {
           console.error('Remove error:', error);
@@ -1742,8 +1796,9 @@ const EditableTable = () => {
       const token = localStorage.getItem('auth_token');
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex !== -1) {
+        const sorted = sortLeaves(editingLeaves);
         const updatedData = [...data];
-        updatedData[rowIndex].column9 = JSON.stringify(localLeaves);
+        updatedData[rowIndex].column9 = JSON.stringify(sorted);
         setData(updatedData);
         const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
         
@@ -1765,6 +1820,8 @@ const EditableTable = () => {
           if (!response.ok) {
             throw new Error('Ошибка сохранения');
           }
+          setOriginalLeaves(sorted);
+          setEditingLeaves(JSON.parse(JSON.stringify(sorted)));
           setHasChanges(false);
           alert('Изменения успешно сохранены');
         } catch (error) {
@@ -1774,46 +1831,99 @@ const EditableTable = () => {
       }
     };
   
-    return (
-      <div className="nested-cell">
-        {localLeaves.length === 0 && (
+    const sortLeaves = (leaves) => {
+      return [...leaves].sort((a, b) => {
+        const dateA = a?.startDate ? new Date(a.startDate) : new Date(0);
+        const dateB = b?.startDate ? new Date(b.startDate) : new Date(0);
+        return dateB - dateA;
+      });
+    };
+  
+    const displayLeaves = isExpanded ? editingLeaves : [editingLeaves[0]].filter(l => l);
+  
+    if (editingLeaves.length === 0) {
+      return (
+        <div className="nested-cell">
           <div className="nested-empty">Нет записей</div>
-        )}
-        {localLeaves.map((leave, idx) => (
-          <div key={idx} className="nested-item-row">
-            <div className="nested-fields-row">
-              <input
-                type="text"
-                className="nested-date-input"
-                placeholder="Дата начала"
-                value={formatDateToDisplay(leave.startDate) || ''}
-                onChange={(e) => updateLeave(idx, 'startDate', e.target.value)}
-              />
-              <input
-                type="text"
-                className="nested-date-input"
-                placeholder="Дата окончания"
-                value={formatDateToDisplay(leave.endDate) || ''}
-                onChange={(e) => updateLeave(idx, 'endDate', e.target.value)}
-              />
-              <input
-                type="text"
-                className="nested-reason-input"
-                placeholder="Причина"
-                value={leave.reason || ''}
-                onChange={(e) => updateLeave(idx, 'reason', e.target.value)}
-              />
-              <button onClick={() => removeLeave(idx)} className="nested-remove-btn">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-        <div className="nested-actions">
           <button onClick={addLeave} className="nested-add-btn">
             <Plus size={14} />
             <span>Добавить период</span>
           </button>
+        </div>
+      );
+    }
+  
+    return (
+      <div className="nested-cell">
+        {displayLeaves.map((leave, idx) => {
+          const originalIdx = editingLeaves.findIndex(l => l === leave);
+          const options = socialLeaveOptions.map(option => ({ value: option, label: option }));
+          return (
+            <div key={idx} className={!isExpanded && idx === 0 ? "last-item-row" : "nested-item-row"}>
+              <div className="nested-fields-row">
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Дата начала"
+                  value={leave?.startDate ? formatDateToDisplay(leave.startDate) : ''}
+                  onChange={(e) => updateLeave(originalIdx, 'startDate', e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Дата окончания"
+                  value={leave?.endDate ? formatDateToDisplay(leave.endDate) : ''}
+                  onChange={(e) => updateLeave(originalIdx, 'endDate', e.target.value)}
+                />
+                <div className="nested-select-wrapper">
+                  <CreatableSelect
+                    options={options}
+                    value={leave?.reason ? { value: leave.reason, label: leave.reason } : null}
+                    onChange={(option) => {
+                      if (option) {
+                        updateLeave(originalIdx, 'reason', option.value);
+                      } else {
+                        updateLeave(originalIdx, 'reason', '');
+                      }
+                    }}
+                    isClearable
+                    placeholder="Причина"
+                    noOptionsMessage={() => "Нет вариантов, введите свою причину"}
+                    formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
+                    onCreateOption={(inputValue) => {
+                      addCustomSocialLeaveOption(inputValue);
+                      updateLeave(originalIdx, 'reason', inputValue);
+                    }}
+                    className="react-select-nested"
+                    classNamePrefix="react-select-nested"
+                    menuPortalTarget={document.body}
+                    styles={{
+                      menuPortal: base => ({ ...base, zIndex: 9999 }),
+                    }}
+                  />
+                </div>
+                <button onClick={() => removeLeave(originalIdx)} className="nested-remove-btn">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        
+        <div className="nested-actions">
+          {editingLeaves.length > 1 && (
+            <button className="expand-btn" onClick={() => setIsExpanded(!isExpanded)}>
+              {isExpanded ? "▲ Свернуть" : `▼ Развернуть (${editingLeaves.length - 1})`}
+            </button>
+          )}
+          
+          {(editingLeaves.length <= 1 || isExpanded) && (
+            <button onClick={addLeave} className="nested-add-btn">
+              <Plus size={14} />
+              <span>Добавить период</span>
+            </button>
+          )}
+          
           {hasChanges && (
             <button onClick={saveChanges} className="nested-save-btn">
               💾 Сохранить
@@ -1823,54 +1933,55 @@ const EditableTable = () => {
       </div>
     );
   };
-
+  
   const ExtensionsRenderer = ({ rowId, value }) => {
-    const [localExtensions, setLocalExtensions] = useState(() => {
-      try {
-        const parsed = JSON.parse(value || '[]');
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    });
+    const [editingExtensions, setEditingExtensions] = useState([]);
     const [hasChanges, setHasChanges] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [originalExtensions, setOriginalExtensions] = useState([]);
   
     useEffect(() => {
       try {
         const parsed = JSON.parse(value || '[]');
         const newValue = Array.isArray(parsed) ? parsed : [];
-        if (JSON.stringify(localExtensions) !== JSON.stringify(newValue)) {
-          setLocalExtensions(newValue);
-          setHasChanges(false);
-        }
+        const sorted = sortExtensions(newValue);
+        setOriginalExtensions(sorted);
+        setEditingExtensions(JSON.parse(JSON.stringify(sorted)));
+        setHasChanges(false);
       } catch {
-        setLocalExtensions([]);
+        setOriginalExtensions([]);
+        setEditingExtensions([]);
         setHasChanges(false);
       }
     }, [value]);
   
     const updateExtension = (idx, field, val) => {
-      const updated = [...localExtensions];
-      updated[idx] = { ...updated[idx], [field]: val };
-      setLocalExtensions(updated);
-      setHasChanges(true);
+      const updated = [...editingExtensions];
+      if (updated[idx]) {
+        updated[idx] = { ...updated[idx], [field]: val };
+        setEditingExtensions(updated);
+        setHasChanges(true);
+      }
     };
   
     const addExtension = () => {
-      setLocalExtensions([...localExtensions, { orderNumber: '', orderDate: '', extensionTerm: '1 год' }]);
+      const newExtension = { orderNumber: '', orderDate: '', extensionTerm: '1 год' };
+      const updated = [...editingExtensions, newExtension];
+      setEditingExtensions(updated);
       setHasChanges(true);
     };
   
     const removeExtension = async (idx) => {
-      const updated = localExtensions.filter((_, i) => i !== idx);
-      setLocalExtensions(updated);
+      const updated = editingExtensions.filter((_, i) => i !== idx);
+      setEditingExtensions(updated);
       setHasChanges(updated.length > 0);
       
       const token = localStorage.getItem('auth_token');
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex !== -1) {
         const updatedData = [...data];
-        updatedData[rowIndex].column27 = JSON.stringify(updated);
+        const toSave = sortExtensions(updated);
+        updatedData[rowIndex].column27 = JSON.stringify(toSave);
         setData(updatedData);
         const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
         
@@ -1889,6 +2000,9 @@ const EditableTable = () => {
             window.location.href = '/';
             return;
           }
+          setOriginalExtensions(toSave);
+          setEditingExtensions(JSON.parse(JSON.stringify(toSave)));
+          setHasChanges(false);
           alert('Запись успешно удалена');
         } catch (error) {
           console.error('Remove error:', error);
@@ -1901,8 +2015,9 @@ const EditableTable = () => {
       const token = localStorage.getItem('auth_token');
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex !== -1) {
+        const sorted = sortExtensions(editingExtensions);
         const updatedData = [...data];
-        updatedData[rowIndex].column27 = JSON.stringify(localExtensions);
+        updatedData[rowIndex].column27 = JSON.stringify(sorted);
         setData(updatedData);
         const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
         
@@ -1924,6 +2039,8 @@ const EditableTable = () => {
           if (!response.ok) {
             throw new Error('Ошибка сохранения');
           }
+          setOriginalExtensions(sorted);
+          setEditingExtensions(JSON.parse(JSON.stringify(sorted)));
           setHasChanges(false);
           alert('Изменения успешно сохранены');
         } catch (error) {
@@ -1933,50 +2050,81 @@ const EditableTable = () => {
       }
     };
   
+    const sortExtensions = (extensions) => {
+      return [...extensions].sort((a, b) => {
+        const dateA = a?.orderDate ? new Date(a.orderDate) : new Date(0);
+        const dateB = b?.orderDate ? new Date(b.orderDate) : new Date(0);
+        return dateB - dateA;
+      });
+    };
+  
+    const displayExtensions = isExpanded ? editingExtensions : [editingExtensions[0]].filter(l => l);
     const extensionTerms = ['1 год', '2 года', '3 года'];
   
-    return (
-      <div className="nested-cell">
-        {localExtensions.length === 0 && (
+    if (editingExtensions.length === 0) {
+      return (
+        <div className="nested-cell">
           <div className="nested-empty">Нет записей о продлении</div>
-        )}
-        {localExtensions.map((ext, idx) => (
-          <div key={idx} className="nested-item-row">
-            <div className="nested-fields-row">
-              <input
-                type="text"
-                className="nested-order-input"
-                placeholder="Номер приказа"
-                value={ext.orderNumber || ''}
-                onChange={(e) => updateExtension(idx, 'orderNumber', e.target.value)}
-              />
-              <input
-                type="text"
-                className="nested-date-term"
-                placeholder="Дата приказа (ДД.ММ.ГГГГ)"
-                value={formatDateToDisplay(ext.orderDate) || ''}
-                onChange={(e) => updateExtension(idx, 'orderDate', e.target.value)}
-              />
-              <select
-                className="nested-term-select"
-                value={ext.extensionTerm || '1 год'}
-                onChange={(e) => updateExtension(idx, 'extensionTerm', e.target.value)}
-              >
-                {extensionTerms.map(term => (
-                  <option key={term} value={term}>{term}</option>
-                ))}
-              </select>
-              <button onClick={() => removeExtension(idx)} className="nested-remove-btn">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-        <div className="nested-actions">
           <button onClick={addExtension} className="nested-add-btn">
             <Plus size={14} />
             <span>Добавить продление</span>
           </button>
+        </div>
+      );
+    }
+  
+    return (
+      <div className="nested-cell">
+        {displayExtensions.map((ext, idx) => {
+          const originalIdx = editingExtensions.findIndex(l => l === ext);
+          return (
+            <div key={idx} className={!isExpanded && idx === 0 ? "last-item-row" : "nested-item-row"}>
+              <div className="nested-fields-row">
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Номер приказа"
+                  value={ext?.orderNumber || ''}
+                  onChange={(e) => updateExtension(originalIdx, 'orderNumber', e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Дата приказа"
+                  value={ext?.orderDate ? formatDateToDisplay(ext.orderDate) : ''}
+                  onChange={(e) => updateExtension(originalIdx, 'orderDate', e.target.value)}
+                />
+                <select
+                  className="nested-term-select"
+                  value={ext?.extensionTerm || '1 год'}
+                  onChange={(e) => updateExtension(originalIdx, 'extensionTerm', e.target.value)}
+                >
+                  {extensionTerms.map(term => (
+                    <option key={term} value={term}>{term}</option>
+                  ))}
+                </select>
+                <button onClick={() => removeExtension(originalIdx)} className="nested-remove-btn">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        
+        <div className="nested-actions">
+          {editingExtensions.length > 1 && (
+            <button className="expand-btn" onClick={() => setIsExpanded(!isExpanded)}>
+              {isExpanded ? "▲ Свернуть" : `▼ Развернуть (${editingExtensions.length - 1})`}
+            </button>
+          )}
+          
+          {(editingExtensions.length <= 1 || isExpanded) && (
+            <button onClick={addExtension} className="nested-add-btn">
+              <Plus size={14} />
+              <span>Добавить продление</span>
+            </button>
+          )}
+          
           {hasChanges && (
             <button onClick={saveChanges} className="nested-save-btn">
               💾 Сохранить
@@ -1988,52 +2136,53 @@ const EditableTable = () => {
   };
   
   const AllowanceRenderer = ({ rowId, value }) => {
-    const [localAllowances, setLocalAllowances] = useState(() => {
-      try {
-        const parsed = JSON.parse(value || '[]');
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    });
+    const [editingAllowances, setEditingAllowances] = useState([]);
     const [hasChanges, setHasChanges] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [originalAllowances, setOriginalAllowances] = useState([]);
   
     useEffect(() => {
       try {
         const parsed = JSON.parse(value || '[]');
         const newValue = Array.isArray(parsed) ? parsed : [];
-        if (JSON.stringify(localAllowances) !== JSON.stringify(newValue)) {
-          setLocalAllowances(newValue);
-          setHasChanges(false);
-        }
+        const sorted = sortAllowances(newValue);
+        setOriginalAllowances(sorted);
+        setEditingAllowances(JSON.parse(JSON.stringify(sorted)));
+        setHasChanges(false);
       } catch {
-        setLocalAllowances([]);
+        setOriginalAllowances([]);
+        setEditingAllowances([]);
         setHasChanges(false);
       }
     }, [value]);
   
     const updateAllowance = (idx, field, val) => {
-      const updated = [...localAllowances];
-      updated[idx] = { ...updated[idx], [field]: val };
-      setLocalAllowances(updated);
-      setHasChanges(true);
+      const updated = [...editingAllowances];
+      if (updated[idx]) {
+        updated[idx] = { ...updated[idx], [field]: val };
+        setEditingAllowances(updated);
+        setHasChanges(true);
+      }
     };
   
     const addAllowance = () => {
-      setLocalAllowances([...localAllowances, { orderNumber: '', startDate: '', endDate: '' }]);
+      const newAllowance = { orderNumber: '', startDate: '', endDate: '' };
+      const updated = [...editingAllowances, newAllowance];
+      setEditingAllowances(updated);
       setHasChanges(true);
     };
   
     const removeAllowance = async (idx) => {
-      const updated = localAllowances.filter((_, i) => i !== idx);
-      setLocalAllowances(updated);
+      const updated = editingAllowances.filter((_, i) => i !== idx);
+      setEditingAllowances(updated);
       setHasChanges(updated.length > 0);
       
       const token = localStorage.getItem('auth_token');
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex !== -1) {
         const updatedData = [...data];
-        updatedData[rowIndex].column36 = JSON.stringify(updated);
+        const toSave = sortAllowances(updated);
+        updatedData[rowIndex].column36 = JSON.stringify(toSave);
         setData(updatedData);
         const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
         
@@ -2052,6 +2201,9 @@ const EditableTable = () => {
             window.location.href = '/';
             return;
           }
+          setOriginalAllowances(toSave);
+          setEditingAllowances(JSON.parse(JSON.stringify(toSave)));
+          setHasChanges(false);
           alert('Запись успешно удалена');
         } catch (error) {
           console.error('Remove error:', error);
@@ -2064,8 +2216,9 @@ const EditableTable = () => {
       const token = localStorage.getItem('auth_token');
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex !== -1) {
+        const sorted = sortAllowances(editingAllowances);
         const updatedData = [...data];
-        updatedData[rowIndex].column36 = JSON.stringify(localAllowances);
+        updatedData[rowIndex].column36 = JSON.stringify(sorted);
         setData(updatedData);
         const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
         
@@ -2087,6 +2240,8 @@ const EditableTable = () => {
           if (!response.ok) {
             throw new Error('Ошибка сохранения');
           }
+          setOriginalAllowances(sorted);
+          setEditingAllowances(JSON.parse(JSON.stringify(sorted)));
           setHasChanges(false);
           alert('Изменения успешно сохранены');
         } catch (error) {
@@ -2096,46 +2251,78 @@ const EditableTable = () => {
       }
     };
   
-    return (
-      <div className="nested-cell">
-        {localAllowances.length === 0 && (
+    const sortAllowances = (allowances) => {
+      return [...allowances].sort((a, b) => {
+        const dateA = a?.startDate ? new Date(a.startDate) : new Date(0);
+        const dateB = b?.startDate ? new Date(b.startDate) : new Date(0);
+        return dateB - dateA;
+      });
+    };
+  
+    const displayAllowances = isExpanded ? editingAllowances : [editingAllowances[0]].filter(l => l);
+  
+    if (editingAllowances.length === 0) {
+      return (
+        <div className="nested-cell">
           <div className="nested-empty">Нет записей о надбавках</div>
-        )}
-        {localAllowances.map((item, idx) => (
-          <div key={idx} className="nested-item-row">
-            <div className="nested-fields-row">
-              <input
-                type="text"
-                className="nested-order-input"
-                placeholder="Номер приказа"
-                value={item.orderNumber || ''}
-                onChange={(e) => updateAllowance(idx, 'orderNumber', e.target.value)}
-              />
-              <input
-                type="text"
-                className="nested-date-term"
-                placeholder="Дата начала (ДД.ММ.ГГГГ)"
-                value={formatDateToDisplay(item.startDate) || ''}
-                onChange={(e) => updateAllowance(idx, 'startDate', e.target.value)}
-              />
-              <input
-                type="text"
-                className="nested-date-term"
-                placeholder="Дата окончания (ДД.ММ.ГГГГ)"
-                value={formatDateToDisplay(item.endDate) || ''}
-                onChange={(e) => updateAllowance(idx, 'endDate', e.target.value)}
-              />
-              <button onClick={() => removeAllowance(idx)} className="nested-remove-btn">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-        <div className="nested-actions">
           <button onClick={addAllowance} className="nested-add-btn">
             <Plus size={14} />
             <span>Добавить надбавку</span>
           </button>
+        </div>
+      );
+    }
+  
+    return (
+      <div className="nested-cell">
+        {displayAllowances.map((item, idx) => {
+          const originalIdx = editingAllowances.findIndex(l => l === item);
+          return (
+            <div key={idx} className={!isExpanded && idx === 0 ? "last-item-row" : "nested-item-row"}>
+              <div className="nested-fields-row">
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Номер приказа"
+                  value={item?.orderNumber || ''}
+                  onChange={(e) => updateAllowance(originalIdx, 'orderNumber', e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Дата начала"
+                  value={item?.startDate ? formatDateToDisplay(item.startDate) : ''}
+                  onChange={(e) => updateAllowance(originalIdx, 'startDate', e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Дата окончания"
+                  value={item?.endDate ? formatDateToDisplay(item.endDate) : ''}
+                  onChange={(e) => updateAllowance(originalIdx, 'endDate', e.target.value)}
+                />
+                <button onClick={() => removeAllowance(originalIdx)} className="nested-remove-btn">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        
+        <div className="nested-actions">
+          {editingAllowances.length > 1 && (
+            <button className="expand-btn" onClick={() => setIsExpanded(!isExpanded)}>
+              {isExpanded ? "▲ Свернуть" : `▼ Развернуть (${editingAllowances.length - 1})`}
+            </button>
+          )}
+          
+          {(editingAllowances.length <= 1 || isExpanded) && (
+            <button onClick={addAllowance} className="nested-add-btn">
+              <Plus size={14} />
+              <span>Добавить надбавку</span>
+            </button>
+          )}
+          
           {hasChanges && (
             <button onClick={saveChanges} className="nested-save-btn">
               💾 Сохранить
@@ -2226,52 +2413,53 @@ const EditableTable = () => {
   };
 
   const NestedSupervisorsRenderer = ({ rowId, value }) => {
-    const [localSupervisors, setLocalSupervisors] = useState(() => {
-      try {
-        const parsed = JSON.parse(value || '[]');
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    });
+    const [editingSupervisors, setEditingSupervisors] = useState([]);
     const [hasChanges, setHasChanges] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [originalSupervisors, setOriginalSupervisors] = useState([]);
   
     useEffect(() => {
       try {
         const parsed = JSON.parse(value || '[]');
         const newValue = Array.isArray(parsed) ? parsed : [];
-        if (JSON.stringify(localSupervisors) !== JSON.stringify(newValue)) {
-          setLocalSupervisors(newValue);
-          setHasChanges(false);
-        }
+        const sorted = sortSupervisors(newValue);
+        setOriginalSupervisors(sorted);
+        setEditingSupervisors(JSON.parse(JSON.stringify(sorted)));
+        setHasChanges(false);
       } catch {
-        setLocalSupervisors([]);
+        setOriginalSupervisors([]);
+        setEditingSupervisors([]);
         setHasChanges(false);
       }
     }, [value]);
   
     const updateSupervisor = (idx, field, val) => {
-      const updated = [...localSupervisors];
-      updated[idx] = { ...updated[idx], [field]: val };
-      setLocalSupervisors(updated);
-      setHasChanges(true);
+      const updated = [...editingSupervisors];
+      if (updated[idx]) {
+        updated[idx] = { ...updated[idx], [field]: val };
+        setEditingSupervisors(updated);
+        setHasChanges(true);
+      }
     };
   
     const addSupervisor = () => {
-      setLocalSupervisors([...localSupervisors, { supervisorName: '', position: '', rank: '', startDate: '', endDate: '' }]);
+      const newSupervisor = { supervisorName: '', position: '', rank: '', startDate: '', endDate: '' };
+      const updated = [...editingSupervisors, newSupervisor];
+      setEditingSupervisors(updated);
       setHasChanges(true);
     };
   
     const removeSupervisor = async (idx) => {
-      const updated = localSupervisors.filter((_, i) => i !== idx);
-      setLocalSupervisors(updated);
+      const updated = editingSupervisors.filter((_, i) => i !== idx);
+      setEditingSupervisors(updated);
       setHasChanges(updated.length > 0);
       
       const token = localStorage.getItem('auth_token');
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex !== -1) {
         const updatedData = [...data];
-        updatedData[rowIndex].column33 = JSON.stringify(updated);
+        const toSave = sortSupervisors(updated);
+        updatedData[rowIndex].column33 = JSON.stringify(toSave);
         setData(updatedData);
         const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
         
@@ -2290,6 +2478,9 @@ const EditableTable = () => {
             window.location.href = '/';
             return;
           }
+          setOriginalSupervisors(toSave);
+          setEditingSupervisors(JSON.parse(JSON.stringify(toSave)));
+          setHasChanges(false);
           alert('Руководитель успешно удален');
         } catch (error) {
           console.error('Remove error:', error);
@@ -2302,8 +2493,9 @@ const EditableTable = () => {
       const token = localStorage.getItem('auth_token');
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex !== -1) {
+        const sorted = sortSupervisors(editingSupervisors);
         const updatedData = [...data];
-        updatedData[rowIndex].column33 = JSON.stringify(localSupervisors);
+        updatedData[rowIndex].column33 = JSON.stringify(sorted);
         setData(updatedData);
         const apiData = transformTableDataToApi(updatedData[rowIndex], 'update');
         
@@ -2325,6 +2517,8 @@ const EditableTable = () => {
           if (!response.ok) {
             throw new Error('Ошибка сохранения');
           }
+          setOriginalSupervisors(sorted);
+          setEditingSupervisors(JSON.parse(JSON.stringify(sorted)));
           setHasChanges(false);
           alert('Изменения успешно сохранены');
         } catch (error) {
@@ -2334,60 +2528,92 @@ const EditableTable = () => {
       }
     };
   
-    return (
-      <div className="nested-cell">
-        {localSupervisors.length === 0 && (
+    const sortSupervisors = (supervisors) => {
+      return [...supervisors].sort((a, b) => {
+        const dateA = a?.startDate ? new Date(a.startDate) : new Date(0);
+        const dateB = b?.startDate ? new Date(b.startDate) : new Date(0);
+        return dateB - dateA;
+      });
+    };
+  
+    const displaySupervisors = isExpanded ? editingSupervisors : [editingSupervisors[0]].filter(l => l);
+  
+    if (editingSupervisors.length === 0) {
+      return (
+        <div className="nested-cell">
           <div className="nested-empty">Нет записей</div>
-        )}
-        {localSupervisors.map((sup, idx) => (
-          <div key={idx} className="nested-item-row">
-            <div className="nested-fields-row">
-              <input
-                type="text"
-                className="nested-name-input"
-                placeholder="ФИО руководителя"
-                value={sup.supervisorName || ''}
-                onChange={(e) => updateSupervisor(idx, 'supervisorName', e.target.value)}
-              />
-              <input
-                type="text"
-                className="nested-position-input"
-                placeholder="Должность"
-                value={sup.position || ''}
-                onChange={(e) => updateSupervisor(idx, 'position', e.target.value)}
-              />
-              <input
-                type="text"
-                className="nested-rank-input"
-                placeholder="Звание"
-                value={sup.rank || ''}
-                onChange={(e) => updateSupervisor(idx, 'rank', e.target.value)}
-              />
-              <input
-                type="text"
-                className="nested-date-input"
-                placeholder="Дата начала"
-                value={formatDateToDisplay(sup.startDate) || ''}
-                onChange={(e) => updateSupervisor(idx, 'startDate', e.target.value)}
-              />
-              <input
-                type="text"
-                className="nested-date-input"
-                placeholder="Дата окончания"
-                value={formatDateToDisplay(sup.endDate) || ''}
-                onChange={(e) => updateSupervisor(idx, 'endDate', e.target.value)}
-              />
-              <button onClick={() => removeSupervisor(idx)} className="nested-remove-btn">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-        <div className="nested-actions">
           <button onClick={addSupervisor} className="nested-add-btn">
             <Plus size={14} />
             <span>Добавить руководителя</span>
           </button>
+        </div>
+      );
+    }
+  
+    return (
+      <div className="nested-cell">
+        {displaySupervisors.map((sup, idx) => {
+          const originalIdx = editingSupervisors.findIndex(l => l === sup);
+          return (
+            <div key={idx} className={!isExpanded && idx === 0 ? "last-item-row" : "nested-item-row"}>
+              <div className="nested-fields-row">
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="ФИО руководителя"
+                  value={sup?.supervisorName || ''}
+                  onChange={(e) => updateSupervisor(originalIdx, 'supervisorName', e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Должность"
+                  value={sup?.position || ''}
+                  onChange={(e) => updateSupervisor(originalIdx, 'position', e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Звание"
+                  value={sup?.rank || ''}
+                  onChange={(e) => updateSupervisor(originalIdx, 'rank', e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Дата начала"
+                  value={sup?.startDate ? formatDateToDisplay(sup.startDate) : ''}
+                  onChange={(e) => updateSupervisor(originalIdx, 'startDate', e.target.value)}
+                />
+                <input
+                  type="text"
+                  className="nested-date-term"
+                  placeholder="Дата окончания"
+                  value={sup?.endDate ? formatDateToDisplay(sup.endDate) : ''}
+                  onChange={(e) => updateSupervisor(originalIdx, 'endDate', e.target.value)}
+                />
+                <button onClick={() => removeSupervisor(originalIdx)} className="nested-remove-btn">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+        
+        <div className="nested-actions">
+          {editingSupervisors.length > 1 && (
+            <button className="expand-btn" onClick={() => setIsExpanded(!isExpanded)}>
+              {isExpanded ? "▲ Свернуть" : `▼ Развернуть (${editingSupervisors.length - 1})`}
+            </button>
+          )}
+          
+          {(editingSupervisors.length <= 1 || isExpanded) && (
+            <button onClick={addSupervisor} className="nested-add-btn">
+              <Plus size={14} />
+              <span>Добавить руководителя</span>
+            </button>
+          )}
+          
           {hasChanges && (
             <button onClick={saveChanges} className="nested-save-btn">
               💾 Сохранить
@@ -3641,7 +3867,7 @@ const EditableTable = () => {
             </button>
               <button 
                 onClick={() => setShowColumnsPanel(!showColumnsPanel)}
-                className={`columns-button ${visibleColumns.size < 39 ? 'active' : ''}`}
+                className={`columns-button ${visibleColumns.size < 40 ? 'active' : ''}`}
                 title="Выбор колонок для отображения"
               >
                 <Eye size={18} />
@@ -3946,9 +4172,9 @@ const EditableTable = () => {
                 Активных фильтров: {filters.length} (логика: {filterLogic === 'AND' ? 'И' : 'ИЛИ'})
               </p>
             )}
-            {visibleColumns.size <39 && (
+            {visibleColumns.size <40 && (
               <p className="columns-info">
-                Отображается колонок: {visibleColumns.size} из 39
+                Отображается колонок: {visibleColumns.size} из 40
               </p>
             )}
             {showCertificatePanel && selectedCertificateTypes.size > 0 && (
