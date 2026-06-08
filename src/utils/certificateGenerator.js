@@ -56,12 +56,25 @@ const formatStudyForm = (preparationForm) => {
       else if (forms.includes('заочная')) studyType = 'заочная';
       
       if (forms.includes('платно')) paymentType = 'на платной основе';
-      else if (forms.includes('бюджет')) paymentType = 'за счёт бюджета';
+      else if (forms.includes('за счёт бюджета')) paymentType = 'за счёт бюджета';
       
       return `${studyType} форма подготовки ${paymentType}`;
     }
     return preparationForm;
   } catch {
+    if (typeof preparationForm === 'string' && preparationForm.includes(',')) {
+      const forms = preparationForm.split(',').map(f => f.trim());
+      let studyType = 'очная';
+      let paymentType = 'на платной основе';
+      
+      if (forms.includes('очная')) studyType = 'очная';
+      else if (forms.includes('заочная')) studyType = 'заочная';
+      
+      if (forms.includes('платно')) paymentType = 'на платной основе';
+      else if (forms.includes('за счёт бюджета')) paymentType = 'за счёт бюджета';
+      
+      return `${studyType} форма подготовки ${paymentType}`;
+    }
     return preparationForm;
   }
 };
@@ -108,54 +121,54 @@ const getContactInfo = (userData) => {
   return { contactPerson: 'Бакей', contactPhone: '311 27 44' };
 };
 
+const getCountryInGenitive = (countryName) => {
+  if (!countryName) return '';
+  
+  const countryExceptions = {
+    'Беларусь': 'Беларуси',
+    'Россия': 'России',
+    'Украина': 'Украины',
+    'Молдова': 'Молдовы',
+    'Грузия': 'Грузии',
+    'Армения': 'Армении',
+    'Казахстан': 'Казахстана',
+    'Узбекистан': 'Узбекистана',
+    'Таджикистан': 'Таджикистана',
+    'Туркменистан': 'Туркменистана',
+    'Кыргызстан': 'Кыргызстана',
+    'Азербайджан': 'Азербайджана',
+    'Литва': 'Литвы',
+    'Латвия': 'Латвии',
+    'Эстония': 'Эстонии',
+    'Польша': 'Польши',
+    'Германия': 'Германии',
+    'Франция': 'Франции',
+    'Италия': 'Италии',
+    'Испания': 'Испании',
+    'США': 'США',
+    'Китай': 'Китая',
+    'Индия': 'Индии',
+    'Турция': 'Турции'
+  };
+  
+  return countryExceptions[countryName] || countryName;
+};
+
+const replaceKafedra = (text) => {
+  if (!text) return '';
+  return text.replace(/Кафедра|кафедра/g, 'кафедре');
+};
+
 const prepareData = (row, userData) => {
   const isMale = row.column4 === 'М';
   const country = row.column5;
-  const contractInfo = parseContractInfo(row.column29 || '');
+  const contractInfo = parseContractInfo(row.column28 || '');
   
   let years = 2;
   let months = 0;
   
   const enrollmentDate = formatDate(row.column6);
   const dismissalDate = formatDate(row.column7);
-  
-  const getCountryInGenitive = (countryName) => {
-    if (!countryName) return '';
-    
-    const countryExceptions = {
-      'Беларусь': 'Беларуси',
-      'Россия': 'России',
-      'Украина': 'Украины',
-      'Молдова': 'Молдовы',
-      'Грузия': 'Грузии',
-      'Армения': 'Армении',
-      'Казахстан': 'Казахстана',
-      'Узбекистан': 'Узбекистана',
-      'Таджикистан': 'Таджикистана',
-      'Туркменистан': 'Туркменистана',
-      'Кыргызстан': 'Кыргызстана',
-      'Азербайджан': 'Азербайджана',
-      'Литва': 'Литвы',
-      'Латвия': 'Латвии',
-      'Эстония': 'Эстонии',
-      'Польша': 'Польши',
-      'Германия': 'Германии',
-      'Франция': 'Франции',
-      'Италия': 'Италии',
-      'Испания': 'Испании',
-      'США': 'США',
-      'Китай': 'Китая',
-      'Индия': 'Индии',
-      'Турция': 'Турции'
-    };
-    
-    return countryExceptions[countryName] || countryName;
-  };
-  
-  const replaceKafedra = (text) => {
-    if (!text) return '';
-    return text.replace(/Кафедра|кафедра/g, 'кафедре');
-  };
   
   const countryGenitive = getCountryInGenitive(country);
   const citizenPhrase = `${isMale ? 'гражданин' : 'гражданка'} ${countryGenitive}`;
@@ -164,13 +177,13 @@ const prepareData = (row, userData) => {
   return {
     fio: row.column1 || '',
     citizenPhrase: citizenPhrase,
-    department: replaceKafedra(row.column15), 
-    specialty: row.column17 || '',
-    studyForm: formatStudyForm(row.column18),
+    department: replaceKafedra(row.column13 || ''),
+    specialty: row.column15 || '',
+    studyForm: formatStudyForm(row.column16),
     genderEnding: isMale ? '' : 'а',
     orderDate: formatDate(row.column26),
     orderNumber: row.column25 || '',
-    paymentType: row.column18?.includes('бюджет') ? 'за счёт бюджета' : 'на платной основе',
+    paymentType: formatStudyForm(row.column16).includes('бюджет') ? 'за счёт бюджета' : 'на платной основе',
     contractDate: contractInfo.date,
     contractNumber: contractInfo.number,
     studyPeriod: formatStudyPeriod(years, months),

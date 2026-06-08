@@ -140,6 +140,21 @@ const EditableTable = () => {
     return null;
   };
 
+  const isValidDate = (dateString) => {
+    if (!dateString) return true;
+    const regex = /^\d{2}\.\d{2}\.\d{4}$/;
+    if (!regex.test(dateString)) return false;
+    const [day, month, year] = dateString.split('.');
+    const dayNum = parseInt(day, 10);
+    const monthNum = parseInt(month, 10);
+    const yearNum = parseInt(year, 10);
+    if (monthNum < 1 || monthNum > 12) return false;
+    if (dayNum < 1 || dayNum > 31) return false;
+    const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+    if (dayNum > daysInMonth) return false;
+    return true;
+  };
+
   useEffect(() => {
     const allColumns = new Set();
     const initialVisible = new Set();
@@ -201,6 +216,7 @@ const EditableTable = () => {
     key: null,
     direction: 'ascending',
   });
+  const [dateErrors, setDateErrors] = useState({});
 
   const getFieldType = (columnNumber) => {
     const fieldName = ColumnName[columnNumber];
@@ -212,8 +228,10 @@ const EditableTable = () => {
         return 'creatable-country';
       case 'Кафедра':
         return 'creatable-department';
-      case 'Профиль специальности':
+      case 'Специальность':
         return 'creatable-specialty';
+      case 'Профиль специальности':
+        return 'creatable-specialty-profile';
       case 'Причина отчисления':
         return 'creatable-dismissal';
       case 'ВУЗ':
@@ -343,81 +361,107 @@ const EditableTable = () => {
           try {
             const leaves = JSON.parse(columnValue);
             if (Array.isArray(leaves)) {
-              columnValue = leaves.map(l => `${l.startDate || ''} - ${l.endDate || ''} (${l.reason || ''})`).join('; ');
+              columnValue = leaves.map(l => 
+                `${formatDateToDisplay(l.startDate) || ''} - ${formatDateToDisplay(l.endDate) || ''} (${l.reason || ''})`
+              ).join('; ');
             }
           } catch {
             columnValue = columnValue;
           }
         }
         
+        if (filter.column === 'column27') {
+          try {
+            const extensions = JSON.parse(columnValue);
+            if (Array.isArray(extensions)) {
+              columnValue = extensions.map(ext => 
+                `${ext.orderNumber || ''} (${formatDateToDisplay(ext.orderDate) || ''}, срок: ${ext.extensionTerm || ''})`
+              ).join('; ');
+            }
+          } catch {
+            columnValue = columnValue;
+          }
+        }
+
+        if (filter.column === 'column36') {
+          try {
+            const allowances = JSON.parse(columnValue);
+            if (Array.isArray(allowances)) {
+              columnValue = allowances.map(allow => 
+                `${allow.orderNumber || ''} (${formatDateToDisplay(allow.startDate) || ''} - ${formatDateToDisplay(allow.endDate) || ''})`
+              ).join('; ');
+            }
+          } catch {
+            columnValue = columnValue;
+          }
+        }
+
         if (filter.column === 'column33') {
           try {
             const supervisors = JSON.parse(row[filter.column] || '[]');
             
             if (Array.isArray(supervisors) && supervisors.length > 0) {
-              let lastSupervisor = supervisors[0];
-              let maxDate = lastSupervisor.startDate ? new Date(lastSupervisor.startDate).getTime() : 0;
+              const supervisorsInfo = supervisors.map(sup => {
+                let info = sup.supervisorName || '';
+                if (sup.position) info += ` ${sup.position}`;
+                if (sup.rank) info += ` ${sup.rank}`;
+                if (sup.startDate) info += ` ${formatDateToDisplay(sup.startDate)}`;
+                if (sup.endDate) info += ` ${formatDateToDisplay(sup.endDate)}`;
+                return info;
+              }).join(' ');
               
-              for (let i = 1; i < supervisors.length; i++) {
-                const currentDate = supervisors[i].startDate ? new Date(supervisors[i].startDate).getTime() : 0;
-                if (currentDate > maxDate) {
-                  maxDate = currentDate;
-                  lastSupervisor = supervisors[i];
-                }
-              }
-              
-              const searchValue = (lastSupervisor.supervisorName || '').toLowerCase();
-              const filterValue = String(filter.value || '').toLowerCase();
-              
-              switch (filter.operator) {
-                case 'contains':
-                  return searchValue.includes(filterValue);
-                case 'equals':
-                  return searchValue === filterValue;
-                case 'startsWith':
-                  return searchValue.startsWith(filterValue);
-                case 'endsWith':
-                  return searchValue.endsWith(filterValue);
-                case 'notContains':
-                  return !searchValue.includes(filterValue);
-                case 'notEquals':
-                  return searchValue !== filterValue;
-                default:
-                  return searchValue.includes(filterValue);
-              }
+              columnValue = supervisorsInfo;
+            } else {
+              return false;
             }
-            return false;
           } catch (e) {
             return false;
           }
         }
 
         let filterValue = filter.value;
-        const processedValueStr = String(columnValue || '').toLowerCase();
-        const filterValueStr = String(filterValue || '').toLowerCase();
-
+        let columnValueForCompare = columnValue;
+        let filterValueForCompare = filterValue;
+        
+        const dateColumnNumbers = [3, 6, 7, 22, 24, 26, 30, 34, 35];
+        const columnNumber = parseInt(filter.column.replace('column', ''));
+        
+        if (filter.type === 'date' || dateColumnNumbers.includes(columnNumber)) {
+          columnValueForCompare = formatDateToDisplay(columnValue);
+          filterValueForCompare = filterValue;
+        }
+        
+        let processedValue = String(columnValueForCompare || '').toLowerCase();
+        let processedFilterValue = String(filterValueForCompare || '').toLowerCase();
+        
         switch (filter.operator) {
           case 'contains':
-            return processedValueStr.includes(filterValueStr);
+            return processedValue.includes(processedFilterValue);
           case 'notContains':
-            return !processedValueStr.includes(filterValueStr);
+            return !processedValue.includes(processedFilterValue);
           case 'equals':
-            return processedValueStr === filterValueStr;
+            return processedValue === processedFilterValue;
           case 'notEquals':
-            return processedValueStr !== filterValueStr;
+            return processedValue !== processedFilterValue;
           case 'startsWith':
-            return processedValueStr.startsWith(filterValueStr);
+            return processedValue.startsWith(processedFilterValue);
           case 'endsWith':
-            return processedValueStr.endsWith(filterValueStr);
+            return processedValue.endsWith(processedFilterValue);
           case 'greaterThan':
-            return processedValueStr > filterValueStr;
+            return processedValue > processedFilterValue;
           case 'lessThan':
-            return processedValueStr < filterValueStr;
+            return processedValue < processedFilterValue;
           case 'between':
             const [val1, val2] = filterValue.split(',').map(v => v.trim());
-            return processedValueStr >= val1 && processedValueStr <= val2;
+            if (dateColumnNumbers.includes(columnNumber)) {
+              const formattedVal1 = formatDateToAPI(val1);
+              const formattedVal2 = formatDateToAPI(val2);
+              const currentDate = formatDateToAPI(columnValue);
+              return currentDate >= formattedVal1 && currentDate <= formattedVal2;
+            }
+            return columnValue >= val1 && columnValue <= val2;
           default:
-            return true;
+            return processedValue.includes(processedFilterValue);
         }
       });
 
@@ -487,9 +531,10 @@ const EditableTable = () => {
         country: data.country || [],
         supervisors: data.supervisors || []
       });
-
+  
       setSelectData({
         departments: data.departments || [],
+        specialties: data.specialties || [],
         specialtyProfiles: data.specialtyProfiles || [],
         countries: data.country || [],
         gender: data.gender || ['М', 'Ж'],
@@ -570,19 +615,32 @@ const EditableTable = () => {
     
     try {
       const selectedData = data.filter(row => selectedRows.has(row.id));
-      const { successCount, errorCount } = await generateMultipleCertificates(selectedData, selectedCertificateTypes, userData);
+      const { successCount, errorCount, results } = await generateMultipleCertificates(selectedData, selectedCertificateTypes, userData);
       
-      if (errorCount > 0) {
-        alert(`Справки сгенерированы: ${successCount} успешно, ${errorCount} с ошибками`);
+      let message = '';
+      if (successCount > 0 && errorCount === 0) {
+        message = `✅ Успешно сгенерировано ${successCount} справок`;
+      } else if (successCount > 0 && errorCount > 0) {
+        message = `⚠️ Сгенерировано: ${successCount} успешно, ${errorCount} с ошибками`;
+        
+        const errors = results.filter(r => !r.success);
+        if (errors.length > 0 && errors.length <= 5) {
+          message += `\n\nОшибки:\n${errors.map(e => `${e.fio} - ${e.type}: ${e.error}`).join('\n')}`;
+        } else if (errors.length > 5) {
+          message += `\n\nОшибки у ${errors.length} справок. Подробности в консоли.`;
+          console.error('Ошибки генерации:', errors);
+        }
       } else {
-        alert(`Справки успешно сгенерированы для ${successCount} записей`);
+        message = `❌ Ошибка: не удалось сгенерировать ни одной справки`;
       }
+      
+      alert(message);
       
       setShowCertificatePanel(false);
       setSelectedCertificateTypes(new Set());
     } catch (error) {
       console.error('Ошибка генерации справок:', error);
-      alert('Ошибка при генерации справок');
+      alert('Ошибка при генерации справок: ' + error.message);
     } finally {
       setGeneratingCertificates(false);
     }
@@ -671,7 +729,7 @@ const EditableTable = () => {
       alert('Выберите записи для экспорта');
       return null;
     }
-
+  
     return selectedData.map(row => {
       const exportRow = {};
       exportRow['ID'] = row.id;
@@ -679,59 +737,74 @@ const EditableTable = () => {
         const columnKey = `column${colIndex}`;
         if (row[columnKey] !== undefined) {
           let value = row[columnKey] || '';
-          if (colIndex === 18) {
+          
+          if (colIndex === 16) {
             value = formatPreparationForm(value);
           }
+          
           if (colIndex === 9) {
             try {
               const leaves = JSON.parse(value);
               if (Array.isArray(leaves)) {
                 value = leaves.map(l => `${l.startDate || ''} - ${l.endDate || ''} (${l.reason || ''})`).join('; ');
+              } else {
+                value = '';
               }
             } catch {
-              value = value;
+              value = '';
             }
           }
-          if (colIndex === 32) {
-            try {
-              const supervisors = JSON.parse(value);
-              if (Array.isArray(supervisors)) {
-                const supervisorNames = supervisors.map(s => {
-                  const found = selectData.supervisors.find(sup => sup.id == s.supervisorId);
-                  return found ? `${found.name} (${s.startDate || ''} - ${s.endDate || ''})` : s.supervisorId;
-                });
-                value = supervisorNames.join('; ');
-              }
-            } catch {
-              value = value;
-            }
-          }
-
+          
           if (colIndex === 27) {
             try {
               const extensions = JSON.parse(value);
-              if (Array.isArray(extensions)) {
+              if (Array.isArray(extensions) && extensions.length > 0) {
                 value = extensions.map(ext => 
-                  `${ext.orderNumber || ''} (${ext.orderDate || ''}, срок: ${ext.extensionTerm || ''})`
+                  `${ext.orderNumber || ''} (${ext.orderDate || ''}, срок: ${ext.extensionTerm || '1 год'})`
                 ).join('; ');
+              } else {
+                value = '';
               }
             } catch {
-              value = value;
+              value = '';
             }
           }
-
+          
           if (colIndex === 36) {
             try {
               const allowances = JSON.parse(value);
-              if (Array.isArray(allowances)) {
+              if (Array.isArray(allowances) && allowances.length > 0) {
                 value = allowances.map(allow => 
                   `${allow.orderNumber || ''} (${allow.startDate || ''} - ${allow.endDate || ''})`
                 ).join('; ');
+              } else {
+                value = '';
               }
             } catch {
-              value = value;
+              value = '';
             }
           }
+          
+          if (colIndex === 33) {
+            try {
+              const supervisors = JSON.parse(value);
+              if (Array.isArray(supervisors) && supervisors.length > 0) {
+                value = supervisors.map(sup => {
+                  let name = sup.supervisorName || '—';
+                  if (sup.position) name += `, ${sup.position}`;
+                  if (sup.rank) name += ` (${sup.rank})`;
+                  if (sup.startDate) name += ` с ${formatDateToDisplay(sup.startDate)}`;
+                  if (sup.endDate) name += ` по ${formatDateToDisplay(sup.endDate)}`;
+                  return name;
+                }).join('; ');
+              } else {
+                value = '';
+              }
+            } catch {
+              value = '';
+            }
+          }
+          
           exportRow[ColumnName[colIndex]] = value;
         }      
       });
@@ -884,8 +957,8 @@ const EditableTable = () => {
         }
         row.column12 = graduationYear || '';
         row.column13 = ordinator.university.department || '';
-        row.column14 = ordinator.university.specialtyProfile || '';
-        row.column15 = ordinator.university.specialty || '';
+        row.column15 = ordinator.university.specialtyProfile || '';
+        row.column14 = ordinator.university.specialty || '';
         let prepForm = ordinator.university.preparationForm;
         if (prepForm && typeof prepForm === 'object') {
           prepForm = JSON.stringify(prepForm);
@@ -1059,8 +1132,8 @@ const EditableTable = () => {
       universityName: tableData.column11 === 'другое' ? modalState.otherUniversity : tableData.column11 || 'БГМУ',
       graduationYear: tableData.column12 ? `${tableData.column12}-01-01` : null,
       department: tableData.column13 || '',
-      specialtyProfile: tableData.column14 || '',
-      specialty: tableData.column15 || '',
+      specialtyProfile: tableData.column15 || '',
+      specialty: tableData.column14 || '',
       preparationForm: preparationFormValue,
       identityDocument: tableData.column17 === 'иное' ? modalState.otherDocument : tableData.column17 || 'паспорт',
       documentNumber: tableData.column18 || '',
@@ -1469,9 +1542,9 @@ const EditableTable = () => {
           return selectData.gender.map(option => ({ value: option, label: option }));
         case 'creatable-country':
           return selectData.countries.map(option => ({ value: option, label: option }));
-        case 'creatable-department':
-          return selectData.departments.map(option => ({ value: option, label: option }));
         case 'creatable-specialty':
+          return selectData.specialties.map(option => ({ value: option, label: option }));
+        case 'creatable-specialty-profile':
           return selectData.specialtyProfiles.map(option => ({ value: option, label: option }));
         case 'creatable-dismissal':
           return selectData.dismissalReason.map(option => ({ value: option, label: option }));
@@ -1499,7 +1572,6 @@ const EditableTable = () => {
         case 'creatable-gender': return 'gender';
         case 'creatable-country': return 'country';
         case 'creatable-department': return 'departments';
-        case 'creatable-specialty': return 'specialtyProfiles';
         case 'creatable-dismissal': return 'dismissalReason';
         case 'creatable-university': return 'university';
         case 'creatable-preparation': return 'preparationForm';
@@ -1508,6 +1580,8 @@ const EditableTable = () => {
         case 'creatable-medical': return 'medicalCertificate';
         case 'creatable-rivsh': return 'rivshCertificate';
         case 'creatable-entry': return 'entryByInvitation';
+        case 'creatable-specialty': return 'specialties';
+        case 'creatable-specialty-profile': return 'specialtyProfiles';
         default: return null;
       }
     };
@@ -1590,16 +1664,22 @@ const EditableTable = () => {
             }
             return editValue;
           })();
+          const isDateInvalid = editValue && !isValidDate(displayDate);
           return (
-            <input
-              ref={selectRef}
-              type="text"
-              value={displayDate}
-              onChange={(e) => setEditValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="inline-input"
-              placeholder="ДД.ММ.ГГГГ"
-            />
+            <>
+              <input
+                ref={selectRef}
+                type="text"
+                value={displayDate}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className={`inline-input ${isDateInvalid ? 'date-error' : ''}`}
+                placeholder="ДД.ММ.ГГГГ"
+              />
+              {isDateInvalid && (
+                <span className="date-error-message-inline"> Неверный формат даты. Используйте ДД.ММ.ГГГГ</span>
+              )}
+            </>
           );
         case 'tel':
           return (
@@ -1671,7 +1751,8 @@ const EditableTable = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [originalLeaves, setOriginalLeaves] = useState([]);
     const [socialLeaveOptions, setSocialLeaveOptions] = useState([]);
-  
+    const [dateErrors, setDateErrors] = useState({});
+
     useEffect(() => {
       loadSocialLeaveOptions();
     }, []);
@@ -1742,6 +1823,13 @@ const EditableTable = () => {
         updated[idx] = { ...updated[idx], [field]: val };
         setEditingLeaves(updated);
         setHasChanges(true);
+      }
+      if (field === 'startDate' || field === 'endDate') {
+        if (val && !isValidDate(val)) {
+          setDateErrors(prev => ({ ...prev, [`${idx}-${field}`]: true }));
+        } else {
+          setDateErrors(prev => ({ ...prev, [`${idx}-${field}`]: false }));
+        }
       }
     };
   
@@ -1862,19 +1950,19 @@ const EditableTable = () => {
             <div key={idx} className={!isExpanded && idx === 0 ? "last-item-row" : "nested-item-row"}>
               <div className="nested-fields-row">
                 <input
-                  type="text"
-                  className="nested-date-term"
-                  placeholder="Дата начала"
-                  value={leave?.startDate ? formatDateToDisplay(leave.startDate) : ''}
-                  onChange={(e) => updateLeave(originalIdx, 'startDate', e.target.value)}
-                />
-                <input
-                  type="text"
-                  className="nested-date-term"
-                  placeholder="Дата окончания"
-                  value={leave?.endDate ? formatDateToDisplay(leave.endDate) : ''}
-                  onChange={(e) => updateLeave(originalIdx, 'endDate', e.target.value)}
-                />
+                type="text"
+                className={`nested-date-term ${dateErrors[`${originalIdx}-startDate`] ? 'date-error' : ''}`}
+                placeholder="Дата начала"
+                value={leave?.startDate ? formatDateToDisplay(leave.startDate) : ''}
+                onChange={(e) => updateLeave(originalIdx, 'startDate', e.target.value)}
+              />
+              <input
+                type="text"
+                className={`nested-date-term ${dateErrors[`${originalIdx}-endDate`] ? 'date-error' : ''}`}
+                placeholder="Дата окончания"
+                value={leave?.endDate ? formatDateToDisplay(leave.endDate) : ''}
+                onChange={(e) => updateLeave(originalIdx, 'endDate', e.target.value)}
+              />
                 <div className="nested-select-wrapper">
                   <CreatableSelect
                     options={options}
@@ -1925,9 +2013,13 @@ const EditableTable = () => {
           )}
           
           {hasChanges && (
-            <button onClick={saveChanges} className="nested-save-btn">
-              💾 Сохранить
-            </button>
+            <button 
+            onClick={saveChanges} 
+            className="nested-save-btn"
+            disabled={Object.values(dateErrors).some(error => error === true)}
+          >
+            💾 Сохранить
+          </button>
           )}
         </div>
       </div>
@@ -1939,7 +2031,8 @@ const EditableTable = () => {
     const [hasChanges, setHasChanges] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [originalExtensions, setOriginalExtensions] = useState([]);
-  
+    const [dateErrors, setDateErrors] = useState({});
+
     useEffect(() => {
       try {
         const parsed = JSON.parse(value || '[]');
@@ -1961,6 +2054,13 @@ const EditableTable = () => {
         updated[idx] = { ...updated[idx], [field]: val };
         setEditingExtensions(updated);
         setHasChanges(true);
+      }
+      if (field === 'orderDate') {
+        if (val && !isValidDate(val)) {
+          setDateErrors(prev => ({ ...prev, [`${idx}-${field}`]: true }));
+        } else {
+          setDateErrors(prev => ({ ...prev, [`${idx}-${field}`]: false }));
+        }
       }
     };
   
@@ -2088,12 +2188,12 @@ const EditableTable = () => {
                   onChange={(e) => updateExtension(originalIdx, 'orderNumber', e.target.value)}
                 />
                 <input
-                  type="text"
-                  className="nested-date-term"
-                  placeholder="Дата приказа"
-                  value={ext?.orderDate ? formatDateToDisplay(ext.orderDate) : ''}
-                  onChange={(e) => updateExtension(originalIdx, 'orderDate', e.target.value)}
-                />
+                type="text"
+                className={`nested-date-term ${dateErrors[`${originalIdx}-orderDate`] ? 'date-error' : ''}`}
+                placeholder="Дата приказа"
+                value={ext?.orderDate ? formatDateToDisplay(ext.orderDate) : ''}
+                onChange={(e) => updateExtension(originalIdx, 'orderDate', e.target.value)}
+              />
                 <select
                   className="nested-term-select"
                   value={ext?.extensionTerm || '1 год'}
@@ -2126,9 +2226,13 @@ const EditableTable = () => {
           )}
           
           {hasChanges && (
-            <button onClick={saveChanges} className="nested-save-btn">
-              💾 Сохранить
-            </button>
+            <button 
+            onClick={saveChanges} 
+            className="nested-save-btn"
+            disabled={Object.values(dateErrors).some(error => error === true)}
+          >
+            💾 Сохранить
+          </button>
           )}
         </div>
       </div>
@@ -2140,7 +2244,8 @@ const EditableTable = () => {
     const [hasChanges, setHasChanges] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [originalAllowances, setOriginalAllowances] = useState([]);
-  
+    const [dateErrors, setDateErrors] = useState({});
+
     useEffect(() => {
       try {
         const parsed = JSON.parse(value || '[]');
@@ -2162,6 +2267,13 @@ const EditableTable = () => {
         updated[idx] = { ...updated[idx], [field]: val };
         setEditingAllowances(updated);
         setHasChanges(true);
+      }
+      if (field === 'startDate' || field === 'endDate') {
+        if (val && !isValidDate(val)) {
+          setDateErrors(prev => ({ ...prev, [`${idx}-${field}`]: true }));
+        } else {
+          setDateErrors(prev => ({ ...prev, [`${idx}-${field}`]: false }));
+        }
       }
     };
   
@@ -2288,19 +2400,19 @@ const EditableTable = () => {
                   onChange={(e) => updateAllowance(originalIdx, 'orderNumber', e.target.value)}
                 />
                 <input
-                  type="text"
-                  className="nested-date-term"
-                  placeholder="Дата начала"
-                  value={item?.startDate ? formatDateToDisplay(item.startDate) : ''}
-                  onChange={(e) => updateAllowance(originalIdx, 'startDate', e.target.value)}
-                />
-                <input
-                  type="text"
-                  className="nested-date-term"
-                  placeholder="Дата окончания"
-                  value={item?.endDate ? formatDateToDisplay(item.endDate) : ''}
-                  onChange={(e) => updateAllowance(originalIdx, 'endDate', e.target.value)}
-                />
+                type="text"
+                className={`nested-date-term ${dateErrors[`${originalIdx}-startDate`] ? 'date-error' : ''}`}
+                placeholder="Дата начала"
+                value={item?.startDate ? formatDateToDisplay(item.startDate) : ''}
+                onChange={(e) => updateAllowance(originalIdx, 'startDate', e.target.value)}
+              />
+              <input
+                type="text"
+                className={`nested-date-term ${dateErrors[`${originalIdx}-endDate`] ? 'date-error' : ''}`}
+                placeholder="Дата окончания"
+                value={item?.endDate ? formatDateToDisplay(item.endDate) : ''}
+                onChange={(e) => updateAllowance(originalIdx, 'endDate', e.target.value)}
+              />
                 <button onClick={() => removeAllowance(originalIdx)} className="nested-remove-btn">
                   <Trash2 size={14} />
                 </button>
@@ -2324,9 +2436,13 @@ const EditableTable = () => {
           )}
           
           {hasChanges && (
-            <button onClick={saveChanges} className="nested-save-btn">
-              💾 Сохранить
-            </button>
+            <button 
+            onClick={saveChanges} 
+            className="nested-save-btn"
+            disabled={Object.values(dateErrors).some(error => error === true)}
+          >
+            💾 Сохранить
+          </button>
           )}
         </div>
       </div>
@@ -2417,7 +2533,8 @@ const EditableTable = () => {
     const [hasChanges, setHasChanges] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [originalSupervisors, setOriginalSupervisors] = useState([]);
-  
+    const [dateErrors, setDateErrors] = useState({});
+
     useEffect(() => {
       try {
         const parsed = JSON.parse(value || '[]');
@@ -2439,6 +2556,13 @@ const EditableTable = () => {
         updated[idx] = { ...updated[idx], [field]: val };
         setEditingSupervisors(updated);
         setHasChanges(true);
+      }
+      if (field === 'startDate' || field === 'endDate') {
+        if (val && !isValidDate(val)) {
+          setDateErrors(prev => ({ ...prev, [`${idx}-${field}`]: true }));
+        } else {
+          setDateErrors(prev => ({ ...prev, [`${idx}-${field}`]: false }));
+        }
       }
     };
   
@@ -2579,19 +2703,19 @@ const EditableTable = () => {
                   onChange={(e) => updateSupervisor(originalIdx, 'rank', e.target.value)}
                 />
                 <input
-                  type="text"
-                  className="nested-date-term"
-                  placeholder="Дата начала"
-                  value={sup?.startDate ? formatDateToDisplay(sup.startDate) : ''}
-                  onChange={(e) => updateSupervisor(originalIdx, 'startDate', e.target.value)}
-                />
-                <input
-                  type="text"
-                  className="nested-date-term"
-                  placeholder="Дата окончания"
-                  value={sup?.endDate ? formatDateToDisplay(sup.endDate) : ''}
-                  onChange={(e) => updateSupervisor(originalIdx, 'endDate', e.target.value)}
-                />
+                type="text"
+                className={`nested-date-term ${dateErrors[`${originalIdx}-startDate`] ? 'date-error' : ''}`}
+                placeholder="Дата начала"
+                value={sup?.startDate ? formatDateToDisplay(sup.startDate) : ''}
+                onChange={(e) => updateSupervisor(originalIdx, 'startDate', e.target.value)}
+              />
+              <input
+                type="text"
+                className={`nested-date-term ${dateErrors[`${originalIdx}-endDate`] ? 'date-error' : ''}`}
+                placeholder="Дата окончания"
+                value={sup?.endDate ? formatDateToDisplay(sup.endDate) : ''}
+                onChange={(e) => updateSupervisor(originalIdx, 'endDate', e.target.value)}
+              />
                 <button onClick={() => removeSupervisor(originalIdx)} className="nested-remove-btn">
                   <Trash2 size={14} />
                 </button>
@@ -2615,9 +2739,13 @@ const EditableTable = () => {
           )}
           
           {hasChanges && (
-            <button onClick={saveChanges} className="nested-save-btn">
-              💾 Сохранить
-            </button>
+            <button 
+            onClick={saveChanges} 
+            className="nested-save-btn"
+            disabled={Object.values(dateErrors).some(error => error === true)}
+          >
+            💾 Сохранить
+          </button>
           )}
         </div>
       </div>
@@ -2970,7 +3098,7 @@ const EditableTable = () => {
     data.filter(row => {
       if (!searchTerm.trim()) return true;
       
-      const searchTermLower = searchTerm.toLowerCase();
+      const searchTermLower = searchTerm.toLowerCase().trim();
       
       if (searchColumn === 'all') {
         for (const [key, value] of Object.entries(row)) {
@@ -2981,25 +3109,72 @@ const EditableTable = () => {
               displayValue = formatPreparationForm(value);
             }
             
+            if (key === 'column27') {
+              try {
+                const extensions = JSON.parse(value || '[]');
+                if (Array.isArray(extensions)) {
+                  displayValue = extensions.map(ext => 
+                    `${ext.orderNumber || ''} (${formatDateToDisplay(ext.orderDate) || ''}, срок: ${ext.extensionTerm || ''})`
+                  ).join('; ');
+                }
+              } catch {
+                displayValue = value;
+              }
+            }
+            
+            if (key === 'column9') {
+              try {
+                const leaves = JSON.parse(displayValue || '[]');
+                if (Array.isArray(leaves)) {
+                  displayValue = leaves.map(l => 
+                    `${formatDateToDisplay(l.startDate) || ''} - ${formatDateToDisplay(l.endDate) || ''} (${l.reason || ''})`
+                  ).join('; ');
+                }
+              } catch {
+                displayValue = displayValue;
+              }
+            }
+
+            if (key === 'column36') {
+              try {
+                const allowances = JSON.parse(value || '[]');
+                if (Array.isArray(allowances)) {
+                  displayValue = allowances.map(allow => 
+                    `${allow.orderNumber || ''} (${formatDateToDisplay(allow.startDate) || ''} - ${formatDateToDisplay(allow.endDate) || ''})`
+                  ).join('; ');
+                }
+              } catch {
+                displayValue = value;
+              }
+            }
+            
             if (key === 'column33') {
               try {
                 const supervisors = JSON.parse(value || '[]');
                 if (Array.isArray(supervisors) && supervisors.length > 0) {
-                  let lastSupervisor = supervisors[0];
-                  let maxDate = lastSupervisor.startDate ? new Date(lastSupervisor.startDate).getTime() : 0;
+                  const supervisorsInfo = supervisors.map(sup => {
+                    let info = sup.supervisorName || '';
+                    if (sup.position) info += ` ${sup.position}`;
+                    if (sup.rank) info += ` ${sup.rank}`;
+                    if (sup.startDate) info += ` ${formatDateToDisplay(sup.startDate)}`;
+                    if (sup.endDate) info += ` ${formatDateToDisplay(sup.endDate)}`;
+                    return info;
+                  }).join(' ');
                   
-                  for (let i = 1; i < supervisors.length; i++) {
-                    const currentDate = supervisors[i].startDate ? new Date(supervisors[i].startDate).getTime() : 0;
-                    if (currentDate > maxDate) {
-                      maxDate = currentDate;
-                      lastSupervisor = supervisors[i];
-                    }
-                  }
-                  
-                  const searchString = (lastSupervisor.supervisorName || '').toLowerCase();
-                  if (searchString.includes(searchTermLower)) return true;
+                  if (supervisorsInfo.toLowerCase().includes(searchTermLower)) return true;
                 }
               } catch (e) {
+              }
+              continue;
+            }
+            
+            const dateColumnNumbers = [3, 6, 7, 22, 24, 26, 30, 34, 35];
+            const columnNumber = parseInt(key.replace('column', ''));
+            
+            if (dateColumnNumbers.includes(columnNumber)) {
+              const dateString = formatDateToDisplay(displayValue);
+              if (dateString.toLowerCase().includes(searchTermLower)) {
+                return true;
               }
               continue;
             }
@@ -3010,6 +3185,7 @@ const EditableTable = () => {
         return false;
       } else {
         let displayValue = row[searchColumn];
+        const columnNumber = parseInt(searchColumn.replace('column', ''));
         
         if (searchColumn === 'column16') {
           displayValue = formatPreparationForm(displayValue);
@@ -3019,24 +3195,67 @@ const EditableTable = () => {
           try {
             const supervisors = JSON.parse(row[searchColumn] || '[]');
             if (Array.isArray(supervisors) && supervisors.length > 0) {
-              let lastSupervisor = supervisors[0];
-              let maxDate = lastSupervisor.startDate ? new Date(lastSupervisor.startDate).getTime() : 0;
+              const supervisorsInfo = supervisors.map(sup => {
+                let info = sup.supervisorName || '';
+                if (sup.position) info += ` ${sup.position}`;
+                if (sup.rank) info += ` ${sup.rank}`;
+                if (sup.startDate) info += ` ${formatDateToDisplay(sup.startDate)}`;
+                if (sup.endDate) info += ` ${formatDateToDisplay(sup.endDate)}`;
+                return info;
+              }).join(' ');
               
-              for (let i = 1; i < supervisors.length; i++) {
-                const currentDate = supervisors[i].startDate ? new Date(supervisors[i].startDate).getTime() : 0;
-                if (currentDate > maxDate) {
-                  maxDate = currentDate;
-                  lastSupervisor = supervisors[i];
-                }
-              }
-              
-              const searchString = (lastSupervisor.supervisorName || '').toLowerCase();
-              return searchString.includes(searchTermLower);
+              return supervisorsInfo.toLowerCase().includes(searchTermLower);
             }
             return false;
           } catch (e) {
             return false;
           }
+        }
+        
+        if (searchColumn === 'column9') {
+          try {
+            const leaves = JSON.parse(displayValue || '[]');
+            if (Array.isArray(leaves)) {
+              displayValue = leaves.map(l => 
+                `${formatDateToDisplay(l.startDate) || ''} - ${formatDateToDisplay(l.endDate) || ''} (${l.reason || ''})`
+              ).join('; ');
+            }
+          } catch {
+            displayValue = displayValue;
+          }
+        }
+        
+        if (searchColumn === 'column27') {
+          try {
+            const extensions = JSON.parse(displayValue || '[]');
+            if (Array.isArray(extensions)) {
+              displayValue = extensions.map(ext => 
+                `${ext.orderNumber || ''} (${formatDateToDisplay(ext.orderDate) || ''}, срок: ${ext.extensionTerm || ''})`
+              ).join('; ');
+            }
+          } catch {
+            displayValue = displayValue;
+          }
+        }
+        
+        if (searchColumn === 'column36') {
+          try {
+            const allowances = JSON.parse(displayValue || '[]');
+            if (Array.isArray(allowances)) {
+              displayValue = allowances.map(allow => 
+                `${allow.orderNumber || ''} (${formatDateToDisplay(allow.startDate) || ''} - ${formatDateToDisplay(allow.endDate) || ''})`
+              ).join('; ');
+            }
+          } catch {
+            displayValue = displayValue;
+          }
+        }
+        
+        const dateColumnNumbers = [3, 6, 7, 22, 24, 26, 30, 34, 35];
+        
+        if (dateColumnNumbers.includes(columnNumber)) {
+          const dateString = formatDateToDisplay(displayValue);
+          return dateString.toLowerCase().includes(searchTermLower);
         }
         
         return String(displayValue || '').toLowerCase().includes(searchTermLower);
@@ -3093,6 +3312,8 @@ const EditableTable = () => {
           return selectData.countries.map(option => ({ value: option, label: option }));
         case 'Кафедра':
           return selectData.departments.map(option => ({ value: option, label: option }));
+        case 'Специальность':
+          return selectData.specialties.map(option => ({ value: option, label: option }));
         case 'Профиль специальности':
           return selectData.specialtyProfiles.map(option => ({ value: option, label: option }));
         case 'Причина отчисления':
@@ -3117,7 +3338,7 @@ const EditableTable = () => {
     };
 
     const selectFields = [
-      'Пол', 'Страна', 'Кафедра', 'Профиль специальности', 'Причина отчисления',
+      'Пол', 'Страна', 'Кафедра', 'Профиль специальности','Специальность', 'Причина отчисления',
       'ВУЗ', 'Документ, удостоверяющий личность',
       'Место проживания, регистрации', 'Медицинская справка',
       'Наличие сертификата РИВШ', 'Въезд по приглашению'
@@ -3585,14 +3806,28 @@ const EditableTable = () => {
       case 'Дата начала сессии(циклов)':
       case 'Дата окончания сессии(циклов)':
         const displayDate = formatDateToDisplay(value);
+        const isDateInvalid = displayDate && !isValidDate(displayDate);
         return (
-          <input
-            type="text"
-            value={displayDate}
-            onChange={(e) => handleChange(e.target.value)}
-            className="modal-input"
-            placeholder="ДД.ММ.ГГГГ"
-          />
+          <>
+            <input
+              type="text"
+              value={displayDate}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                handleChange(newValue);
+                if (newValue && !isValidDate(newValue)) {
+                  setDateErrors(prev => ({ ...prev, [columnKey]: true }));
+                } else {
+                  setDateErrors(prev => ({ ...prev, [columnKey]: false }));
+                }
+              }}
+              className={`modal-input ${isDateInvalid ? 'date-error' : ''}`}
+              placeholder="ДД.ММ.ГГГГ"
+            />
+            {isDateInvalid && (
+              <span className="date-error-message">Неверный формат даты. Используйте ДД.ММ.ГГГГ</span>
+            )}
+          </>
         );
       case 'Мобильный телефон':
         return (
@@ -3845,11 +4080,15 @@ const EditableTable = () => {
               className="column-select"
             >
               <option value="all">Все колонки</option>
-              {columns.map((col, index) => (
-                <option key={col} value={col}>
-                  {ColumnName[index + 1]}
-                </option>
-              ))}
+              {columns.map((col, index) => {
+                const columnName = ColumnName[index + 1];
+                if (!columnName || columnName === '') return null;
+                return (
+                  <option key={col} value={col}>
+                    {columnName}
+                  </option>
+                );
+              })}
             </select>
             <button 
               onClick={() => setShowFilterPanel(!showFilterPanel)}
@@ -4452,13 +4691,14 @@ const EditableTable = () => {
                 
                 <div className="modal-actions">
                   {modalState.mode !== 'view' && (
-                    <button onClick={handleSave} className="save-button">
+                    <button 
+                      onClick={handleSave} 
+                      className="save-button"
+                      disabled={Object.values(dateErrors).some(error => error === true)}
+                    >
                       {modalState.mode === 'create' ? 'Создать ординатора' : 'Сохранить изменения'}
                     </button>
                   )}
-                  <button onClick={handleCancel} className="cancel-button-modal">
-                    {modalState.mode === 'view' ? 'Закрыть' : 'Отмена'}
-                  </button>
                 </div>
               </div>
             </div>
