@@ -943,7 +943,6 @@ const EditableTable = () => {
   };
 
   const transformApiDataToTable = (apiData) => {
-    console.log('API Response:', apiData)
     return apiData.map((ordinator) => {
       const row = {};
       row.column1 = ordinator.fio || '';
@@ -1596,8 +1595,13 @@ const EditableTable = () => {
       }
     };
 
-    const getOptions = () => {
-      switch(fieldType) {
+      const getOptions = () => {
+        
+        switch(fieldType) {
+        case 'creatable-department':
+            const departments = selectData.departments;
+            const mappedOptions = departments?.map(option => ({ value: option, label: option })) || [];
+            return mappedOptions;
         case 'creatable-gender':
           return selectData.gender.map(option => ({ value: option, label: option }));
         case 'creatable-country':
