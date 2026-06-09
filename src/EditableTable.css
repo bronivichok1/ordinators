@@ -1978,3 +1978,36 @@
   .floating-help-button:active {
     transform: scale(0.95);
   }
+
+.modal-nested-select-wrapper {
+  flex: 2;
+  min-width: 200px;
+}
+
+.modal-nested-select-wrapper .react-select__control {
+  min-height: 36px;
+  border-radius: 6px;
+  border-color: #ddd;
+  background-color: white;
+}
+
+.modal-nested-select-wrapper .react-select__control:hover {
+  border-color: #36d1dc;
+}
+
+.modal-nested-select-wrapper .react-select__control--is-focused {
+  border-color: #36d1dc;
+  box-shadow: 0 0 0 2px rgba(54, 209, 220, 0.2);
+}
+
+.modal-nested-select-wrapper .react-select__menu {
+  z-index: 10000;
+}
+
+.modal-nested-select-wrapper .react-select__option--is-focused {
+  background-color: #e3f2fd;
+}
+
+.modal-nested-select-wrapper .react-select__option--is-selected {
+  background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+}

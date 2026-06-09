@@ -178,7 +178,8 @@ const EditableTable = () => {
     rivshCertificate: [],
     entryByInvitation: [],
     country: [],
-    supervisors: []
+    supervisors: [],
+    socialLeave: []
   });
 
   const [selectData, setSelectData] = useState({
@@ -194,7 +195,8 @@ const EditableTable = () => {
     medicalCertificate: [],
     rivshCertificate: [],
     entryByInvitation: [],
-    supervisors: []
+    supervisors: [],
+    socialLeave: []
   });
 
   const [data, setData] = useState([]);
@@ -530,7 +532,8 @@ const EditableTable = () => {
         rivshCertificate: data.rivshCertificate || [],
         entryByInvitation: data.entryByInvitation || [],
         country: data.country || [],
-        supervisors: data.supervisors || []
+        supervisors: data.supervisors || [],
+        socialLeave: data.socialLeave || []
       });
   
       setSelectData({
@@ -547,7 +550,8 @@ const EditableTable = () => {
         medicalCertificate: data.medicalCertificate || [],
         rivshCertificate: data.rivshCertificate || [],
         entryByInvitation: data.entryByInvitation || [],
-        supervisors: data.supervisors || []
+        supervisors: data.supervisors || [],
+        socialLeave: data.socialLeave || []
       });
     } catch (error) {
       console.error('Error loading server options:', error);
@@ -3522,81 +3526,121 @@ const EditableTable = () => {
               ))}
             </div>
           );
-        case 'Социальный отпуск':
-          const socialLeaves = (() => {
-            try {
-              const parsed = JSON.parse(value || '[]');
-              return Array.isArray(parsed) ? parsed : [];
-            } catch {
-              return [];
-            }
-          })();
-          return (
-            <div className="modal-nested-container">
-              <div className="modal-nested-header">
-                <div className="nested-header-start">Дата начала</div>
-                <div className="nested-header-end">Дата окончания</div>
-                <div className="nested-header-reason">Причина</div>
-                <div className="nested-header-actions"></div>
-              </div>
-              {socialLeaves.map((leave, idx) => (
-                <div key={leave.id || idx} className="modal-nested-item">
-                  <input
-                    type="text"
-                    placeholder="ДД.ММ.ГГГГ"
-                    value={formatDateToDisplay(leave.startDate)}
-                    onChange={(e) => {
-                      const newLeaves = [...socialLeaves];
-                      newLeaves[idx] = { ...newLeaves[idx], startDate: e.target.value };
-                      handleChange(JSON.stringify(newLeaves));
-                    }}
-                    className="modal-nested-input date-input"
-                  />
-                  <input
-                    type="text"
-                    placeholder="ДД.ММ.ГГГГ"
-                    value={formatDateToDisplay(leave.endDate)}
-                    onChange={(e) => {
-                      const newLeaves = [...socialLeaves];
-                      newLeaves[idx] = { ...newLeaves[idx], endDate: e.target.value };
-                      handleChange(JSON.stringify(newLeaves));
-                    }}
-                    className="modal-nested-input date-input"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Причина отпуска"
-                    value={leave.reason || ''}
-                    onChange={(e) => {
-                      const newLeaves = [...socialLeaves];
-                      newLeaves[idx] = { ...newLeaves[idx], reason: e.target.value };
-                      handleChange(JSON.stringify(newLeaves));
-                    }}
-                    className="modal-nested-input reason-input"
-                  />
-                  <button
-                    onClick={() => {
-                      const newLeaves = socialLeaves.filter((_, i) => i !== idx);
-                      handleChange(JSON.stringify(newLeaves));
-                    }}
-                    className="modal-nested-remove"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+          case 'Социальный отпуск':
+            const socialLeaves = (() => {
+              try {
+                const parsed = JSON.parse(value || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+              } catch {
+                return [];
+              }
+            })();
+            
+            const socialLeaveOptionsForModal = selectOptions.socialLeave || [];
+            
+            return (
+              <div className="modal-nested-container">
+                <div className="modal-nested-header">
+                  <div className="nested-header-start">Дата начала</div>
+                  <div className="nested-header-end">Дата окончания</div>
+                  <div className="nested-header-reason">Причина</div>
+                  <div className="nested-header-actions"></div>
                 </div>
-              ))}
-              <button
-                onClick={() => {
-                  const newLeaves = [...socialLeaves, { startDate: '', endDate: '', reason: '' }];
-                  handleChange(JSON.stringify(newLeaves));
-                }}
-                className="modal-nested-add"
-              >
-                <Plus size={14} /> Добавить период отпуска
-              </button>
-            </div>
-          );
-          case 'Руководители':
+                {socialLeaves.map((leave, idx) => {
+                  const startErrorKey = `social-start-${idx}`;
+                  const endErrorKey = `social-end-${idx}`;
+                  return (
+                    <div key={idx} className="modal-nested-item">
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="text"
+                          placeholder="ДД.ММ.ГГГГ"
+                          value={formatDateToDisplay(leave.startDate)}
+                          onChange={(e) => {
+                            const newLeaves = [...socialLeaves];
+                            newLeaves[idx] = { ...newLeaves[idx], startDate: e.target.value };
+                            handleChange(JSON.stringify(newLeaves));
+                            if (e.target.value && !isValidDate(e.target.value)) {
+                              setDateErrors(prev => ({ ...prev, [startErrorKey]: true }));
+                            } else {
+                              setDateErrors(prev => ({ ...prev, [startErrorKey]: false }));
+                            }
+                          }}
+                          className={`modal-nested-input date-input ${dateErrors[startErrorKey] ? 'date-error' : ''}`}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="text"
+                          placeholder="ДД.ММ.ГГГГ"
+                          value={formatDateToDisplay(leave.endDate)}
+                          onChange={(e) => {
+                            const newLeaves = [...socialLeaves];
+                            newLeaves[idx] = { ...newLeaves[idx], endDate: e.target.value };
+                            handleChange(JSON.stringify(newLeaves));
+                            if (e.target.value && !isValidDate(e.target.value)) {
+                              setDateErrors(prev => ({ ...prev, [endErrorKey]: true }));
+                            } else {
+                              setDateErrors(prev => ({ ...prev, [endErrorKey]: false }));
+                            }
+                          }}
+                          className={`modal-nested-input date-input ${dateErrors[endErrorKey] ? 'date-error' : ''}`}
+                        />
+                      </div>
+                      <div className="modal-nested-select-wrapper">
+                        <CreatableSelect
+                          options={socialLeaveOptionsForModal.map(opt => ({ value: opt, label: opt }))}
+                          value={leave.reason ? { value: leave.reason, label: leave.reason } : null}
+                          onChange={(option) => {
+                            const newLeaves = [...socialLeaves];
+                            newLeaves[idx] = { ...newLeaves[idx], reason: option ? option.value : '' };
+                            handleChange(JSON.stringify(newLeaves));
+                          }}
+                          isClearable
+                          placeholder="Выберите или введите причину"
+                          noOptionsMessage={() => "Нет вариантов, введите свою причину"}
+                          formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
+                          onCreateOption={(inputValue) => {
+                            const newLeaves = [...socialLeaves];
+                            newLeaves[idx] = { ...newLeaves[idx], reason: inputValue };
+                            handleChange(JSON.stringify(newLeaves));
+                          }}
+                          className="react-select-container"
+                          classNamePrefix="react-select"
+                          menuPortalTarget={document.body}
+                          styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newLeaves = socialLeaves.filter((_, i) => i !== idx);
+                          handleChange(JSON.stringify(newLeaves));
+                          setDateErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors[startErrorKey];
+                            delete newErrors[endErrorKey];
+                            return newErrors;
+                          });
+                        }}
+                        className="modal-nested-remove"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+                <button
+                  onClick={() => {
+                    const newLeaves = [...socialLeaves, { startDate: '', endDate: '', reason: '' }];
+                    handleChange(JSON.stringify(newLeaves));
+                  }}
+                  className="modal-nested-add"
+                >
+                  <Plus size={14} /> Добавить период отпуска
+                </button>
+              </div>
+            );
+            case 'Руководители':
             const supervisors = (() => {
               try {
                 const parsed = JSON.parse(value || '[]');
@@ -3615,74 +3659,98 @@ const EditableTable = () => {
                   <div className="nested-header-end">Дата окончания</div>
                   <div className="nested-header-actions"></div>
                 </div>
-                {supervisors.map((sup, idx) => (
-                  <div key={idx} className="modal-nested-item">
-                    <input
-                      type="text"
-                      placeholder="ФИО руководителя"
-                      value={sup.supervisorName || ''}
-                      onChange={(e) => {
-                        const newSupervisors = [...supervisors];
-                        newSupervisors[idx] = { ...newSupervisors[idx], supervisorName: e.target.value };
-                        handleChange(JSON.stringify(newSupervisors));
-                      }}
-                      className="modal-nested-input supervisor-input"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Должность"
-                      value={sup.position || ''}
-                      onChange={(e) => {
-                        const newSupervisors = [...supervisors];
-                        newSupervisors[idx] = { ...newSupervisors[idx], position: e.target.value };
-                        handleChange(JSON.stringify(newSupervisors));
-                      }}
-                      className="modal-nested-input position-input"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Звания"
-                      value={sup.rank || ''}
-                      onChange={(e) => {
-                        const newSupervisors = [...supervisors];
-                        newSupervisors[idx] = { ...newSupervisors[idx], rank: e.target.value };
-                        handleChange(JSON.stringify(newSupervisors));
-                      }}
-                      className="modal-nested-input rank-input"
-                    />
-                    <input
-                      type="text"
-                      placeholder="ДД.ММ.ГГГГ"
-                      value={formatDateToDisplay(sup.startDate)}
-                      onChange={(e) => {
-                        const newSupervisors = [...supervisors];
-                        newSupervisors[idx] = { ...newSupervisors[idx], startDate: e.target.value };
-                        handleChange(JSON.stringify(newSupervisors));
-                      }}
-                      className="modal-nested-input date-input"
-                    />
-                    <input
-                      type="text"
-                      placeholder="ДД.ММ.ГГГГ"
-                      value={formatDateToDisplay(sup.endDate)}
-                      onChange={(e) => {
-                        const newSupervisors = [...supervisors];
-                        newSupervisors[idx] = { ...newSupervisors[idx], endDate: e.target.value };
-                        handleChange(JSON.stringify(newSupervisors));
-                      }}
-                      className="modal-nested-input date-input"
-                    />
-                    <button
-                      onClick={() => {
-                        const newSupervisors = supervisors.filter((_, i) => i !== idx);
-                        handleChange(JSON.stringify(newSupervisors));
-                      }}
-                      className="modal-nested-remove"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
+                {supervisors.map((sup, idx) => {
+                  const startErrorKey = `supervisor-start-${idx}`;
+                  const endErrorKey = `supervisor-end-${idx}`;
+                  return (
+                    <div key={idx} className="modal-nested-item">
+                      <input
+                        type="text"
+                        placeholder="ФИО руководителя"
+                        value={sup.supervisorName || ''}
+                        onChange={(e) => {
+                          const newSupervisors = [...supervisors];
+                          newSupervisors[idx] = { ...newSupervisors[idx], supervisorName: e.target.value };
+                          handleChange(JSON.stringify(newSupervisors));
+                        }}
+                        className="modal-nested-input supervisor-input"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Должность"
+                        value={sup.position || ''}
+                        onChange={(e) => {
+                          const newSupervisors = [...supervisors];
+                          newSupervisors[idx] = { ...newSupervisors[idx], position: e.target.value };
+                          handleChange(JSON.stringify(newSupervisors));
+                        }}
+                        className="modal-nested-input position-input"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Звания"
+                        value={sup.rank || ''}
+                        onChange={(e) => {
+                          const newSupervisors = [...supervisors];
+                          newSupervisors[idx] = { ...newSupervisors[idx], rank: e.target.value };
+                          handleChange(JSON.stringify(newSupervisors));
+                        }}
+                        className="modal-nested-input rank-input"
+                      />
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="text"
+                          placeholder="ДД.ММ.ГГГГ"
+                          value={formatDateToDisplay(sup.startDate)}
+                          onChange={(e) => {
+                            const newSupervisors = [...supervisors];
+                            newSupervisors[idx] = { ...newSupervisors[idx], startDate: e.target.value };
+                            handleChange(JSON.stringify(newSupervisors));
+                            if (e.target.value && !isValidDate(e.target.value)) {
+                              setDateErrors(prev => ({ ...prev, [startErrorKey]: true }));
+                            } else {
+                              setDateErrors(prev => ({ ...prev, [startErrorKey]: false }));
+                            }
+                          }}
+                          className={`modal-nested-input date-input ${dateErrors[startErrorKey] ? 'date-error' : ''}`}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="text"
+                          placeholder="ДД.ММ.ГГГГ"
+                          value={formatDateToDisplay(sup.endDate)}
+                          onChange={(e) => {
+                            const newSupervisors = [...supervisors];
+                            newSupervisors[idx] = { ...newSupervisors[idx], endDate: e.target.value };
+                            handleChange(JSON.stringify(newSupervisors));
+                            if (e.target.value && !isValidDate(e.target.value)) {
+                              setDateErrors(prev => ({ ...prev, [endErrorKey]: true }));
+                            } else {
+                              setDateErrors(prev => ({ ...prev, [endErrorKey]: false }));
+                            }
+                          }}
+                          className={`modal-nested-input date-input ${dateErrors[endErrorKey] ? 'date-error' : ''}`}
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newSupervisors = supervisors.filter((_, i) => i !== idx);
+                          handleChange(JSON.stringify(newSupervisors));
+                          setDateErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors[startErrorKey];
+                            delete newErrors[endErrorKey];
+                            return newErrors;
+                          });
+                        }}
+                        className="modal-nested-remove"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
                 <button
                   onClick={() => {
                     const newSupervisors = [...supervisors, { supervisorName: '', position: '', rank: '', startDate: '', endDate: '' }];
@@ -3703,7 +3771,7 @@ const EditableTable = () => {
                   return [];
                 }
               })();
-            
+
               const addExtension = () => {
                 const newExtensions = [...extensionsList, {
                   orderNumber: '',
@@ -3712,20 +3780,25 @@ const EditableTable = () => {
                 }];
                 handleChange(JSON.stringify(newExtensions));
               };
-            
+
               const updateExtension = (idx, field, val) => {
                 const newExtensions = [...extensionsList];
                 newExtensions[idx] = { ...newExtensions[idx], [field]: val };
                 handleChange(JSON.stringify(newExtensions));
               };
-            
+
               const removeExtension = (idx) => {
                 const newExtensions = extensionsList.filter((_, i) => i !== idx);
                 handleChange(JSON.stringify(newExtensions));
+                setDateErrors(prev => {
+                  const newErrors = { ...prev };
+                  delete newErrors[`extension-date-${idx}`];
+                  return newErrors;
+                });
               };
-            
+
               const extensionTerms = ['1 год', '2 года', '3 года'];
-            
+
               return (
                 <div className="modal-nested-container">
                   <div className="modal-nested-header">
@@ -3737,39 +3810,51 @@ const EditableTable = () => {
                   {extensionsList.length === 0 && (
                     <div className="nested-empty">Нет записей</div>
                   )}
-                  {extensionsList.map((ext, idx) => (
-                    <div key={idx} className="modal-nested-item">
-                      <input
-                        type="text"
-                        placeholder="Номер приказа"
-                        value={ext.orderNumber || ''}
-                        onChange={(e) => updateExtension(idx, 'orderNumber', e.target.value)}
-                        className="modal-nested-input"
-                      />
-                      <input
-                        type="text"
-                        placeholder="ДД.ММ.ГГГГ"
-                        value={ext.orderDate || ''}
-                        onChange={(e) => updateExtension(idx, 'orderDate', e.target.value)}
-                        className="modal-nested-input"
-                      />
-                      <select
-                        value={ext.extensionTerm || '1 год'}
-                        onChange={(e) => updateExtension(idx, 'extensionTerm', e.target.value)}
-                        className="modal-nested-input"
-                      >
-                        {extensionTerms.map(term => (
-                          <option key={term} value={term}>{term}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => removeExtension(idx)}
-                        className="modal-nested-remove"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
+                  {extensionsList.map((ext, idx) => {
+                    const dateErrorKey = `extension-date-${idx}`;
+                    return (
+                      <div key={idx} className="modal-nested-item">
+                        <input
+                          type="text"
+                          placeholder="Номер приказа"
+                          value={ext.orderNumber || ''}
+                          onChange={(e) => updateExtension(idx, 'orderNumber', e.target.value)}
+                          className="modal-nested-input"
+                        />
+                        <div style={{ flex: 1 }}>
+                          <input
+                            type="text"
+                            placeholder="ДД.ММ.ГГГГ"
+                            value={formatDateToDisplay(ext.orderDate)}
+                            onChange={(e) => {
+                              updateExtension(idx, 'orderDate', e.target.value);
+                              if (e.target.value && !isValidDate(e.target.value)) {
+                                setDateErrors(prev => ({ ...prev, [dateErrorKey]: true }));
+                              } else {
+                                setDateErrors(prev => ({ ...prev, [dateErrorKey]: false }));
+                              }
+                            }}
+                            className={`modal-nested-input ${dateErrors[dateErrorKey] ? 'date-error' : ''}`}
+                          />
+                        </div>
+                        <select
+                          value={ext.extensionTerm || '1 год'}
+                          onChange={(e) => updateExtension(idx, 'extensionTerm', e.target.value)}
+                          className="modal-nested-input"
+                        >
+                          {extensionTerms.map(term => (
+                            <option key={term} value={term}>{term}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => removeExtension(idx)}
+                          className="modal-nested-remove"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
                   <button
                     onClick={addExtension}
                     className="modal-nested-add"
@@ -3778,7 +3863,6 @@ const EditableTable = () => {
                   </button>
                 </div>
               );
-          
       case 'Дата приказа о продлении':
               return (
                 <input
@@ -3812,23 +3896,29 @@ const EditableTable = () => {
                     return [];
                   }
                 })();
-              
+
                 const addAllowanceModal = () => {
                   const newAllowances = [...allowancesList, { orderNumber: '', startDate: '', endDate: '' }];
                   handleChange(JSON.stringify(newAllowances));
                 };
-              
+
                 const updateAllowanceModal = (idx, field, val) => {
                   const newAllowances = [...allowancesList];
                   newAllowances[idx] = { ...newAllowances[idx], [field]: val };
                   handleChange(JSON.stringify(newAllowances));
                 };
-              
+
                 const removeAllowanceModal = (idx) => {
                   const newAllowances = allowancesList.filter((_, i) => i !== idx);
                   handleChange(JSON.stringify(newAllowances));
+                  setDateErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[`allowance-start-${idx}`];
+                    delete newErrors[`allowance-end-${idx}`];
+                    return newErrors;
+                  });
                 };
-              
+
                 return (
                   <div className="modal-nested-container">
                     <div className="modal-nested-header">
@@ -3840,37 +3930,59 @@ const EditableTable = () => {
                     {allowancesList.length === 0 && (
                       <div className="nested-empty">Нет записей</div>
                     )}
-                    {allowancesList.map((item, idx) => (
-                      <div key={idx} className="modal-nested-item">
-                        <input
-                          type="text"
-                          placeholder="Номер приказа"
-                          value={item.orderNumber || ''}
-                          onChange={(e) => updateAllowanceModal(idx, 'orderNumber', e.target.value)}
-                          className="modal-nested-input"
-                        />
-                        <input
-                          type="text"
-                          placeholder="ДД.ММ.ГГГГ"
-                          value={formatDateToDisplay(item.startDate)}
-                          onChange={(e) => updateAllowanceModal(idx, 'startDate', e.target.value)}
-                          className="modal-nested-input date-input"
-                        />
-                        <input
-                          type="text"
-                          placeholder="ДД.ММ.ГГГГ"
-                          value={formatDateToDisplay(item.endDate)}
-                          onChange={(e) => updateAllowanceModal(idx, 'endDate', e.target.value)}
-                          className="modal-nested-input date-input"
-                        />
-                        <button
-                          onClick={() => removeAllowanceModal(idx)}
-                          className="modal-nested-remove"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
+                    {allowancesList.map((item, idx) => {
+                      const startErrorKey = `allowance-start-${idx}`;
+                      const endErrorKey = `allowance-end-${idx}`;
+                      return (
+                        <div key={idx} className="modal-nested-item">
+                          <input
+                            type="text"
+                            placeholder="Номер приказа"
+                            value={item.orderNumber || ''}
+                            onChange={(e) => updateAllowanceModal(idx, 'orderNumber', e.target.value)}
+                            className="modal-nested-input"
+                          />
+                          <div style={{ flex: 1 }}>
+                            <input
+                              type="text"
+                              placeholder="ДД.ММ.ГГГГ"
+                              value={formatDateToDisplay(item.startDate)}
+                              onChange={(e) => {
+                                updateAllowanceModal(idx, 'startDate', e.target.value);
+                                if (e.target.value && !isValidDate(e.target.value)) {
+                                  setDateErrors(prev => ({ ...prev, [startErrorKey]: true }));
+                                } else {
+                                  setDateErrors(prev => ({ ...prev, [startErrorKey]: false }));
+                                }
+                              }}
+                              className={`modal-nested-input date-input ${dateErrors[startErrorKey] ? 'date-error' : ''}`}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <input
+                              type="text"
+                              placeholder="ДД.ММ.ГГГГ"
+                              value={formatDateToDisplay(item.endDate)}
+                              onChange={(e) => {
+                                updateAllowanceModal(idx, 'endDate', e.target.value);
+                                if (e.target.value && !isValidDate(e.target.value)) {
+                                  setDateErrors(prev => ({ ...prev, [endErrorKey]: true }));
+                                } else {
+                                  setDateErrors(prev => ({ ...prev, [endErrorKey]: false }));
+                                }
+                              }}
+                              className={`modal-nested-input date-input ${dateErrors[endErrorKey] ? 'date-error' : ''}`}
+                            />
+                          </div>
+                          <button
+                            onClick={() => removeAllowanceModal(idx)}
+                            className="modal-nested-remove"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
                     <button
                       onClick={addAllowanceModal}
                       className="modal-nested-add"
