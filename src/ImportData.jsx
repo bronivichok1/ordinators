@@ -37,14 +37,19 @@ const ImportData = () => {
   };
 
   const detectFileType = (headers) => {
+    // Файл с иностранными ординаторами
     const isForeignFile = headers.some(h => 
       h === 'ФИО на англ.языке' || 
       h === 'вид на жительство' || 
-      h === 'номер паспорта'
+      h === 'номер паспорта' ||
+      h === 'Страна'
     );
+    
+    // Файл с белорусскими ординаторами
     const isBelarusFile = headers.some(h => 
       h === 'номер диплома' || 
-      h === 'идентификационные номера'
+      h === 'идентификационные номера' ||
+      h === 'Ф.И.О.'
     );
     
     if (isForeignFile) return 'foreign';
@@ -52,24 +57,39 @@ const ImportData = () => {
     return 'unknown';
   };
 
-  const parseDate = (dateValue) => {
+  const formatDateToAPI = (dateValue) => {
     if (!dateValue) return null;
+    
     if (typeof dateValue === 'number') {
       const date = new Date(Math.round((dateValue - 25569) * 86400 * 1000));
-      return date;
-    }
-    const dateStr = String(dateValue);
-    const parts = dateStr.split('.');
-    if (parts.length === 3) {
-      const year = parseInt(parts[2]);
-      const month = parseInt(parts[1]) - 1;
-      const day = parseInt(parts[0]);
-      if (year > 1900 && year < 2100 && month >= 0 && month <= 11 && day >= 1 && day <= 31) {
-        return new Date(year, month, day);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
       }
+      return null;
     }
+    
+    const dateStr = String(dateValue).trim();
+    
+    // Формат ДД.ММ.ГГГГ
+    const dotMatch = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (dotMatch) {
+      const [_, day, month, year] = dotMatch;
+      return `${year}-${month}-${day}`;
+    }
+    
+    // Формат ГГГГ-ММ-ДД
+    const dashMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dashMatch) {
+      return dateStr;
+    }
+    
+    // Пробуем стандартный парсинг
     const date = new Date(dateStr);
-    return isNaN(date.getTime()) ? null : date;
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+    
+    return null;
   };
 
   const parseBirthYear = (yearValue) => {
@@ -99,155 +119,114 @@ const ImportData = () => {
       }
     }
     
-    if (universityName === 'БГМУ' || universityName === 'Белорусский государственный медицинский университет') universityName = 'БГМУ';
-    if (universityName === 'ВГМУ' || universityName === 'Витебский государственный медицинский университет') universityName = 'ВГМУ';
-    if (universityName === 'ГомГМУ' || universityName === 'Гомельский государственный медицинский университет') universityName = 'ГомГМУ';
-    if (universityName === 'ГрГМУ' || universityName === 'Гродненский государственный медицинский университет') universityName = 'ГрГМУ';
+    // Нормализация названий вузов
+    const universityMap = {
+      'БГМУ': 'БГМУ',
+      'Белорусский государственный медицинский университет': 'БГМУ',
+      'ВГМУ': 'ВГМУ',
+      'Витебский государственный медицинский университет': 'ВГМУ',
+      'ГомГМУ': 'ГомГМУ',
+      'Гомельский государственный медицинский университет': 'ГомГМУ',
+      'ГрГМУ': 'ГрГМУ',
+      'Гродненский государственный медицинский университет': 'ГрГМУ'
+    };
     
-    return { universityName, graduationYear };
+    return {
+      universityName: universityMap[universityName] || universityName,
+      graduationYear
+    };
   };
 
-  const parseSupervisors = (supervisorStr, additionalSupervisorStr = null) => {
-    const supervisors = [];
+  const formatPreparationForm = (formValue) => {
+    if (!formValue) return JSON.stringify(['очная']);
     
-    if (supervisorStr && String(supervisorStr).trim()) {
-      let supervisorText = String(supervisorStr).trim();
-      
-      const dateMatch = supervisorText.match(/(\d{2}\.\d{2}\.\d{4})/g);
-      let startDate = null;
-      let endDate = null;
-      let name = supervisorText;
-      
-      if (dateMatch && dateMatch.length >= 2) {
-        startDate = parseDate(dateMatch[0]);
-        endDate = parseDate(dateMatch[1]);
-        name = supervisorText.replace(dateMatch[0], '').replace(dateMatch[1], '').trim();
-        if (name.includes('по')) {
-          name = name.split('по')[0].trim();
-        }
-      } else if (dateMatch && dateMatch.length === 1) {
-        startDate = parseDate(dateMatch[0]);
-        name = supervisorText.replace(dateMatch[0], '').trim();
-      }
-      
-      name = name.replace(/^\s*[-–]\s*/, '').trim();
-      
-      if (name) {
-        supervisors.push({
-          supervisorName: name,
-          startDate: startDate,
-          endDate: endDate
-        });
-      }
+    const formStr = String(formValue).toLowerCase();
+    if (formStr.includes('очная') || formStr === 'очно' || formStr === 'оч') {
+      return JSON.stringify(['очная']);
+    }
+    if (formStr.includes('заочная') || formStr === 'заочно') {
+      return JSON.stringify(['заочная']);
+    }
+    if (formStr.includes('платная') || formStr.includes('платно')) {
+      return JSON.stringify(['платно']);
+    }
+    if (formStr.includes('бюджет')) {
+      return JSON.stringify(['за счёт бюджета']);
     }
     
-    if (additionalSupervisorStr && String(additionalSupervisorStr).trim()) {
-      let additionalText = String(additionalSupervisorStr).trim();
-      const dateMatch = additionalText.match(/(\d{2}\.\d{2}\.\d{4})/g);
-      let startDate = null;
-      let endDate = null;
-      let name = additionalText;
-      
-      if (dateMatch && dateMatch.length >= 2) {
-        startDate = parseDate(dateMatch[0]);
-        endDate = parseDate(dateMatch[1]);
-        name = additionalText.replace(dateMatch[0], '').replace(dateMatch[1], '').trim();
-        if (name.includes('по')) {
-          name = name.split('по')[0].trim();
-        }
-      } else if (dateMatch && dateMatch.length === 1) {
-        startDate = parseDate(dateMatch[0]);
-        name = additionalText.replace(dateMatch[0], '').trim();
-      }
-      
-      name = name.replace(/^\s*[-–]\s*/, '').trim();
-      
-      if (name && !supervisors.some(s => s.supervisorName === name)) {
-        supervisors.push({
-          supervisorName: name,
-          startDate: startDate,
-          endDate: endDate
-        });
-      }
-    }
-    
-    return supervisors;
-  };
-
-  const parseCurrentControl = (currentControlValue) => {
-    if (!currentControlValue) return '';
-    const str = String(currentControlValue).trim();
-    if (str === '') return '';
-    
-    const date = parseDate(currentControlValue);
-    if (date && !isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
-    }
-    return str;
+    return JSON.stringify(['очная']);
   };
 
   const normalizeDepartment = (department) => {
     if (!department) return '';
     const dept = String(department).trim();
     
-    if (dept === 'Кафедра акушерства и гинекологии с курсом ПКиП') return 'Кафедра акушерства и гинекологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра акушерства и гинекологии с курсом ПКиПК') return 'Кафедра акушерства и гинекологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра анестезиологии и реаниматологии с курсом ПКиП') return 'Кафедра анестезиологии и реаниматологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра внутренних болезней, гастроэнтерологии и нутрициологии с курсом ПКиП') return 'Кафедра внутренних болезней, гастроэнтерологии и нутрициологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра внутренних болезней, кардиологии и ревматологии с курсом ПКиП') return 'Кафедра внутренних болезней, кардиологии, ревматологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра дерматовенерологии и косметологии с курсом ПКиП') return 'Кафедра дерматовенерологии и косметологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра детских инфекционных болезней с курсом ПКиП') return 'Кафедра детских инфекционных болезней с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра детской хирургии с курсом ПКиП') return 'Кафедра детской хирургии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра инфекционных болезней с курсом ПКиП') return 'Кафедра инфекционных болезней с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра медицинской реабилитации и спортивной медицины с курсом ПКиП') return 'Кафедра медицинской реабилитации и спортивной медицины с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра онкологии с курсом ПКиП') return 'Кафедра онкологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра ортопедической стоматологии и ортодонтии с курсом детской стоматологии') return 'Кафедра ортопедической стоматологии и ортодонтии с курсом детской стоматологии';
-    if (dept === 'Кафедра оториноларингологии с курсом ПКиП') return 'Кафедра оториноларингологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра патологической анатомии и судебной медицины с курсом ПКиП') return 'Кафедра патологической анатомии и судебной медицины с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра психиатрии, наркологии, психотерапии и медицинской психологии с курсом ПКиП') return 'Кафедра психиатрии, наркологии, психотерапии и медицинской психологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра пульмонологии, фтизиатрии, аллергологии и профпатологии с курсом ПКиП') return 'Кафедра пульмонологии, фтизиатрии, аллергологии и профпатологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра травматологии и ортопедии с курсом ПКиП') return 'Кафедра травматологии и ортопедии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра урологии и нефрологии с курсом ПКиПК') return 'Кафедра урологии и нефрологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра хирургии и трансплантологии с курсом ПКиП') return 'Кафедра хирургии и трансплантологии с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра хирургических болезней с курсом ПКиП') return 'Кафедра хирургических болезней с курсом повышения квалификации и переподготовки';
-    if (dept === 'Кафедра челюстно-лицевой хирургии и пластической хирургии лица с курсом ПКиП') return 'Кафедра челюстно-лицевой хирургии и пластической хирургии лица с курсом повышения квалификации и переподготовки';
+    // Сопоставление коротких названий с полными
+    const departmentMap = {
+      'Кафедра акушерства и гинекологии': 'Кафедра акушерства и гинекологии с курсом повышения квалификации и переподготовки',
+      'Кафедра анестезиологии и реаниматологии': 'Кафедра анестезиологии и реаниматологии с курсом повышения квалификации и переподготовки',
+      'Кафедра внутренних болезней': 'Кафедра внутренних болезней, гастроэнтерологии и нутрициологии с курсом повышения квалификации и переподготовки',
+      'Кафедра дерматовенерологии и косметологии': 'Кафедра дерматовенерологии и косметологии с курсом повышения квалификации и переподготовки',
+      'Кафедра детской хирургии': 'Кафедра детской хирургии с курсом повышения квалификации и переподготовки',
+      'Кафедра инфекционных болезней': 'Кафедра инфекционных болезней с курсом повышения квалификации и переподготовки',
+      'Кафедра онкологии': 'Кафедра онкологии с курсом повышения квалификации и переподготовки',
+      'Кафедра оториноларингологии': 'Кафедра оториноларингологии с курсом повышения квалификации и переподготовки',
+      'Кафедра травматологии и ортопедии': 'Кафедра травматологии и ортопедии с курсом повышения квалификации и переподготовки',
+      'Кафедра урологии и нефрологии': 'Кафедра урологии и нефрологии с курсом повышения квалификации и переподготовки',
+      'Кафедра хирургии': 'Кафедра хирургии и трансплантологии с курсом повышения квалификации и переподготовки',
+      'Кафедра хирургических болезней': 'Кафедра хирургических болезней с курсом повышения квалификации и переподготовки',
+      'Кафедра челюстно-лицевой хирургии': 'Кафедра челюстно-лицевой хирургии и пластической хирургии лица с курсом повышения квалификации и переподготовки'
+    };
+    
+    for (const [key, value] of Object.entries(departmentMap)) {
+      if (dept.includes(key) || key.includes(dept)) {
+        return value;
+      }
+    }
     
     return dept;
   };
 
-  const normalizeSpecialtyProfile = (profile) => {
-    if (!profile) return '';
-    const prof = String(profile).trim();
+  const parseSupervisors = (supervisorStr) => {
+    if (!supervisorStr) return [];
     
-    if (prof === 'акушерство') return 'Акушерство и гинекология';
-    if (prof === 'аллергология') return 'Аллергология и иммунология';
-    if (prof === 'анестезиология') return 'Анестезиология и реаниматология';
-    if (prof === 'дерматовенерология') return 'Дерматовенерология и косметология';
-    if (prof === 'гастроэнтерология') return 'Гастроэнтерология';
-    if (prof === 'гематология') return 'Гематология';
-    if (prof === 'кардиология') return 'Кардиология';
-    if (prof === 'кардиохирургия') return 'Кардиохирургия';
-    if (prof === 'неврология') return 'Неврология';
-    if (prof === 'нейрохирургия') return 'Нейрохирургия';
-    if (prof === 'нефрология') return 'Нефрология';
-    if (prof === 'онкология') return 'Онкология';
-    if (prof === 'ортопедия') return 'Травматология и ортопедия';
-    if (prof === 'отоларингология') return 'Оториноларингология';
-    if (prof === 'офтальмология') return 'Офтальмология';
-    if (prof === 'педиатрия') return 'Педиатрия';
-    if (prof === 'пульмонология') return 'Пульмонология';
-    if (prof === 'ревматология') return 'Ревматология';
-    if (prof === 'терапия') return 'Терапия';
-    if (prof === 'урология') return 'Урология';
-    if (prof === 'хирургия') return 'Хирургия';
-    if (prof === 'эндоскопия') return 'Эндоскопия';
-    if (prof === 'эндокринология') return 'Эндокринология';
-    if (prof === 'стом') return 'Стоматология';
-    if (prof === 'хир') return 'Хирургия';
-    if (prof === 'тер') return 'Терапия';
-    if (prof === 'мед-диагн') return 'Клиническая лабораторная диагностика';
+    const supervisorText = String(supervisorStr).trim();
+    if (!supervisorText) return [];
     
-    return prof;
+    const supervisors = [];
+    
+    // Извлекаем имя (до должности или звания)
+    let name = supervisorText;
+    let position = '';
+    let rank = '';
+    
+    // Пытаемся извлечь должность и звание
+    const positionMatch = supervisorText.match(/(доцент|профессор|старший преподаватель|ассистент|зав\. кафедрой)/i);
+    if (positionMatch) {
+      position = positionMatch[0];
+      name = supervisorText.replace(positionMatch[0], '').trim();
+    }
+    
+    const rankMatch = name.match(/(к\.м\.н\.|д\.м\.н\.|PhD)/i);
+    if (rankMatch) {
+      rank = rankMatch[0];
+      name = name.replace(rankMatch[0], '').trim();
+    }
+    
+    // Убираем лишние символы
+    name = name.replace(/^\s*[-–]\s*/, '').trim();
+    
+    if (name) {
+      supervisors.push({
+        supervisorName: name,
+        position: position,
+        rank: rank,
+        startDate: null,
+        endDate: null
+      });
+    }
+    
+    return supervisors;
   };
 
   const parseForeignFile = (rows) => {
@@ -264,9 +243,6 @@ const ImportData = () => {
       enrollmentDate: headers.findIndex(h => h === 'Зачисление'),
       dismissalDate: headers.findIndex(h => h === 'Отчисление'),
       dismissalReason: headers.findIndex(h => h === 'Причина отчисления'),
-      socialLeave: headers.findIndex(h => h === 'Социальный отпуск'),
-      socialLeaveStart: headers.findIndex(h => h === 'Дата начала социального отпуска'),
-      socialLeaveEnd: headers.findIndex(h => h === 'Дата окончания социального отпуска'),
       mobilePhone: headers.findIndex(h => h === 'Моб.тел.'),
       university: headers.findIndex(h => h === 'какой ВВУЗ закончил'),
       department: headers.findIndex(h => h === 'Название кафедры'),
@@ -284,14 +260,11 @@ const ImportData = () => {
       dismissalOrderDate: headers.findIndex(h => h === 'Дата приказа об отчислении'),
       contractInfo: headers.findIndex(h => h === 'Договор, дополнительное соглашение'),
       medicalCertificate: headers.findIndex(h => h === 'мед.спр.'),
-      currentControl: headers.findIndex(h => h === 'Текущий контроль'),
       login: headers.findIndex(h => h === 'ЛОГИН'),
       password: headers.findIndex(h => h === 'ПАРОЛЬ'),
       supervisor: headers.findIndex(h => h === 'руководитель'),
       sessionStart: headers.findIndex(h => h === 'Дата начала сессии(циклов)'),
       sessionEnd: headers.findIndex(h => h === 'Дата окончания сессии(циклов)'),
-      allowanceStartDate: headers.findIndex(h => h === 'Дата установки надбавки'),
-      allowanceEndDate: headers.findIndex(h => h === 'Дата окончания надбавки'),
       rivshCertificate: headers.findIndex(h => h === 'РИВШ'),
       entryByInvitation: headers.findIndex(h => h === 'Въезд по приглашению'),
       distributionInfo: headers.findIndex(h => h === 'Распределение клинических ординаторов'),
@@ -315,7 +288,7 @@ const ImportData = () => {
       const { universityName, graduationYear } = parseUniversityAndYear(row[colIndex.university]);
 
       let department = normalizeDepartment(row[colIndex.department]);
-      let specialtyProfile = normalizeSpecialtyProfile(row[colIndex.specialtyProfile]);
+      let specialtyProfile = row[colIndex.specialtyProfile] || '';
       let specialty = row[colIndex.specialty] || '';
 
       let livingAddress = row[colIndex.livingAddress] || '';
@@ -334,63 +307,50 @@ const ImportData = () => {
       if (docValue.includes('иностран') || docValue.includes('иг')) identityDocument = 'паспорт ИГ';
       if (docValue.includes('вид')) identityDocument = 'вид на жительство';
 
+      // Форма подготовки (по умолчанию очная)
+      const preparationForm = formatPreparationForm('очная');
+
       const supervisors = parseSupervisors(row[colIndex.supervisor]);
 
-      let socialLeaves = [];
-      const socialLeaveValue = row[colIndex.socialLeave];
-      const socialLeaveStart = row[colIndex.socialLeaveStart];
-      const socialLeaveEnd = row[colIndex.socialLeaveEnd];
-      
-      if (socialLeaveValue || socialLeaveStart || socialLeaveEnd) {
-        socialLeaves = [{
-          startDate: parseDate(socialLeaveStart),
-          endDate: parseDate(socialLeaveEnd),
-          reason: socialLeaveValue || ''
-        }];
-      }
-
-      const currentControlValue = parseCurrentControl(row[colIndex.currentControl]);
-
       const ordinator = {
-        fio: row[colIndex.fio] || '',
-        fioEn: row[colIndex.fioEn] || '',
+        fio: String(row[colIndex.fio] || ''),
+        fioEn: String(row[colIndex.fioEn] || ''),
         birthYear: parseBirthYear(row[colIndex.birthYear]),
         gender: gender,
-        country: row[colIndex.country] || '',
-        enrollmentDate: parseDate(row[colIndex.enrollmentDate]),
-        dismissalDate: parseDate(row[colIndex.dismissalDate]),
-        dismissalReason: row[colIndex.dismissalReason] || '',
-        socialLeaves: socialLeaves,
+        country: String(row[colIndex.country] || 'Беларусь'),
+        enrollmentDate: formatDateToAPI(row[colIndex.enrollmentDate]),
+        dismissalDate: formatDateToAPI(row[colIndex.dismissalDate]),
+        dismissalReason: String(row[colIndex.dismissalReason] || ''),
+        socialLeaves: [],
         mobilePhone: String(row[colIndex.mobilePhone] || ''),
         universityName: universityName,
         graduationYear: graduationYear,
         department: department,
         specialtyProfile: specialtyProfile,
         specialty: specialty,
-        preparationForm: '',
+        preparationForm: preparationForm,
         identityDocument: identityDocument,
-        documentNumber: row[colIndex.documentNumber] || '',
-        identNumber: row[colIndex.identNumber] || '',
+        documentNumber: String(row[colIndex.documentNumber] || ''),
+        identNumber: String(row[colIndex.identNumber] || ''),
         residenceAddress: residenceAddress,
         livingAddress: livingAddress,
-        registrationExpiry: parseDate(row[colIndex.registrationExpiry]),
-        enrollmentOrderNumber: row[colIndex.enrollmentOrderNumber] || '',
-        enrollmentOrderDate: parseDate(row[colIndex.enrollmentOrderDate]),
-        dismissalOrderNumber: row[colIndex.dismissalOrderNumber] || '',
-        dismissalOrderDate: parseDate(row[colIndex.dismissalOrderDate]),
-        contractInfo: row[colIndex.contractInfo] || '',
+        registrationExpiry: formatDateToAPI(row[colIndex.registrationExpiry]),
+        enrollmentOrderNumber: String(row[colIndex.enrollmentOrderNumber] || ''),
+        enrollmentOrderDate: formatDateToAPI(row[colIndex.enrollmentOrderDate]),
+        dismissalOrderNumber: String(row[colIndex.dismissalOrderNumber] || ''),
+        dismissalOrderDate: formatDateToAPI(row[colIndex.dismissalOrderDate]),
+        contractInfo: String(row[colIndex.contractInfo] || ''),
         medicalCertificate: medicalCertificate,
-        currentControl: currentControlValue,
-        login: row[colIndex.login] || '',
+        currentControl: null,
+        login: String(row[colIndex.login] || ''),
         password: String(row[colIndex.password] || ''),
         supervisors: supervisors,
-        sessionStart: parseDate(row[colIndex.sessionStart]),
-        sessionEnd: parseDate(row[colIndex.sessionEnd]),
-        allowanceStartDate: parseDate(row[colIndex.allowanceStartDate]),
-        allowanceEndDate: parseDate(row[colIndex.allowanceEndDate]),
+        sessionStart: formatDateToAPI(row[colIndex.sessionStart]),
+        sessionEnd: formatDateToAPI(row[colIndex.sessionEnd]),
+        allowances: [],
         rivshCertificate: rivshCertificate,
-        entryByInvitation: row[colIndex.entryByInvitation] || 'нет',
-        distributionInfo: row[colIndex.distributionInfo] || '',
+        entryByInvitation: String(row[colIndex.entryByInvitation] || 'нет'),
+        distributionInfo: String(row[colIndex.distributionInfo] || ''),
       };
 
       if (ordinator.fio || ordinator.fioEn) {
@@ -421,6 +381,7 @@ const ImportData = () => {
       currentControl: headers.findIndex(h => h === 'Текущий контроль'),
       login: headers.findIndex(h => h === 'ЛОГИН'),
       password: headers.findIndex(h => h === 'ПАРОЛЬ'),
+      preparationForm: headers.findIndex(h => h === 'форма обучения'),
     };
 
     for (const row of dataRows) {
@@ -432,19 +393,19 @@ const ImportData = () => {
 
       let department = normalizeDepartment(row[colIndex.department]);
       let specialty = row[colIndex.specialty] || '';
+      
+      const preparationForm = formatPreparationForm(row[colIndex.preparationForm]);
 
       const supervisors = parseSupervisors(row[colIndex.supervisor]);
 
-      const currentControlValue = parseCurrentControl(row[colIndex.currentControl]);
-
       const ordinator = {
-        fio: row[colIndex.fio] || '',
+        fio: String(row[colIndex.fio] || ''),
         fioEn: '',
         birthYear: null,
         gender: gender,
         country: 'Беларусь',
-        enrollmentDate: parseDate(row[colIndex.enrollmentDate]),
-        dismissalDate: parseDate(row[colIndex.dismissalDate]),
+        enrollmentDate: formatDateToAPI(row[colIndex.enrollmentDate]),
+        dismissalDate: formatDateToAPI(row[colIndex.dismissalDate]),
         dismissalReason: '',
         socialLeaves: [],
         mobilePhone: String(row[colIndex.mobilePhone] || ''),
@@ -453,12 +414,12 @@ const ImportData = () => {
         department: department,
         specialtyProfile: '',
         specialty: specialty,
-        preparationForm: '',
+        preparationForm: preparationForm,
         identityDocument: 'паспорт',
-        documentNumber: row[colIndex.diplomaNumber] || '',
-        identNumber: row[colIndex.identNumber] || '',
+        documentNumber: String(row[colIndex.diplomaNumber] || ''),
+        identNumber: String(row[colIndex.identNumber] || ''),
         residenceAddress: 'общежитие',
-        livingAddress: row[colIndex.livingAddress] || '',
+        livingAddress: String(row[colIndex.livingAddress] || ''),
         registrationExpiry: null,
         enrollmentOrderNumber: '',
         enrollmentOrderDate: null,
@@ -466,14 +427,13 @@ const ImportData = () => {
         dismissalOrderDate: null,
         contractInfo: '',
         medicalCertificate: 'есть',
-        currentControl: currentControlValue,
-        login: row[colIndex.login] || '',
+        currentControl: null,
+        login: String(row[colIndex.login] || ''),
         password: String(row[colIndex.password] || ''),
         supervisors: supervisors,
         sessionStart: null,
         sessionEnd: null,
-        allowanceStartDate: null,
-        allowanceEndDate: null,
+        allowances: [],
         rivshCertificate: 'нет',
         entryByInvitation: 'нет',
         distributionInfo: '',
@@ -495,59 +455,72 @@ const ImportData = () => {
       setProgress({
         current: i + 1,
         total: ordinators.length,
-        status: `Обработка: ${ordinator.fio || ordinator.fioEn || `запись ${i + 1}`}`
+        status: `Обработка: ${ordinator.fio || `запись ${i + 1}`}`
       });
 
       try {
         const token = localStorage.getItem('auth_token');
         
-        const ordinatorData = {
-          fio: String(ordinator.fio || ''),
-          fioEn: String(ordinator.fioEn || ''),
-          birthYear: ordinator.birthYear || null,
-          gender: String(ordinator.gender || 'М'),
-          country: String(ordinator.country || 'Беларусь'),
-          enrollmentDate: ordinator.enrollmentDate ? ordinator.enrollmentDate.toISOString().split('T')[0] : null,
-          dismissalDate: ordinator.dismissalDate ? ordinator.dismissalDate.toISOString().split('T')[0] : null,
-          dismissalReason: String(ordinator.dismissalReason || ''),
-          socialLeaves: ordinator.socialLeaves || [],
-          mobilePhone: String(ordinator.mobilePhone || ''),
-          universityName: String(ordinator.universityName || 'БГМУ'),
-          graduationYear: ordinator.graduationYear ? String(ordinator.graduationYear) : null,
-          department: String(ordinator.department || ''),
-          specialtyProfile: String(ordinator.specialtyProfile || ''),
-          specialty: String(ordinator.specialty || ''),
-          preparationForm: ordinator.preparationForm || '',
-          identityDocument: String(ordinator.identityDocument || 'паспорт'),
-          documentNumber: String(ordinator.documentNumber || ''),
-          identNumber: String(ordinator.identNumber || ''),
-          residenceAddress: String(ordinator.residenceAddress || 'общежитие'),
-          livingAddress: String(ordinator.livingAddress || ''),
-          registrationExpiry: ordinator.registrationExpiry ? ordinator.registrationExpiry.toISOString().split('T')[0] : null,
-          enrollmentOrderNumber: String(ordinator.enrollmentOrderNumber || ''),
-          enrollmentOrderDate: ordinator.enrollmentOrderDate ? ordinator.enrollmentOrderDate.toISOString().split('T')[0] : null,
-          dismissalOrderNumber: String(ordinator.dismissalOrderNumber || ''),
-          dismissalOrderDate: ordinator.dismissalOrderDate ? ordinator.dismissalOrderDate.toISOString().split('T')[0] : null,
-          contractInfo: String(ordinator.contractInfo || ''),
-          medicalCertificate: String(ordinator.medicalCertificate || 'есть'),
-          scores: String(ordinator.currentControl || ''),
-          login: String(ordinator.login || ''),
-          password: String(ordinator.password || ''),
-          supervisors: ordinator.supervisors || [],
-          sessionStart: ordinator.sessionStart ? ordinator.sessionStart.toISOString().split('T')[0] : null,
-          sessionEnd: ordinator.sessionEnd ? ordinator.sessionEnd.toISOString().split('T')[0] : null,
-          allowanceStartDate: ordinator.allowanceStartDate ? ordinator.allowanceStartDate.toISOString().split('T')[0] : null,
-          allowanceEndDate: ordinator.allowanceEndDate ? ordinator.allowanceEndDate.toISOString().split('T')[0] : null,
-          rivshCertificate: String(ordinator.rivshCertificate || 'нет'),
-          entryByInvitation: String(ordinator.entryByInvitation || 'нет'),
-          distributionInfo: String(ordinator.distributionInfo || ''),
+        const apiData = {
+          fio: ordinator.fio,
+          fioEn: ordinator.fioEn,
+          birthYear: ordinator.birthYear ? `${ordinator.birthYear}-01-01` : null,
+          gender: ordinator.gender,
+          country: ordinator.country,
+          enrollmentDate: ordinator.enrollmentDate,
+          dismissalDate: ordinator.dismissalDate,
+          dismissalReason: ordinator.dismissalReason,
+          socialLeaves: ordinator.socialLeaves,
+          mobilePhone: ordinator.mobilePhone,
+          university: {
+            name: ordinator.universityName,
+            graduationYear: ordinator.graduationYear ? `${ordinator.graduationYear}-01-01` : null,
+            department: ordinator.department,
+            specialtyProfile: ordinator.specialtyProfile,
+            specialty: ordinator.specialty,
+            preparationForm: ordinator.preparationForm
+          },
+          identityDocument: ordinator.identityDocument,
+          documentNumber: ordinator.documentNumber,
+          identNumber: ordinator.identNumber,
+          residenceAddress: ordinator.residenceAddress,
+          livingAddress: ordinator.livingAddress,
+          registrationExpiry: ordinator.registrationExpiry,
+          enrollmentOrderNumber: ordinator.enrollmentOrderNumber,
+          enrollmentOrderDate: ordinator.enrollmentOrderDate,
+          dismissalOrderNumber: ordinator.dismissalOrderNumber,
+          dismissalOrderDate: ordinator.dismissalOrderDate,
+          extensions: [],
+          contractInfo: ordinator.contractInfo,
+          medicalCertificate: ordinator.medicalCertificate,
+          currentControl: ordinator.currentControl ? { scores: ordinator.currentControl } : null,
+          login: ordinator.login,
+          password: ordinator.password,
+          supervisors: ordinator.supervisors,
+          session: (ordinator.sessionStart || ordinator.sessionEnd) ? {
+            sessionStart: ordinator.sessionStart,
+            sessionEnd: ordinator.sessionEnd
+          } : null,
+          allowances: ordinator.allowances,
+          rivshCertificate: ordinator.rivshCertificate,
+          entryByInvitation: ordinator.entryByInvitation,
+          distributionInfo: ordinator.distributionInfo
         };
 
-        Object.keys(ordinatorData).forEach(key => {
-          if (ordinatorData[key] === null || ordinatorData[key] === undefined) {
-            delete ordinatorData[key];
+        // Удаляем null и undefined поля
+        Object.keys(apiData).forEach(key => {
+          if (apiData[key] === null || apiData[key] === undefined) {
+            delete apiData[key];
           }
         });
+        
+        if (apiData.university) {
+          Object.keys(apiData.university).forEach(key => {
+            if (apiData.university[key] === null || apiData.university[key] === undefined) {
+              delete apiData.university[key];
+            }
+          });
+        }
 
         const response = await fetch(`${API_URL}/ordinators`, {
           method: 'POST',
@@ -555,7 +528,7 @@ const ImportData = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(ordinatorData)
+          body: JSON.stringify(apiData)
         });
 
         if (response.ok) {
@@ -564,14 +537,14 @@ const ImportData = () => {
           const errorData = await response.json().catch(() => ({}));
           errorCount++;
           errors.push({
-            name: ordinator.fio || ordinator.fioEn || `запись ${i + 1}`,
+            name: ordinator.fio || `запись ${i + 1}`,
             error: errorData.message || `HTTP ${response.status}`
           });
         }
       } catch (error) {
         errorCount++;
         errors.push({
-          name: ordinator.fio || ordinator.fioEn || `запись ${i + 1}`,
+          name: ordinator.fio || `запись ${i + 1}`,
           error: error.message
         });
       }
