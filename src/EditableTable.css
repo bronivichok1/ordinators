@@ -1062,6 +1062,7 @@
     color: #666;
     font-size: 14px;
     border: 1px solid #e0e0e0;
+    min-height: 16px;
   }
   
   .checkbox-group {
@@ -2010,4 +2011,54 @@
 
 .modal-nested-select-wrapper .react-select__option--is-selected {
   background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+}
+
+.editable-table td.action-cell {
+  border-left: none;
+  border-bottom: none;
+  border-top: 1px solid #e0e0e0;
+  border-right: 1px solid #e0e0e0;
+}
+
+.readonly-nested-container {
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.readonly-nested-item {
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.readonly-nested-item:last-child {
+  margin-bottom: 0;
+}
+
+.readonly-nested-line {
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.readonly-nested-line strong {
+  font-weight: 600;
+  color: #333;
+  min-width: 120px;
+  display: inline-block;
+}
+
+.nested-separator {
+  margin: 8px 0;
+  border: 0;
+  border-top: 1px solid #e0e0e0;
+}
+
+.readonly-field {
+  padding: 8px 12px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  color: #666;
+  line-height: 1.4;
 }
