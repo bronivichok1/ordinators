@@ -156,6 +156,20 @@ const EditableTable = () => {
     return true;
   };
 
+  const formatYearFromDate = (dateString) => {
+    if (!dateString) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString.split('-')[0];
+    }
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateString)) {
+      return dateString.split('.')[2];
+    }
+    if (/^\d{4}$/.test(dateString)) {
+      return dateString;
+    }
+    return dateString;
+  };
+
   useEffect(() => {
     const allColumns = new Set();
     const initialVisible = new Set();
@@ -256,6 +270,7 @@ const EditableTable = () => {
       case 'Руководители':
         return 'nested-supervisors';
       case 'Год рождения':
+        return 'date';
       case 'Дата зачисления':
       case 'Дата отчисления':
       case 'Дата приказа о зачислении':
@@ -933,7 +948,7 @@ const EditableTable = () => {
       const row = {};
       row.column1 = ordinator.fio || '';
       row.column2 = ordinator.fioEn || '';
-      row.column3 = formatDateToDisplay(ordinator.birthYear) || '';
+      row.column3 = formatYearFromDate(ordinator.birthYear) || '';
       row.column4 = ordinator.gender || 'М';
       row.column5 = ordinator.country || '';
       row.column6 = formatDateToDisplay(ordinator.enrollmentDate) || '';
@@ -1126,7 +1141,7 @@ const EditableTable = () => {
     const apiData = {
       fio: tableData.column1 || '',
       fioEn: tableData.column2 || '',
-      birthYear: tableData.column3 || null,
+      birthYear: tableData.column3 ? new Date(Date.UTC(parseInt(tableData.column3), 0, 1)) : null,
       gender: tableData.column4 || 'М',
       country: tableData.column5 || 'Беларусь',
       enrollmentDate: formatDateToAPI(tableData.column6),
@@ -1508,14 +1523,18 @@ const EditableTable = () => {
       if (rowIndex === -1) return;
 
       let valueToSave = editValue;
-    
-      if (fieldType === 'date' && valueToSave) {
+
+      if (fieldType === 'date' && valueToSave && editingCell.columnNumber !== 3) {
         valueToSave = formatDateToAPI(valueToSave);
       }
 
       const updatedRow = { ...data[rowIndex] };
-      updatedRow[column] = editValue;
-      
+      let valueToDisplay = editValue;
+      if (editingCell.columnNumber === 3 && editValue && typeof editValue === 'string' && editValue.includes('-')) {
+        valueToDisplay = editValue.split('-')[0];
+      }
+      updatedRow[column] = valueToDisplay;
+
       const updatedData = [...data];
       updatedData[rowIndex] = updatedRow;
       setData(updatedData);
@@ -1696,6 +1715,32 @@ const EditableTable = () => {
 
       switch(fieldType) {
         case 'date':
+          if (columnNumber === 3) {
+            let yearDisplay = editValue;
+            if (editValue && typeof editValue === 'string') {
+              if (editValue.includes('-')) {
+                yearDisplay = editValue.split('-')[0];
+              } else if (editValue.includes('.')) {
+                yearDisplay = editValue.split('.')[2];
+              }
+            }
+            return (
+              <input
+                ref={selectRef}
+                type="text"
+                value={yearDisplay}
+                onChange={(e) => {
+                  const year = e.target.value.replace(/\D/g, '').slice(0, 4);
+                  const fullDate = year ? `${year}-01-01` : '';
+                  setEditValue(fullDate);
+                }}
+                onKeyDown={handleKeyDown}
+                className="inline-input"
+                placeholder="ГГГГ"
+                maxLength="4"
+              />
+            );
+          }
           const displayDate = (() => {
             if (!editValue) return '';
             if (/^\d{2}\.\d{2}\.\d{4}$/.test(editValue)) return editValue;
@@ -3992,6 +4037,26 @@ const EditableTable = () => {
                   </div>
                 );
       case 'Год рождения':
+                  let yearOnly = value;
+                  if (value && typeof value === 'string' && value.includes('-')) {
+                    yearOnly = value.split('-')[0];
+                  } else if (value && typeof value === 'string' && value.includes('.')) {
+                    yearOnly = value.split('.')[2];
+                  }
+                  return (
+                    <input
+                      type="text"
+                      value={yearOnly || ''}
+                      onChange={(e) => {
+                        const year = e.target.value.replace(/\D/g, '').slice(0, 4);
+                        const fullDate = year ? `${year}-01-01` : '';
+                        handleChange(fullDate);
+                      }}
+                      className="modal-input"
+                      maxLength="4"
+                      placeholder="ГГГГ"
+                    />
+                  );
       case 'Дата зачисления':
       case 'Дата отчисления':
       case 'Дата приказа о зачислении':
