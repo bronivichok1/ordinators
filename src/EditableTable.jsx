@@ -14,7 +14,8 @@ import {
   X,
   FileSignature,
   Plus,
-  Trash2
+  Trash2,
+  HelpCircle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -1252,6 +1253,11 @@ const EditableTable = () => {
     navigate('/');
   };
 
+  const goToInstruction = () => {
+    navigate('/instruction');
+  };
+
+   
   const addSocialLeave = (rowId) => {
     const rowIndex = data.findIndex(row => row.id === rowId);
     if (rowIndex === -1) return;
@@ -4705,7 +4711,15 @@ const EditableTable = () => {
           </div>
         </div>
       )}
+      <button 
+  className="floating-help-button"
+  onClick={goToInstruction}
+  title="Открыть инструкцию"
+>
+  <HelpCircle size={24} />
+</button>
     </div>
+
   );
 };
 

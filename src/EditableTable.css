@@ -1950,3 +1950,31 @@
     cursor: not-allowed;
     transform: none;
   }
+
+  .floating-help-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    transition: all 0.3s ease;
+    z-index: 1000;
+  }
+  
+  .floating-help-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+  }
+  
+  .floating-help-button:active {
+    transform: scale(0.95);
+  }
