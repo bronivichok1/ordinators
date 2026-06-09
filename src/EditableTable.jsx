@@ -1211,7 +1211,7 @@ const EditableTable = () => {
 
   const canEditTable = () => {
     if (!userData) return false;
-    return ['admin', 'dispatcher', 'passportist'].includes(userData.role);
+    return ['admin', 'dispatcher'].includes(userData.role);
   };
   
   const canCreateRow = () => {
@@ -1232,6 +1232,21 @@ const EditableTable = () => {
   const canViewTable = () => {
     if (!userData) return false;
     return ['admin', 'dispatcher', 'passportist', 'supervisor'].includes(userData.role);
+  };
+  
+  const canExport = () => {
+    if (!userData) return false;
+    return ['admin', 'dispatcher', 'passportist', 'supervisor'].includes(userData.role);
+  };
+  
+  const canGenerateCertificates = () => {
+    if (!userData) return false;
+    return ['admin', 'dispatcher'].includes(userData.role);
+  };
+  
+  const canViewAdminPanel = () => {
+    if (!userData) return false;
+    return ['admin', 'dispatcher'].includes(userData.role);
   };
 
   const handleLogout = async () => {
@@ -1443,15 +1458,31 @@ const EditableTable = () => {
       alert('У вас нет прав для редактирования');
       return;
     }
-
+  
     const columnNumber = parseInt(column.replace('column', ''));
+    const fieldName = ColumnName[columnNumber];
+    
+    if (userData?.role === 'passportist') {
+      const allowedFieldsForPassportist = [
+        'Срок окончания регистрации',
+        'Документ, удостоверяющий личность',
+        'Идентификационный номер',
+        'Номер документа'
+      ];
+      
+      if (!allowedFieldsForPassportist.includes(fieldName)) {
+        alert('У вас нет прав для редактирования этого поля. Паспортист может редактировать только: Срок окончания регистрации, Документ, удостоверяющий личность, Идентификационный номер, Номер документа.');
+        return;
+      }
+    }
+    
     const fieldType = getFieldType(columnNumber);
     
     let displayValue = currentValue;
     if (column === 'column16') {
       displayValue = formatPreparationForm(currentValue);
     }
-
+  
     setEditingCell({
       rowId,
       column,
@@ -1752,12 +1783,15 @@ const EditableTable = () => {
   };
 
   const NestedSocialLeaveRenderer = ({ rowId, value }) => {
+
     const [editingLeaves, setEditingLeaves] = useState([]);
     const [hasChanges, setHasChanges] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [originalLeaves, setOriginalLeaves] = useState([]);
     const [socialLeaveOptions, setSocialLeaveOptions] = useState([]);
     const [dateErrors, setDateErrors] = useState({});
+
+    const canEditNested = userData?.role === 'admin' || userData?.role === 'dispatcher';
 
     useEffect(() => {
       loadSocialLeaveOptions();
@@ -1939,10 +1973,12 @@ const EditableTable = () => {
       return (
         <div className="nested-cell">
           <div className="nested-empty">Нет записей</div>
+          {canEditNested && (
           <button onClick={addLeave} className="nested-add-btn">
             <Plus size={14} />
             <span>Добавить период</span>
           </button>
+        )}
         </div>
       );
     }
@@ -1961,6 +1997,7 @@ const EditableTable = () => {
                 placeholder="Дата начала"
                 value={leave?.startDate ? formatDateToDisplay(leave.startDate) : ''}
                 onChange={(e) => updateLeave(originalIdx, 'startDate', e.target.value)}
+                readOnly={!canEditNested}
               />
               <input
                 type="text"
@@ -1968,37 +2005,42 @@ const EditableTable = () => {
                 placeholder="Дата окончания"
                 value={leave?.endDate ? formatDateToDisplay(leave.endDate) : ''}
                 onChange={(e) => updateLeave(originalIdx, 'endDate', e.target.value)}
+                readOnly={!canEditNested}
               />
-                <div className="nested-select-wrapper">
-                  <CreatableSelect
-                    options={options}
-                    value={leave?.reason ? { value: leave.reason, label: leave.reason } : null}
-                    onChange={(option) => {
-                      if (option) {
-                        updateLeave(originalIdx, 'reason', option.value);
-                      } else {
-                        updateLeave(originalIdx, 'reason', '');
-                      }
-                    }}
-                    isClearable
-                    placeholder="Причина"
-                    noOptionsMessage={() => "Нет вариантов, введите свою причину"}
-                    formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
-                    onCreateOption={(inputValue) => {
-                      addCustomSocialLeaveOption(inputValue);
-                      updateLeave(originalIdx, 'reason', inputValue);
-                    }}
-                    className="react-select-nested"
-                    classNamePrefix="react-select-nested"
-                    menuPortalTarget={document.body}
-                    styles={{
-                      menuPortal: base => ({ ...base, zIndex: 9999 }),
-                    }}
-                  />
-                </div>
-                <button onClick={() => removeLeave(originalIdx)} className="nested-remove-btn">
-                  <Trash2 size={14} />
-                </button>
+                {canEditNested ? (
+                  <div className="nested-select-wrapper">
+                    <CreatableSelect
+                      options={options}
+                      value={leave?.reason ? { value: leave.reason, label: leave.reason } : null}
+                      onChange={(option) => {
+                        if (option) {
+                          updateLeave(originalIdx, 'reason', option.value);
+                        } else {
+                          updateLeave(originalIdx, 'reason', '');
+                        }
+                      }}
+                      isClearable
+                      placeholder="Причина"
+                      noOptionsMessage={() => "Нет вариантов, введите свою причину"}
+                      formatCreateLabel={(inputValue) => `Создать "${inputValue}"`}
+                      onCreateOption={(inputValue) => {
+                        addCustomSocialLeaveOption(inputValue);
+                        updateLeave(originalIdx, 'reason', inputValue);
+                      }}
+                      className="react-select-nested"
+                      classNamePrefix="react-select-nested"
+                      menuPortalTarget={document.body}
+                      styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                    />
+                  </div>
+                ) : (
+                  <div className="nested-select-wrapper readonly-value">{leave?.reason || '—'}</div>
+                )}
+                {canEditNested && (
+                  <button onClick={() => removeLeave(originalIdx)} className="nested-remove-btn">
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -2011,21 +2053,21 @@ const EditableTable = () => {
             </button>
           )}
           
-          {(editingLeaves.length <= 1 || isExpanded) && (
+          {canEditNested && (editingLeaves.length <= 1 || isExpanded) && (
             <button onClick={addLeave} className="nested-add-btn">
               <Plus size={14} />
               <span>Добавить период</span>
             </button>
           )}
           
-          {hasChanges && (
+          {canEditNested && hasChanges && (
             <button 
-            onClick={saveChanges} 
-            className="nested-save-btn"
-            disabled={Object.values(dateErrors).some(error => error === true)}
-          >
-            💾 Сохранить
-          </button>
+              onClick={saveChanges} 
+              className="nested-save-btn"
+              disabled={Object.values(dateErrors).some(error => error === true)}
+            >
+              💾 Сохранить
+            </button>
           )}
         </div>
       </div>
@@ -2033,6 +2075,9 @@ const EditableTable = () => {
   };
   
   const ExtensionsRenderer = ({ rowId, value }) => {
+
+    const canEdit = userData?.role === 'admin' || userData?.role === 'dispatcher';
+    
     const [editingExtensions, setEditingExtensions] = useState([]);
     const [hasChanges, setHasChanges] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -2168,15 +2213,19 @@ const EditableTable = () => {
     const extensionTerms = ['1 год', '2 года', '3 года'];
   
     if (editingExtensions.length === 0) {
-      return (
-        <div className="nested-cell">
-          <div className="nested-empty">Нет записей о продлении</div>
-          <button onClick={addExtension} className="nested-add-btn">
-            <Plus size={14} />
-            <span>Добавить продление</span>
-          </button>
-        </div>
-      );
+      if (editingExtensions.length === 0) {
+        return (
+          <div className="nested-cell">
+            <div className="nested-empty">Нет записей о продлении</div>
+            {canEdit && (
+              <button onClick={addExtension} className="nested-add-btn">
+                <Plus size={14} />
+                <span>Добавить продление</span>
+              </button>
+            )}
+          </div>
+        );
+      }
     }
   
     return (
@@ -2192,6 +2241,7 @@ const EditableTable = () => {
                   placeholder="Номер приказа"
                   value={ext?.orderNumber || ''}
                   onChange={(e) => updateExtension(originalIdx, 'orderNumber', e.target.value)}
+                  readOnly={!canEdit}
                 />
                 <input
                 type="text"
@@ -2199,19 +2249,23 @@ const EditableTable = () => {
                 placeholder="Дата приказа"
                 value={ext?.orderDate ? formatDateToDisplay(ext.orderDate) : ''}
                 onChange={(e) => updateExtension(originalIdx, 'orderDate', e.target.value)}
+                readOnly={!canEdit}
               />
                 <select
                   className="nested-term-select"
                   value={ext?.extensionTerm || '1 год'}
                   onChange={(e) => updateExtension(originalIdx, 'extensionTerm', e.target.value)}
+                  disabled={!canEdit}
                 >
                   {extensionTerms.map(term => (
                     <option key={term} value={term}>{term}</option>
                   ))}
                 </select>
-                <button onClick={() => removeExtension(originalIdx)} className="nested-remove-btn">
-                  <Trash2 size={14} />
-                </button>
+                {canEdit && (
+                  <button onClick={() => removeExtension(originalIdx)} className="nested-remove-btn">
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -2224,21 +2278,17 @@ const EditableTable = () => {
             </button>
           )}
           
-          {(editingExtensions.length <= 1 || isExpanded) && (
+          {canEdit && (editingExtensions.length <= 1 || isExpanded) && (
             <button onClick={addExtension} className="nested-add-btn">
               <Plus size={14} />
               <span>Добавить продление</span>
             </button>
           )}
-          
-          {hasChanges && (
-            <button 
-            onClick={saveChanges} 
-            className="nested-save-btn"
-            disabled={Object.values(dateErrors).some(error => error === true)}
-          >
-            💾 Сохранить
-          </button>
+
+          {canEdit && hasChanges && (
+            <button onClick={saveChanges} className="nested-save-btn">
+              💾 Сохранить
+            </button>
           )}
         </div>
       </div>
@@ -2251,6 +2301,8 @@ const EditableTable = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [originalAllowances, setOriginalAllowances] = useState([]);
     const [dateErrors, setDateErrors] = useState({});
+
+    const canEdit = userData?.role === 'admin' || userData?.role === 'dispatcher';
 
     useEffect(() => {
       try {
@@ -2383,10 +2435,12 @@ const EditableTable = () => {
       return (
         <div className="nested-cell">
           <div className="nested-empty">Нет записей о надбавках</div>
-          <button onClick={addAllowance} className="nested-add-btn">
-            <Plus size={14} />
-            <span>Добавить надбавку</span>
-          </button>
+          {canEdit && (
+            <button onClick={addAllowance} className="nested-add-btn">
+              <Plus size={14} />
+              <span>Добавить надбавку</span>
+            </button>
+          )}
         </div>
       );
     }
@@ -2404,6 +2458,7 @@ const EditableTable = () => {
                   placeholder="Номер приказа"
                   value={item?.orderNumber || ''}
                   onChange={(e) => updateAllowance(originalIdx, 'orderNumber', e.target.value)}
+                  readOnly={!canEdit}
                 />
                 <input
                 type="text"
@@ -2411,6 +2466,7 @@ const EditableTable = () => {
                 placeholder="Дата начала"
                 value={item?.startDate ? formatDateToDisplay(item.startDate) : ''}
                 onChange={(e) => updateAllowance(originalIdx, 'startDate', e.target.value)}
+                readOnly={!canEdit}
               />
               <input
                 type="text"
@@ -2418,10 +2474,13 @@ const EditableTable = () => {
                 placeholder="Дата окончания"
                 value={item?.endDate ? formatDateToDisplay(item.endDate) : ''}
                 onChange={(e) => updateAllowance(originalIdx, 'endDate', e.target.value)}
+                readOnly={!canEdit}
               />
-                <button onClick={() => removeAllowance(originalIdx)} className="nested-remove-btn">
-                  <Trash2 size={14} />
-                </button>
+                {canEdit && (
+                  <button onClick={() => removeAllowance(originalIdx)} className="nested-remove-btn">
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -2434,21 +2493,17 @@ const EditableTable = () => {
             </button>
           )}
           
-          {(editingAllowances.length <= 1 || isExpanded) && (
+          {canEdit && (editingAllowances.length <= 1 || isExpanded) && (
             <button onClick={addAllowance} className="nested-add-btn">
               <Plus size={14} />
               <span>Добавить надбавку</span>
             </button>
           )}
           
-          {hasChanges && (
-            <button 
-            onClick={saveChanges} 
-            className="nested-save-btn"
-            disabled={Object.values(dateErrors).some(error => error === true)}
-          >
-            💾 Сохранить
-          </button>
+          {canEdit && hasChanges && (
+            <button onClick={saveChanges} className="nested-save-btn">
+              💾 Сохранить
+            </button>
           )}
         </div>
       </div>
@@ -2535,6 +2590,9 @@ const EditableTable = () => {
   };
 
   const NestedSupervisorsRenderer = ({ rowId, value }) => {
+
+    const canEdit = userData?.role === 'admin' || userData?.role === 'dispatcher';
+
     const [editingSupervisors, setEditingSupervisors] = useState([]);
     const [hasChanges, setHasChanges] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -2672,10 +2730,12 @@ const EditableTable = () => {
       return (
         <div className="nested-cell">
           <div className="nested-empty">Нет записей</div>
-          <button onClick={addSupervisor} className="nested-add-btn">
-            <Plus size={14} />
-            <span>Добавить руководителя</span>
-          </button>
+          {canEdit && (
+            <button onClick={addSupervisor} className="nested-add-btn">
+              <Plus size={14} />
+              <span>Добавить руководителя</span>
+            </button>
+          )}
         </div>
       );
     }
@@ -2693,6 +2753,7 @@ const EditableTable = () => {
                   placeholder="ФИО руководителя"
                   value={sup?.supervisorName || ''}
                   onChange={(e) => updateSupervisor(originalIdx, 'supervisorName', e.target.value)}
+                  readOnly={!canEdit}
                 />
                 <input
                   type="text"
@@ -2700,6 +2761,7 @@ const EditableTable = () => {
                   placeholder="Должность"
                   value={sup?.position || ''}
                   onChange={(e) => updateSupervisor(originalIdx, 'position', e.target.value)}
+                  readOnly={!canEdit}
                 />
                 <input
                   type="text"
@@ -2707,6 +2769,7 @@ const EditableTable = () => {
                   placeholder="Звание"
                   value={sup?.rank || ''}
                   onChange={(e) => updateSupervisor(originalIdx, 'rank', e.target.value)}
+                  readOnly={!canEdit}
                 />
                 <input
                 type="text"
@@ -2714,6 +2777,7 @@ const EditableTable = () => {
                 placeholder="Дата начала"
                 value={sup?.startDate ? formatDateToDisplay(sup.startDate) : ''}
                 onChange={(e) => updateSupervisor(originalIdx, 'startDate', e.target.value)}
+                readOnly={!canEdit}
               />
               <input
                 type="text"
@@ -2721,10 +2785,13 @@ const EditableTable = () => {
                 placeholder="Дата окончания"
                 value={sup?.endDate ? formatDateToDisplay(sup.endDate) : ''}
                 onChange={(e) => updateSupervisor(originalIdx, 'endDate', e.target.value)}
+                readOnly={!canEdit}
               />
-                <button onClick={() => removeSupervisor(originalIdx)} className="nested-remove-btn">
-                  <Trash2 size={14} />
-                </button>
+                {canEdit && (
+                  <button onClick={() => removeSupervisor(originalIdx)} className="nested-remove-btn">
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -2737,21 +2804,21 @@ const EditableTable = () => {
             </button>
           )}
           
-          {(editingSupervisors.length <= 1 || isExpanded) && (
+          {canEdit && (editingSupervisors.length <= 1 || isExpanded) && (
             <button onClick={addSupervisor} className="nested-add-btn">
               <Plus size={14} />
               <span>Добавить руководителя</span>
             </button>
           )}
           
-          {hasChanges && (
+          {canEdit && hasChanges && (
             <button 
-            onClick={saveChanges} 
-            className="nested-save-btn"
-            disabled={Object.values(dateErrors).some(error => error === true)}
-          >
-            💾 Сохранить
-          </button>
+              onClick={saveChanges} 
+              className="nested-save-btn"
+              disabled={Object.values(dateErrors).some(error => error === true)}
+            >
+              💾 Сохранить
+            </button>
           )}
         </div>
       </div>
@@ -3293,9 +3360,18 @@ const EditableTable = () => {
       value = JSON.stringify(modalState.selectedPreparationForm);
     }
     
-    const isReadOnly = modalState.mode === 'view' || 
-      userData?.role === 'supervisor' || 
-      (userData?.role === 'passportist' && ![23, 24].includes(columnNumber));
+    let isReadOnly = modalState.mode === 'view' || userData?.role === 'supervisor';
+
+    if (userData?.role === 'passportist' && modalState.mode === 'edit') {
+      const allowedFieldsForPassportist = [
+        'Срок окончания регистрации',
+        'Документ, удостоверяющий личность',
+        'Идентификационный номер',
+        'Номер документа'
+      ];
+      const currentFieldName = ColumnName[columnNumber];
+      isReadOnly = !allowedFieldsForPassportist.includes(currentFieldName);
+    }
 
     const handleChange = (newValue) => {
       if (isReadOnly) return;
@@ -4012,12 +4088,12 @@ const EditableTable = () => {
 
         <div className="header-right">
           <div className="header-actions">
-            {(userData.role === 'admin' || userData.role === 'dispatcher') && (
-              <button className="admin-panel-button" onClick={goToAdminPanel}>
-                <Shield size={18} />
-                <span>Админ-панель</span>
-              </button>
-            )}
+          {canViewAdminPanel() && (
+            <button className="admin-panel-button" onClick={goToAdminPanel}>
+              <Shield size={18} />
+              <span>Админ-панель</span>
+            </button>
+          )}
             <button className="logout-button" onClick={handleLogout}>
               <LogOut size={18} />
               <span>Выйти</span>
@@ -4118,24 +4194,28 @@ const EditableTable = () => {
                 <Eye size={18} />
                 <span>Колонки</span>
               </button>
-            <button 
-              onClick={() => setShowCertificatePanel(!showCertificatePanel)}
-              className={`certificate-button ${selectedCertificateTypes.size > 0 ? 'active' : ''}`}
-              title="Генерация справок"
-              disabled={selectedRows.size === 0}
-            >
-              <FileSignature size={18} />
-              <span>Справки ({selectedRows.size})</span>
-            </button>
-            <button 
-              onClick={() => setShowExportPanel(!showExportPanel)}
-              className="export-button"
-              title="Настройки экспорта"
-              disabled={selectedRows.size === 0}
-            >
-              <Download size={18} />
-              <span>Экспорт ({selectedRows.size})</span>
-            </button>
+              {canGenerateCertificates() && (
+              <button 
+                onClick={() => setShowCertificatePanel(!showCertificatePanel)}
+                className={`certificate-button ${selectedCertificateTypes.size > 0 ? 'active' : ''}`}
+                title="Генерация справок"
+                disabled={selectedRows.size === 0}
+              >
+                <FileSignature size={18} />
+                <span>Справки ({selectedRows.size})</span>
+              </button>
+            )}
+            {canExport() && (
+              <button 
+                onClick={() => setShowExportPanel(!showExportPanel)}
+                className="export-button"
+                title="Настройки экспорта"
+                disabled={selectedRows.size === 0}
+              >
+                <Download size={18} />
+                <span>Экспорт ({selectedRows.size})</span>
+              </button>
+            )}
             {canCreateRow() && (
               <button 
                 onClick={initCreateRow}
