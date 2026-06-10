@@ -313,7 +313,6 @@
   .editing-cell {
     padding: 4px !important;
     position: relative;
-    min-width: 320px;
     background-color: white;
   }
   
