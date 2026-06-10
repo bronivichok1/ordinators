@@ -3184,24 +3184,146 @@ const EditableTable = () => {
   };
 
   const handleSort = (columnKey) => {
-    let direction = 'ascending';
     if (sortConfig.key === columnKey && sortConfig.direction === 'ascending') {
-      direction = 'descending';
+      setSortConfig({ key: columnKey, direction: 'descending' });
+    } else if (sortConfig.key === columnKey && sortConfig.direction === 'descending') {
+      // Третий клик - сброс сортировки
+      setSortConfig({ key: null, direction: 'ascending' });
+    } else {
+      setSortConfig({ key: columnKey, direction: 'ascending' });
     }
-    setSortConfig({ key: columnKey, direction });
   };
 
   const getSortedData = (dataToSort) => {
     if (!sortConfig.key || !dataToSort.length) return dataToSort;
+    
     return [...dataToSort].sort((a, b) => {
       let aValue = a[sortConfig.key];
       let bValue = b[sortConfig.key];
+      const columnNumber = parseInt(sortConfig.key.replace('column', ''));
+      const fieldName = ColumnName[columnNumber];
       
+      // Обработка специальных колонок
       if (sortConfig.key === 'column16') {
         aValue = formatPreparationForm(aValue);
         bValue = formatPreparationForm(bValue);
       }
       
+      // Обработка вложенных колонок для сортировки
+      if (sortConfig.key === 'column33') {
+        try {
+          const aSupervisors = JSON.parse(aValue || '[]');
+          const bSupervisors = JSON.parse(bValue || '[]');
+          
+          // Получаем последнего руководителя по дате начала
+          const getLastSupervisor = (supervisors) => {
+            if (!Array.isArray(supervisors) || supervisors.length === 0) return null;
+            const sorted = [...supervisors].sort((x, y) => {
+              const dateX = x.startDate ? new Date(x.startDate) : new Date(0);
+              const dateY = y.startDate ? new Date(y.startDate) : new Date(0);
+              return dateY - dateX;
+            });
+            return sorted[0];
+          };
+          
+          const aLast = getLastSupervisor(aSupervisors);
+          const bLast = getLastSupervisor(bSupervisors);
+          
+          aValue = aLast?.supervisorName || '';
+          bValue = bLast?.supervisorName || '';
+        } catch {
+          aValue = '';
+          bValue = '';
+        }
+      }
+      
+      if (sortConfig.key === 'column9') {
+        try {
+          const aLeaves = JSON.parse(aValue || '[]');
+          const bLeaves = JSON.parse(bValue || '[]');
+          
+          // Сортируем по дате начала первого отпуска
+          const getFirstLeaveDate = (leaves) => {
+            if (!Array.isArray(leaves) || leaves.length === 0) return null;
+            const validDates = leaves
+              .map(l => l.startDate ? new Date(l.startDate) : null)
+              .filter(d => d && !isNaN(d));
+            if (validDates.length === 0) return null;
+            return Math.min(...validDates);
+          };
+          
+          const aDate = getFirstLeaveDate(aLeaves);
+          const bDate = getFirstLeaveDate(bLeaves);
+          
+          aValue = aDate ? aDate.getTime() : '';
+          bValue = bDate ? bDate.getTime() : '';
+        } catch {
+          aValue = '';
+          bValue = '';
+        }
+      }
+      
+      // Определяем тип колонки для правильной сортировки
+      const dateColumns = [3, 6, 7, 22, 24, 26, 30, 34, 35];
+      const numberColumns = [12]; // Год окончания и другие числовые колонки
+      
+      // Сортировка для дат
+      if (dateColumns.includes(columnNumber)) {
+        const dateA = aValue ? new Date(formatDateToAPI(aValue)) : null;
+        const dateB = bValue ? new Date(formatDateToAPI(bValue)) : null;
+        
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return sortConfig.direction === 'ascending' ? 1 : -1;
+        if (!dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
+        
+        const timeA = dateA.getTime();
+        const timeB = dateB.getTime();
+        
+        return sortConfig.direction === 'ascending' 
+          ? timeA - timeB 
+          : timeB - timeA;
+      }
+      
+      // Сортировка для чисел
+      if (numberColumns.includes(columnNumber)) {
+        const numA = parseFloat(aValue);
+        const numB = parseFloat(bValue);
+        
+        if (isNaN(numA) && isNaN(numB)) return 0;
+        if (isNaN(numA)) return sortConfig.direction === 'ascending' ? 1 : -1;
+        if (isNaN(numB)) return sortConfig.direction === 'ascending' ? -1 : 1;
+        
+        return sortConfig.direction === 'ascending' 
+          ? numA - numB 
+          : numB - numA;
+      }
+      
+      // Сортировка для года рождения (колонка 3)
+      if (columnNumber === 3) {
+        const yearA = parseInt(aValue);
+        const yearB = parseInt(bValue);
+        
+        if (isNaN(yearA) && isNaN(yearB)) return 0;
+        if (isNaN(yearA)) return sortConfig.direction === 'ascending' ? 1 : -1;
+        if (isNaN(yearB)) return sortConfig.direction === 'ascending' ? -1 : 1;
+        
+        return sortConfig.direction === 'ascending' 
+          ? yearA - yearB 
+          : yearB - yearA;
+      }
+      
+      // Сортировка для boolean значений (есть/нет)
+      const booleanColumns = [38, 39]; // Сертификат РИВШ, Въезд по приглашению
+      if (booleanColumns.includes(columnNumber)) {
+        const boolA = aValue === 'есть' || aValue === 'да' ? 1 : 0;
+        const boolB = bValue === 'есть' || bValue === 'да' ? 1 : 0;
+        
+        return sortConfig.direction === 'ascending' 
+          ? boolA - boolB 
+          : boolB - boolA;
+      }
+      
+      // Стандартная строковая сортировка
       const aStr = String(aValue || '').toLowerCase();
       const bStr = String(bValue || '').toLowerCase();
       
