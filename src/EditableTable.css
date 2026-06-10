@@ -332,7 +332,6 @@
     right: 0;
     z-index: 1000;
     background: white;
-    min-width: 300px;
   }
   
   .inline-input {
