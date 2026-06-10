@@ -4581,7 +4581,7 @@ case 'Номер приказа о продлении':
             </div>
             <input
               type="text"
-              placeholder="Введите текст для поиска..."
+              placeholder="Введите текст для поиска"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"

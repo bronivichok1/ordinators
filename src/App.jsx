@@ -623,7 +623,7 @@ function App() {
                   <FileText size={16} /><span>Просмотр логов</span>
                 </button>
               )}
-              <button className="logout-button" onClick={handleLogout} disabled={loading}>
+              <button className="logout-button-app" onClick={handleLogout} disabled={loading}>
                 <LogOut size={16} /><span>Выйти из системы</span>
               </button>
             </div>

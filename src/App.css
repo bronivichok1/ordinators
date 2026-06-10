@@ -470,59 +470,50 @@ input:-moz-ui-invalid {
 }
 
 .table-button,
-.logout-button,
+.logout-button-app,
 .options-button,
 .app-logs-button {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border: none;
-  border-radius: 8px;
   padding: 12px 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   min-width: 180px;
+  background-color: white;
+  border: 1px solid #c4c4c4;
+  border-radius: 6px;
+  color: #333;
 }
 
 .table-button {
-  background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
-  color: white;
 }
 
+.options-button {
+}
+
+.app-logs-button {
+}
+
+.app-logs-button:hover,
+.options-button:hover,
 .table-button:hover {
-  background: linear-gradient(135deg, #32bfc9 0%, #557dd3 100%);
+  background-color: #f5f5f5;
+  border-color: #050505;
+  transform: translateY(-1px);
+  color: black;
 }
 
-.logout-button {
+.logout-button-app {
   background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
   color: white;
 }
 
-.logout-button:hover {
+.logout-button-app:hover {
   background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
   box-shadow: 0 5px 15px rgba(229, 62, 62, 0.3);
-}
-
-.options-button {
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: white;
-}
-
-.options-button:hover {
-  background: linear-gradient(135deg, #218838 0%, #1ba87e 100%);
-  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
-}
-
-.app-logs-button {
-  background: linear-gradient(135deg, #be2edb 0%, #9b2dbe 100%);
-  color: white;
-}
-
-.app-logs-button:hover {
-  background: linear-gradient(135deg, #b41ad3 0%, #8525ad 100%);
-  box-shadow: 0 5px 15px rgba(190, 46, 219, 0.3);
 }
 
 .modal-overlay {
