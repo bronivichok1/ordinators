@@ -69,12 +69,37 @@ const ImportData = () => {
 
   const parseBirthYear = (value) => {
     if (!value) return null;
-    if (typeof value === 'number') {
-      return `${Math.floor(value)}-01-01`;
+    
+    if (typeof value === 'string' || typeof value === 'object') {
+      const str = String(value).trim();
+      
+      let match = str.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (match) {
+        return `${match[3]}-01-01`;
+      }
+      
+      match = str.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (match) {
+        return `${match[3]}-01-01`;
+      }
+      
+      match = str.match(/\b(19|20)\d{2}\b/);
+      if (match) {
+        return `${match[0]}-01-01`;
+      }
     }
-    const yearStr = String(value);
-    const match = yearStr.match(/(\d{4})/);
-    if (match) return `${match[1]}-01-01`;
+    
+    if (typeof value === 'number') {
+      const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+      if (!isNaN(date.getTime())) {
+        const year = date.getFullYear();
+        if (year > 1900 && year < 2100) {
+          return `${year}-01-01`;
+        }
+      }
+      return null;
+    }
+    
     return null;
   };
 
@@ -124,26 +149,72 @@ const ImportData = () => {
     const text = String(supervisorStr);
     const supervisors = [];
     
-    let name = text;
-    let position = '';
-    let rank = '';
+    let lines = text.split(/\r?\n/);
     
-    const positionMatch = text.match(/(доцент|профессор|старший преподаватель|ассистент|зав\. кафедрой)/i);
-    if (positionMatch) {
-      position = positionMatch[0];
-      name = name.replace(positionMatch[0], '').trim();
+    if (lines.length === 1 && text.includes('  ')) {
+      lines = text.split(/\s{2,}/);
     }
     
-    const rankMatch = name.match(/(д\.м\.н\.|к\.м\.н\.|PhD|доктор медицинских наук|кандидат медицинских наук)/i);
-    if (rankMatch) {
-      rank = rankMatch[0];
-      name = name.replace(rankMatch[0], '').trim();
+    lines = lines.filter(line => line.trim());
+    
+    let currentSupervisor = null;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const nameMatch = line.match(/^[А-ЯЁ][а-яё]+\s+[А-ЯЁ]\.(?:\s*[А-ЯЁ]\.)?/);
+      const hasPosition = /(доцент|профессор|старший преподаватель|ассистент|зав\. кафедрой)/i.test(line);
+      const hasRank = /(д\.м\.н\.|к\.м\.н\.|PhD|доктор медицинских наук|кандидат медицинских наук)/i.test(line);
+      
+      if (nameMatch && !hasPosition && !hasRank) {
+        if (currentSupervisor && currentSupervisor.name) {
+          supervisors.push({
+            supervisorName: currentSupervisor.name,
+            position: currentSupervisor.position || '',
+            rank: currentSupervisor.rank || '',
+            startDate: null,
+            endDate: currentSupervisor.endDate || null
+          });
+        }
+        
+        currentSupervisor = {
+          name: line,
+          position: '',
+          rank: '',
+          endDate: null
+        };
+      } 
+      else if (currentSupervisor) {
+        if (hasPosition && !currentSupervisor.position) {
+          currentSupervisor.position = line;
+        }
+        else if (hasRank && !currentSupervisor.rank) {
+          currentSupervisor.rank = line;
+        }
+        else if (line.includes('по') && line.match(/\d{2}\.\d{2}\.\d{2,4}/)) {
+          const dateMatch = line.match(/(\d{2}\.\d{2}\.\d{2,4})/);
+          if (dateMatch) {
+            currentSupervisor.endDate = parseExcelDate(dateMatch[1]);
+          }
+        }
+        else if (!currentSupervisor.position && !currentSupervisor.rank) {
+          if (line.includes('доцент')) currentSupervisor.position = line;
+          else if (line.includes('профессор')) currentSupervisor.position = line;
+          else if (line.includes('преподаватель')) currentSupervisor.position = line;
+          else if (line.includes('д.м.н.') || line.includes('к.м.н.')) currentSupervisor.rank = line;
+        }
+      }
     }
     
-    name = name.replace(/^\s*[-–]\s*/, '').replace(/\s+/g, ' ').trim();
-    
-    if (name && name.length > 2) {
-      supervisors.push({ supervisorName: name, position, rank, startDate: null, endDate: null });
+    if (currentSupervisor && currentSupervisor.name) {
+      supervisors.push({
+        supervisorName: currentSupervisor.name,
+        position: currentSupervisor.position || '',
+        rank: currentSupervisor.rank || '',
+        startDate: null,
+        endDate: currentSupervisor.endDate || null
+      });
     }
     
     return supervisors;
