@@ -4822,7 +4822,7 @@ case 'Номер приказа о продлении':
               <div className="certificate-actions">
                 <button 
                   onClick={handleGenerateCertificates}
-                  className="generate-certificate-button"
+                  className="export-confirm-button"
                   disabled={selectedCertificateTypes.size === 0 || generatingCertificates}
                 >
                   {generatingCertificates ? 'Генерация...' : 'Сгенерировать справки'}
