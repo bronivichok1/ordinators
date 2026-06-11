@@ -994,10 +994,10 @@ const EditableTable = () => {
         row.column16 = JSON.stringify(['']);
       }
       
-      row.column17 = ordinator.identityDocument || 'паспорт';
+      row.column17 = ordinator.identityDocument || '';
       row.column18 = ordinator.documentNumber || '';
       row.column19 = ordinator.identNumber || '';
-      row.column20 = ordinator.residenceAddress || 'общежитие';
+      row.column20 = ordinator.residenceAddress || '';
       row.column21 = ordinator.livingAddress || '';
       row.column22 = formatDateToDisplay(ordinator.registrationExpiry) || '';
       row.column23 = ordinator.enrollmentOrderNumber || '';
@@ -1157,7 +1157,7 @@ const EditableTable = () => {
       identityDocument: tableData.column17 === 'иное' ? modalState.otherDocument : tableData.column17 || 'паспорт',
       documentNumber: tableData.column18 || '',
       identNumber: tableData.column19 || '',
-      residenceAddress: tableData.column20 || 'общежитие',
+      residenceAddress: tableData.column20 || '',
       livingAddress: tableData.column21 || '',
       registrationExpiry: formatDateToAPI(tableData.column22),
       enrollmentOrderNumber: tableData.column23 || '',
@@ -2884,7 +2884,7 @@ const EditableTable = () => {
       const fieldName = ColumnName[i];
       switch(fieldName) {
         case 'Пол':
-          initialRowData[columnKey] = selectOptions.gender[0] || 'М';
+          initialRowData[columnKey] = selectOptions.gender[0] || '';
           break;
         case 'Причина отчисления':
           initialRowData[columnKey] = selectOptions.dismissalReason[0] || '';
@@ -2893,20 +2893,20 @@ const EditableTable = () => {
           initialRowData[columnKey] = JSON.stringify([]);
           break;
         case 'ВУЗ':
-          initialRowData[columnKey] = selectOptions.university[0] || 'БГМУ';
+          initialRowData[columnKey] = selectOptions.university[0] || '';
           break;
         case 'Форма подготовки':
           const defaultPrepForm = modalState.selectedPreparationForm;
           initialRowData[columnKey] = JSON.stringify(defaultPrepForm);
           break;
         case 'Документ, удостоверяющий личность':
-          initialRowData[columnKey] = selectOptions.identityDocument[0] || 'паспорт';
+          initialRowData[columnKey] = selectOptions.identityDocument[0] || '';
           break;
         case 'Место проживания, регистрации':
-          initialRowData[columnKey] = selectOptions.residence[0] || 'общежитие';
+          initialRowData[columnKey] = selectOptions.residence[0] || '';
           break;
         case 'Медицинская справка':
-          initialRowData[columnKey] = selectOptions.medicalCertificate[0] || 'есть';
+          initialRowData[columnKey] = selectOptions.medicalCertificate[0] || '';
           break;
         case 'Наличие сертификата РИВШ':
           initialRowData[columnKey] = selectOptions.rivshCertificate[0] || 'нет';
@@ -2915,7 +2915,7 @@ const EditableTable = () => {
           initialRowData[columnKey] = selectOptions.entryByInvitation[0] || 'нет';
           break;
         case 'Страна':
-          initialRowData[columnKey] = selectOptions.country[0] || 'Беларусь';
+          initialRowData[columnKey] = selectOptions.country[0] || '';
           break;
         case 'Руководители':
           initialRowData[columnKey] = JSON.stringify([]);

@@ -496,49 +496,87 @@ const ImportData = () => {
     const dataRows = rows.slice(1);
     const ordinators = [];
     
-    const colIndex = {};
-    headers.forEach((h, idx) => { colIndex[h] = idx; });
+    const colIndex = {
+      diplomaNumber: 2,
+      identNumber: 3,
+      fio: 4,
+      gender: 5,
+      paymentForm: 7,
+      studyForm: 8,
+      enrollmentDate: 10,
+      dismissalDate: 11,
+      login: 15,
+      password: 16,
+      specialtyProfile: 17,
+      department: 18,
+      specialty: 19,
+      supervisor1: 20,
+      supervisor2: 21,
+      mobilePhone: 22,
+      livingAddress: 23
+    };
     
     for (const row of dataRows) {
-      const fio = row[colIndex['Ф.И.О.']];
+      const fio = row[colIndex.fio];
       if (!fio) continue;
       
-      const paymentForm = row[colIndex['форма обучения']] || '';
-      const studyForm = headers[colIndex['форма обучения'] + 1] === '' ? row[colIndex['форма обучения'] + 1] : '';
+      const paymentForm = String(row[colIndex.paymentForm] || '').trim();
+      const studyForm = String(row[colIndex.studyForm] || '').trim();
+      
+      const livingAddressRaw = String(row[colIndex.livingAddress] || '');
+      const addrLower = livingAddressRaw.toLowerCase();
+      
+      let residenceAddress = '';
+      let livingAddress = '';
+      
+      if (addrLower.includes('общежитие')) {
+        residenceAddress = 'общежитие';
+        livingAddress = '';
+      } else if (livingAddressRaw) {
+        residenceAddress = 'квартира';
+        livingAddress = livingAddressRaw;
+      } else {
+        residenceAddress = '';
+        livingAddress = '';
+      }
+      
+      const supervisor1Text = row[colIndex.supervisor1] || '';
+      const supervisor2Text = row[colIndex.supervisor2] || '';
+      const supervisors = parseSupervisor(supervisor1Text, supervisor2Text);
       
       const ordinator = {
         fio: String(fio),
         fioEn: '',
         birthYear: null,
-        gender: row[colIndex['пол']] === 'ж' || row[colIndex['пол']] === 'Ж' ? 'Ж' : 'М',
+        gender: row[colIndex.gender] === 'ж' || row[colIndex.gender] === 'Ж' ? 'Ж' : 'М',
         country: 'Беларусь',
-        enrollmentDate: parseExcelDate(row[colIndex['Зачисление']]),
-        dismissalDate: parseExcelDate(row[colIndex['Отчисление']]),
-        dismissalReason: String(row[colIndex['Примечание']] || ''),
+        enrollmentDate: parseExcelDate(row[colIndex.enrollmentDate]),
+        dismissalDate: parseExcelDate(row[colIndex.dismissalDate]),
+        dismissalReason: '',
         socialLeaves: [],
-        mobilePhone: String(row[colIndex['Моб.тел.']] || ''),
+        mobilePhone: String(row[colIndex.mobilePhone] || ''),
         universityName: 'БГМУ',
         graduationYear: null,
-        department: normalizeDepartment(row[colIndex['Название кафедры']]),
-        specialtyProfile: row[colIndex['профиль']] || '',
-        specialty: String(row[colIndex['Специальность']] || ''),
+        department: normalizeDepartment(row[colIndex.department]),
+        specialtyProfile: String(row[colIndex.specialtyProfile] || ''),
+        specialty: String(row[colIndex.specialty] || ''),
         preparationForm: parsePreparationForm(paymentForm, studyForm),
         identityDocument: 'паспорт',
-        documentNumber: String(row[colIndex['номер диплома']] || ''),
-        identNumber: String(row[colIndex['идентификационные номера']] || ''),
-        residenceAddress: 'общежитие',
-        livingAddress: String(row[colIndex['Домашний адрес']] || ''),
+        documentNumber: String(row[colIndex.diplomaNumber] || ''),
+        identNumber: String(row[colIndex.identNumber] || ''),
+        residenceAddress: residenceAddress,
+        livingAddress: livingAddress,
         registrationExpiry: null,
         enrollmentOrderNumber: '',
         enrollmentOrderDate: null,
         dismissalOrderNumber: '',
         dismissalOrderDate: null,
         contractInfo: '',
-        medicalCertificate: 'есть',
-        currentControl: parseExcelDate(row[colIndex['Текущий контроль']]),
-        login: String(row[colIndex['ЛОГИН']] || ''),
-        password: String(row[colIndex['ПАРОЛЬ']] || ''),
-        supervisors: parseSupervisor(row[colIndex['руководитель ']] || row[colIndex['руководитель']]),
+        medicalCertificate: '',
+        currentControl: null,
+        login: String(row[colIndex.login] || ''),
+        password: String(row[colIndex.password] || ''),
+        supervisors: supervisors,
         sessionStart: null,
         sessionEnd: null,
         allowances: [],
@@ -546,7 +584,7 @@ const ImportData = () => {
         entryByInvitation: 'нет',
         distributionInfo: '',
         extensions: [],
-        examDate: parseExcelDate(row[colIndex['Итоговый экзамен']])
+        examDate: null
       };
       
       ordinators.push(ordinator);
