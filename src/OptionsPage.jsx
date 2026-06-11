@@ -308,7 +308,6 @@ const OptionsPage = () => {
           
           <div className="header-center">
             <h6>
-              <Settings size={28} />
               Редактор выпадающих списков
             </h6>
           </div>

@@ -2024,7 +2024,6 @@ const EditableTable = () => {
     if (editingLeaves.length === 0) {
       return (
         <div className="nested-cell">
-          <div className="nested-empty">Нет записей</div>
           {canEditNested && (
           <button onClick={addLeave} className="nested-add-btn">
             <Plus size={14} />
@@ -2118,7 +2117,7 @@ const EditableTable = () => {
               className="nested-save-btn"
               disabled={Object.values(dateErrors).some(error => error === true)}
             >
-              💾 Сохранить
+              Сохранить
             </button>
           )}
         </div>
@@ -2266,7 +2265,6 @@ const EditableTable = () => {
     if (editingExtensions.length === 0) {
       return (
         <div className="nested-cell">
-          <div className="nested-empty">Нет записей о продлении</div>
           {canEdit && (
             <button onClick={addExtension} className="nested-add-btn">
               <Plus size={14} />
@@ -2483,7 +2481,6 @@ const EditableTable = () => {
     if (editingAllowances.length === 0) {
       return (
         <div className="nested-cell">
-          <div className="nested-empty">Нет записей о надбавках</div>
           {canEdit && (
             <button onClick={addAllowance} className="nested-add-btn">
               <Plus size={14} />
@@ -2777,7 +2774,6 @@ const EditableTable = () => {
     if (editingSupervisors.length === 0) {
       return (
         <div className="nested-cell">
-          <div className="nested-empty">Нет записей</div>
           {canEdit && (
             <button onClick={addSupervisor} className="nested-add-btn">
               <Plus size={14} />
@@ -3837,9 +3833,6 @@ const EditableTable = () => {
         <div className="nested-header-reason">Причина</div>
         <div className="nested-header-actions"></div>
       </div>
-      {socialLeaves.length === 0 && (
-        <div className="nested-empty">Нет записей</div>
-      )}
       {socialLeaves.map((leave, idx) => {
         const startErrorKey = `social-start-${idx}`;
         const endErrorKey = `social-end-${idx}`;
@@ -4104,9 +4097,6 @@ case 'Номер приказа о продлении':
         <div className="nested-header-term">Срок продления</div>
         <div className="nested-header-actions"></div>
       </div>
-      {extensionsList.length === 0 && (
-        <div className="nested-empty">Нет записей</div>
-      )}
       {extensionsList.map((ext, idx) => {
         const dateErrorKey = `extension-date-${idx}`;
         return (
@@ -4225,9 +4215,6 @@ case 'Номер приказа о продлении':
         <div className="nested-header-end">Дата окончания</div>
         <div className="nested-header-actions"></div>
       </div>
-      {allowancesList.length === 0 && (
-        <div className="nested-empty">Нет записей</div>
-      )}
       {allowancesList.map((item, idx) => {
         const startErrorKey = `allowance-start-${idx}`;
         const endErrorKey = `allowance-end-${idx}`;
@@ -4488,12 +4475,11 @@ case 'Номер приказа о продлении':
                   <div className="menu-header">Управление</div>
                   {userData.role === 'admin' && (
                     <div className="menu-item" onClick={goToAdminPanel}>
-                      <Shield size={16} />
                       <span>Панель администратора</span>
                     </div>
                   )}
                   <div className="menu-item" onClick={fetchOrdinators}>
-                    <span>🔄 Обновить данные</span>
+                    <span>Обновить данные</span>
                   </div>
                 </div>
                 <div className="menu-divider"></div>
@@ -4649,7 +4635,7 @@ case 'Номер приказа о продлении':
                 className="create-row-button"
                 title="Создать новую запись"
               >
-                📋 Создать
+               Создать
               </button>
             )}
             {canDeleteRow() && selectedRows.size > 0 && (
@@ -4658,7 +4644,7 @@ case 'Номер приказа о продлении':
                 className="create-row-button"
                 title="Удалить выбранные записи"
               >
-                🗑️ Удалить выбранные ({selectedRows.size})
+                Удалить выбранные ({selectedRows.size})
               </button>
             )}
           </div>
@@ -4914,7 +4900,7 @@ case 'Номер приказа о продлении':
           
           <div className="selection-info">
             {selectedRows.size > 0 && (
-              <p className="selected-count">
+              <p className="selected-count-table">
                 Выбрано записей: {selectedRows.size} 
                 {selectAll && sortedFilteredData.length > 0 && ` (все из текущего фильтра)`}
               </p>
@@ -4927,11 +4913,6 @@ case 'Номер приказа о продлении':
             {visibleColumns.size <40 && (
               <p className="columns-info">
                 Отображается колонок: {visibleColumns.size} из 40
-              </p>
-            )}
-            {showCertificatePanel && selectedCertificateTypes.size > 0 && (
-              <p className="certificate-info">
-                Выбрано типов справок: {selectedCertificateTypes.size}
               </p>
             )}
             {showExportPanel && selectedColumns.size >= 0 && selectedColumns.size <= 40 && (
@@ -4996,13 +4977,13 @@ case 'Номер приказа о продлении':
                     </th>
                   );
                 })}
-                <th className="action-header sticky-top-right">Действия</th>
+                {/*<th className="action-header sticky-top-right">Действия</th>*/}
               </tr>
             </thead>
             <tbody>
               {paginatedData.length === 0 ? (
                 <tr>
-                  <td colSpan={visibleColumns.size + 2} className="no-data">
+                  <td colSpan={visibleColumns.size + 1} className="no-data">{/* тут было + 2*/}
                     {data.length === 0 ? 'Нет данных. Создайте первую запись.' : 'Нет результатов по вашему запросу.'}
                   </td>
                 </tr>
@@ -5101,7 +5082,7 @@ case 'Номер приказа о продлении':
                            </td>
                         );
                       })}
-                      <td className="action-cell sticky-right">
+                      {/*<td className="action-cell sticky-right">
                         {userData?.role === 'supervisor' ? (
                           <button 
                             onClick={() => handleRowClick(originalIndex, row, 'view')}
@@ -5135,7 +5116,7 @@ case 'Номер приказа о продлении':
                             )}
                           </>
                         )}
-                        </td>
+                        </td>*/}
                       </tr>
                   );
                 })

@@ -35,6 +35,12 @@ input:-moz-ui-invalid {
   padding: 20px;
 }
 
+.auth-container-auth {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+}
+
 .auth-card {
   background: white;
   border-radius: 20px;
@@ -151,11 +157,12 @@ input:-moz-ui-invalid {
 .input-field:disabled,
 .submit-button:disabled,
 .submitauth-button:disabled,
+.registr-button:disabled,
 .table-button:disabled,
 .add-user-button:disabled,
 .action-button:disabled,
 .modal-actions button:disabled,
-.back-button:disabled,
+.back-button-reg:disabled,
 .password-toggle-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -224,29 +231,9 @@ input:-moz-ui-invalid {
   border: 1px solid #bee5eb;
 }
 
-.back-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: none;
-  border: 2px solid #667eea;
-  color: #667eea;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.back-button:hover {
-  background: rgba(102, 126, 234, 0.1);
-}
-
 .register-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  justify-content: center;
 }
 
 .register-actions button {
@@ -272,6 +259,33 @@ input:-moz-ui-invalid {
 
 .submitauth-button:hover {
   box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+.registr-container{
+  display: flex;
+  justify-content: center;
+}
+
+.registr-button,
+.back-button-reg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 50%;
+  padding: 14px;
+  border-color: #1f1f1f;
+  background-color: white;
+  border-radius: 12px;
+  color: rgb(37, 37, 37);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 14px;
+}
+.registr-button:hover,
+.back-button-reg:hover {
+  background: rgba(241, 241, 241, 0.767);
+  box-shadow: 0 10px 25px rgba(178, 178, 179, 0.4);
 }
 
 .admin-controls {
@@ -349,17 +363,17 @@ input:-moz-ui-invalid {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-  color: white;
-  border: none;
+  color: rgb(53, 53, 53);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  border: 1px solid #c4c4c4;
+  background-color: white;
 }
 
 .add-user-button:hover {
-  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 5px 15px rgba(143, 151, 143, 0.3);
 }
 
 .loading-users,
@@ -438,23 +452,23 @@ input:-moz-ui-invalid {
 }
 
 .edit-button {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #636363;
 }
 
 .edit-button:hover {
-  background: #ffeaa7;
+  background: #eeeeee;
 }
 
 .delete-button {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #636363;
 }
 
 .delete-button:hover {
-  background: #f5c6cb;
+  background: #eeeeee;
 }
 
 .admin-footer {

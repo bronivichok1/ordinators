@@ -127,7 +127,7 @@ const LoginPage = ({ onLogin, loading, message }) => {
   };
 
   return (
-    <div className="auth-container">
+    <div className="auth-container-auth">
       <div className="auth-card">
         <div className="auth-header">
           <div className="logo-container"><div className="logo"><LogIn size={32} /></div></div>
@@ -185,7 +185,6 @@ const RegisterPage = ({ onRegister, onBack, loading, message }) => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <div className="logo-container"><div className="logo"><UserPlus size={32} /></div></div>
           <h1 className="auth-title">Регистрация нового пользователя</h1>
         </div>
 
@@ -235,18 +234,17 @@ const RegisterPage = ({ onRegister, onBack, loading, message }) => {
               <option value="supervisor">Руководитель</option>
             </select>
           </div>
-
-          <button type="submit" className="submitauth-button" disabled={loading}>
-            <UserPlus size={20} /><span>{loading ? 'Регистрация...' : 'Зарегистрировать'}</span>
-          </button>
+          <div className='registr-container'>
+            <button type="submit" className="registr-button" disabled={loading}>
+              <UserPlus size={20} /><span>{loading ? 'Регистрация...' : 'Зарегистрировать'}</span>
+            </button>
+          </div>
           
-          <div className="auth-footer">
-            <div className="register-actions">
-              <button className="back-button" onClick={onBack} disabled={loading}>
+            <div className="registr-container">
+              <button className="back-button-reg" onClick={onBack} disabled={loading}>
                 <ArrowLeft size={16} /><span>Назад к списку</span>
               </button>
             </div>
-          </div>
         </form>
       </div>
     </div>
@@ -432,7 +430,6 @@ function App() {
       if (ok) {
         localStorage.setItem('auth_token', data.access_token);
         localStorage.setItem('user_data', JSON.stringify(data.user));
-        showMessage('Вход выполнен! Перенаправление...', 'success');
         setTimeout(() => navigate('/main'), 1000);
       } else {
         showMessage(data.message || 'Ошибка входа', 'error');
@@ -519,8 +516,8 @@ function App() {
   const handleLogout = useCallback(() => {
     localStorage.clear();
     setAdminToken(null);
-    navigate('/');
     showMessage('Вы вышли из системы', 'success');
+    navigate('/main');
   }, [navigate, showMessage]);
 
   const filteredUsers = useMemo(() => {
@@ -567,7 +564,6 @@ function App() {
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
-            <div className="logo-container"><div className="logo"><Shield size={32} /></div></div>
             <h1 className="auth-title">Панель администратора</h1>
             <p className="auth-subtitle">Управление пользователями системы</p>
           </div>

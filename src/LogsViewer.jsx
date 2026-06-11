@@ -213,10 +213,7 @@ const LogsViewer = () => {
                 log.userRole === 'passportist' ? 'Паспортист' :
                 log.userRole === 'supervisor' ? 'Руководитель' : log.userRole || '-',
         'Действие': log.actionType,
-        'Описание': log.description || '-',
-        'IP адрес': log.ipAddress || '-',
-        'Страница': log.page || '-',
-        'Детали': log.details || '-'
+        'Описание': log.description || '-'
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
@@ -407,15 +404,12 @@ const LogsViewer = () => {
                   <th>Роль</th>
                   <th>Действие</th>
                   <th>Описание</th>
-                  <th>Детали</th>
-                  <th>IP адрес</th>
-                  <th>Страница</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan="10" style={{ textAlign: 'center', padding: '40px' }}>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '40px' }}>
                       Логи не найдены
                     </td>
                   </tr>
@@ -448,22 +442,6 @@ const LogsViewer = () => {
                       </td>
                       <td className="action-type">{log.actionType}</td>
                       <td>{log.description || '-'}</td>
-                      <td>
-                        {log.details && (
-                          <button
-                            className="details-cell"
-                            onClick={() => {
-                              setSelectedLog(log);
-                              setShowDetailsModal(true);
-                            }}
-                          >
-                            <Eye size={16} />
-                            Просмотр
-                          </button>
-                        )}
-                      </td>
-                      <td>{log.ipAddress || '-'}</td>
-                      <td>{log.page || '-'}</td>
                     </tr>
                   ))
                 )}
@@ -487,31 +465,6 @@ const LogsViewer = () => {
             >
               →
             </button>
-          </div>
-        )}
-
-        {showDetailsModal && selectedLog && (
-          <div className="details-modal" onClick={() => setShowDetailsModal(false)}>
-            <div className="details-modal-content" onClick={e => e.stopPropagation()}>
-              <div className="details-modal-header">
-                <h3>Детали лога #{selectedLog.id}</h3>
-                <button className="details-modal-close" onClick={() => setShowDetailsModal(false)}>
-                  ×
-                </button>
-              </div>
-              <div className="details-modal-body">
-                <p><strong>Дата:</strong> {formatDate(selectedLog.timestamp)}</p>
-                <p><strong>Пользователь:</strong> {selectedLog.userFio || selectedLog.userId || 'Аноним'}</p>
-                <p><strong>Роль:</strong> {selectedLog.userRole || '-'}</p>
-                <p><strong>Действие:</strong> {selectedLog.actionType}</p>
-                <p><strong>Описание:</strong> {selectedLog.description || '-'}</p>
-                <p><strong>IP адрес:</strong> {selectedLog.ipAddress || '-'}</p>
-                <p><strong>User Agent:</strong> {selectedLog.userAgent || '-'}</p>
-                <p><strong>Страница:</strong> {selectedLog.page || '-'}</p>
-                <p><strong>Детали:</strong></p>
-                <pre>{JSON.stringify(JSON.parse(selectedLog.details || '{}'), null, 2)}</pre>
-              </div>
-            </div>
           </div>
         )}
       </div>
