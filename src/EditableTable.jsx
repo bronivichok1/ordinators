@@ -4576,9 +4576,6 @@ case 'Номер приказа о продлении':
       <div className="table-container">
         <div className="search-panel">
           <div className="search-input-group">
-            <div className="search-label">
-              🔍 Поиск по таблице:
-            </div>
             <input
               type="text"
               placeholder="Введите текст для поиска"
