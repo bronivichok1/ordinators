@@ -1581,27 +1581,33 @@ const EditableTable = () => {
       return [];
     });
     
+    const inputRef = useRef(null);
     const selectRef = useRef(null);
-
+  
     useEffect(() => {
+      // Фокусируемся на элементе при монтировании
       if (selectRef.current) {
         selectRef.current.focus();
+      } else if (inputRef.current) {
+        inputRef.current.focus();
       }
     }, []);
-
+  
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        onSave();
+      } else if (e.key === 'Escape') {
         onCancel();
       }
     };
-
-      const getOptions = () => {
-        
-        switch(fieldType) {
+  
+    const getOptions = () => {
+      switch(fieldType) {
         case 'creatable-department':
-            const departments = selectData.departments;
-            const mappedOptions = departments?.map(option => ({ value: option, label: option })) || [];
-            return mappedOptions;
+          const departments = selectData.departments;
+          const mappedOptions = departments?.map(option => ({ value: option, label: option })) || [];
+          return mappedOptions;
         case 'creatable-gender':
           return selectData.gender.map(option => ({ value: option, label: option }));
         case 'creatable-country':
@@ -1630,7 +1636,7 @@ const EditableTable = () => {
           return [];
       }
     };
-
+  
     const getOptionField = () => {
       switch(fieldType) {
         case 'creatable-gender': return 'gender';
@@ -1649,11 +1655,11 @@ const EditableTable = () => {
         default: return null;
       }
     };
-
+  
     const renderEditor = () => {
       if (columnNumber === 16) {
         return (
-          <div className="inline-checkbox-group">
+          <div className="inline-checkbox-group" onKeyDown={handleKeyDown}>
             {selectOptions.preparationForm.map(option => (
               <label key={option} className="inline-checkbox-label">
                 <input
@@ -1676,13 +1682,13 @@ const EditableTable = () => {
           </div>
         );
       }
-
+  
       if (fieldType && fieldType.startsWith('creatable-')) {
         const options = getOptions();
         const optionField = getOptionField();
-
+  
         return (
-          <div className="inline-creatable-wrapper">
+          <div className="inline-creatable-wrapper" onKeyDown={handleKeyDown}>
             <CreatableSelect
               ref={selectRef}
               options={options}
@@ -1716,7 +1722,7 @@ const EditableTable = () => {
           </div>
         );
       }
-
+  
       switch(fieldType) {
         case 'date':
           if (columnNumber === 3) {
@@ -1730,7 +1736,7 @@ const EditableTable = () => {
             }
             return (
               <input
-                ref={selectRef}
+                ref={inputRef}
                 type="text"
                 value={yearDisplay}
                 onChange={(e) => {
@@ -1758,7 +1764,7 @@ const EditableTable = () => {
           return (
             <>
               <input
-                ref={selectRef}
+                ref={inputRef}
                 type="text"
                 value={displayDate}
                 onChange={(e) => setEditValue(e.target.value)}
@@ -1774,7 +1780,7 @@ const EditableTable = () => {
         case 'tel':
           return (
             <input
-              ref={selectRef}
+              ref={inputRef}
               type="tel"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
@@ -1786,7 +1792,7 @@ const EditableTable = () => {
         case 'password':
           return (
             <input
-              ref={selectRef}
+              ref={inputRef}
               type="password"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
@@ -1799,18 +1805,17 @@ const EditableTable = () => {
         case 'text':
           return (
             <input
-              ref={selectRef}
+              ref={inputRef}
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
               className="inline-input"
-              rows="3"
             />
           );
         default:
           return (
             <input
-              ref={selectRef}
+              ref={inputRef}
               type="text"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
@@ -1821,15 +1826,11 @@ const EditableTable = () => {
           );
       }
     };
-
+  
     return (
       <td className="editing-cell">
         <div className="inline-editor-container">
           {renderEditor()}
-          <div className="inline-editor-actions">
-            <button onClick={onSave} className="inline-save-button">✓ Сохранить</button>
-            <button onClick={onCancel} className="inline-cancel-button">✗ Отмена</button>
-          </div>
         </div>
       </td>
     );
