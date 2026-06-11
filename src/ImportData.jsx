@@ -143,82 +143,6 @@ const ImportData = () => {
     return JSON.stringify(result);
   };
 
-  const parseSupervisor = (supervisorStr) => {
-    if (!supervisorStr) return [];
-    
-    const text = String(supervisorStr);
-    const supervisors = [];
-    
-    let lines = text.split(/\r?\n/);
-    
-    if (lines.length === 1 && text.includes('  ')) {
-      lines = text.split(/\s{2,}/);
-    }
-    
-    lines = lines.filter(line => line.trim());
-    
-    let currentSupervisor = null;
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      
-      const nameMatch = line.match(/^[А-ЯЁ][а-яё]+\s+[А-ЯЁ]\.(?:\s*[А-ЯЁ]\.)?/);
-      const hasPosition = /(доцент|профессор|старший преподаватель|ассистент|зав\. кафедрой)/i.test(line);
-      const hasRank = /(д\.м\.н\.|к\.м\.н\.|PhD|доктор медицинских наук|кандидат медицинских наук)/i.test(line);
-      
-      if (nameMatch && !hasPosition && !hasRank) {
-        if (currentSupervisor && currentSupervisor.name) {
-          supervisors.push({
-            supervisorName: currentSupervisor.name,
-            position: currentSupervisor.position || '',
-            rank: currentSupervisor.rank || '',
-            startDate: null,
-            endDate: currentSupervisor.endDate || null
-          });
-        }
-        
-        currentSupervisor = {
-          name: line,
-          position: '',
-          rank: '',
-          endDate: null
-        };
-      } 
-      else if (currentSupervisor) {
-        if (hasPosition && !currentSupervisor.position) {
-          currentSupervisor.position = line;
-        }
-        else if (hasRank && !currentSupervisor.rank) {
-          currentSupervisor.rank = line;
-        }
-        else if (line.includes('по') && line.match(/\d{2}\.\d{2}\.\d{2,4}/)) {
-          const dateMatch = line.match(/(\d{2}\.\d{2}\.\d{2,4})/);
-          if (dateMatch) {
-            currentSupervisor.endDate = parseExcelDate(dateMatch[1]);
-          }
-        }
-        else if (!currentSupervisor.position && !currentSupervisor.rank) {
-          if (line.includes('доцент')) currentSupervisor.position = line;
-          else if (line.includes('профессор')) currentSupervisor.position = line;
-          else if (line.includes('преподаватель')) currentSupervisor.position = line;
-          else if (line.includes('д.м.н.') || line.includes('к.м.н.')) currentSupervisor.rank = line;
-        }
-      }
-    }
-    
-    if (currentSupervisor && currentSupervisor.name) {
-      supervisors.push({
-        supervisorName: currentSupervisor.name,
-        position: currentSupervisor.position || '',
-        rank: currentSupervisor.rank || '',
-        startDate: null,
-        endDate: currentSupervisor.endDate || null
-      });
-    }
-    
-    return supervisors;
-  };
 
   const normalizeDepartment = (dept) => {
     if (!dept) return '';
@@ -323,76 +247,162 @@ const ImportData = () => {
     return extensions;
   };
 
+  const calculateExtensionTerm = (startDateStr, endDateStr) => {
+    if (!startDateStr || !endDateStr) return '';
+    
+    const start = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return '';
+    
+    let years = end.getFullYear() - start.getFullYear();
+    
+    if (years < 0) years = 0;
+    
+    if (years === 0) return '';
+    if (years === 1) return '1 год';
+    if (years === 2) return '2 года';
+    if (years === 3) return '3 года';
+    if (years >= 5) return `${years} лет`;
+    return `${years} года`;
+  };
+
   const parseForeignFile = (rows) => {
     const headers = rows[0];
     const dataRows = rows.slice(1);
     const ordinators = [];
     
-    const colIndex = {};
-    headers.forEach((h, idx) => { colIndex[h] = idx; });
+    const colIndex = {
+      fioEn: 0,
+      fio: 1,
+      birthYear: 2,
+      gender: 3,
+      medicalCertificate: 4,
+      university: 5,
+      country: 7,
+      residenceDoc: 8,
+      registration: 9,
+      yearPrep: 10,
+      enrollmentDate: 11,
+      dismissalDate: 12,
+      extensionStart: 13,
+      extensionEnd: 14,
+      extensionStart2: 15,
+      extensionEnd2: 16,
+      currentControl: 17,
+      examDate: 18,
+      login: 19,
+      password: 20,
+      department: 21,
+      specialtyProfile: 22,
+      specialty: 23,
+      supervisor1: 24,
+      supervisor2: 25,
+      mobilePhone: 26,
+      passportNumber: 27,
+      rivsh: 28,
+      identNumber: 29
+    };
     
     for (const row of dataRows) {
-      const fio = row[colIndex['ФИО']] || '';
-      const fioEn = row[colIndex['ФИО на англ.языке']] || '';
+      const fio = row[colIndex.fio] || '';
+      const fioEn = row[colIndex.fioEn] || '';
       
       if (!fio && !fioEn) continue;
       
-      const { name: uniName, graduationYear: uniGradYear } = parseUniversity(row[colIndex['какой ВВУЗ закончил']]);
+      const rawBirthYear = row[colIndex.birthYear];
+      let birthYearDate = null;
+      
+      if (rawBirthYear) {
+        birthYearDate = parseExcelDate(rawBirthYear);
+      }
+      
+      const { name: uniName, graduationYear: uniGradYear } = parseUniversity(row[colIndex.university]);
       
       let medicalCertificate = 'нет';
-      const medVal = String(row[colIndex['мед.спр.']] || '').toLowerCase();
+      const medVal = String(row[colIndex.medicalCertificate] || '').toLowerCase();
       if (medVal === 'есть' || medVal === 'да') medicalCertificate = 'есть';
       
       let rivshCertificate = 'нет';
-      const rivshVal = String(row[colIndex['РИВШ']] || '').toLowerCase();
+      const rivshVal = String(row[colIndex.rivsh] || '').toLowerCase();
       if (rivshVal === 'есть' || rivshVal === 'да' || rivshVal === 'справка') rivshCertificate = 'да';
       
-      const livingAddress = row[colIndex['регистрация']] || '';
+      const registrationAddress = String(row[colIndex.registration] || '');
       let residenceAddress = 'общежитие';
-      const addrLower = String(livingAddress).toLowerCase();
-      if (addrLower.includes('квартир') || addrLower.includes('ул.') || addrLower.includes('пр-кт')) {
+      let livingAddress = registrationAddress;
+      const addrLower = registrationAddress.toLowerCase();
+      
+      if (addrLower.includes('общежитие')) {
+        const match = addrLower.match(/\d+/);
+        if (match) {
+          residenceAddress = `Общежитие №${match[0]}`;
+        }
+        livingAddress = '';
+      } else if (registrationAddress && (addrLower.includes('квартир') || addrLower.includes('ул.') || addrLower.includes('пр-кт') || addrLower.includes('дом'))) {
         residenceAddress = 'квартира';
       }
       
       let identityDocument = 'паспорт';
-      const docVal = String(row[colIndex['вид на жительство']] || '').toLowerCase();
+      const docVal = String(row[colIndex.residenceDoc] || '').toLowerCase();
       if (docVal.includes('вид на жительство')) identityDocument = 'вид на жительство';
       else if (docVal.includes('паспорт')) identityDocument = 'паспорт ИГ';
       
-      const countryMap = {
-        'Туркменистан': 'Туркменистан', 'Грузия': 'Грузия', 'Ливан': 'Ливан',
-        'Российская Федерация': 'Российская Федерация', 'Иран': 'Иран', 'Марокко': 'Марокко',
-        'Таджикистан': 'Таджикистан', 'Шри-Ланка': 'Шри-Ланка', 'Азербайджан': 'Азербайджан',
-        'Узбекистан': 'Узбекистан', 'Иордания': 'Иордания', 'Сирия': 'Сирия',
-        'Ирак': 'Ирак', 'Китай': 'Китай', 'Казахстан': 'Казахстан', 'Йемен': 'Йемен',
-        'Индия': 'Индия', 'Украина': 'Украина', 'Гана': 'Гана', 'Нигерия': 'Нигерия',
-        'Пакистан': 'Пакистан', 'Египет': 'Египет', 'Палестина': 'Палестина', 'Судан': 'Судан',
-        'Эстония': 'Эстония', 'Армения': 'Армения', 'Литва': 'Литва'
-      };
-      const country = countryMap[String(row[colIndex['Страна']] || '')] || String(row[colIndex['Страна']] || '');
+      const extensions = [];
+
+      if (row[colIndex.extensionStart]) {
+        const startDate = parseExcelDate(row[colIndex.extensionStart]);
+        const endDate = parseExcelDate(row[colIndex.extensionEnd]);
+        const term = calculateExtensionTerm(startDate, endDate);
+        
+        if (startDate && term) {
+          extensions.push({ 
+            orderNumber: '', 
+            orderDate: startDate, 
+            extensionTerm: term 
+          });
+        }
+      }
+
+      if (row[colIndex.extensionStart2]) {
+        const startDate = parseExcelDate(row[colIndex.extensionStart2]);
+        const endDate = parseExcelDate(row[colIndex.extensionEnd2]);
+        const term = calculateExtensionTerm(startDate, endDate);
+        
+        if (startDate && term) {
+          extensions.push({ 
+            orderNumber: '', 
+            orderDate: startDate, 
+            extensionTerm: term 
+          });
+        }
+      }
+      
+      const supervisor1Text = row[colIndex.supervisor1] || '';
+      const supervisor2Text = row[colIndex.supervisor2] || '';
+      const supervisors = parseSupervisor(supervisor1Text, supervisor2Text);
       
       const ordinator = {
         fio: String(fio),
         fioEn: String(fioEn),
-        birthYear: parseBirthYear(row[colIndex['год рождения']]),
-        gender: row[colIndex['пол']] === 'ж' || row[colIndex['пол']] === 'Ж' ? 'Ж' : 'М',
-        country: country,
-        enrollmentDate: parseExcelDate(row[colIndex['Зачисление']]),
-        dismissalDate: parseExcelDate(row[colIndex['Отчисление']]),
-        dismissalReason: String(row[colIndex['примечание']] || ''),
-        socialLeaves: parseSocialLeaves(row[colIndex['примечание']]),
-        mobilePhone: String(row[colIndex['Моб.тел.']] || ''),
+        birthYear: birthYearDate,
+        gender: row[colIndex.gender] === 'ж' || row[colIndex.gender] === 'Ж' ? 'Ж' : 'М',
+        country: String(row[colIndex.country] || ''),
+        enrollmentDate: parseExcelDate(row[colIndex.enrollmentDate]),
+        dismissalDate: parseExcelDate(row[colIndex.dismissalDate]),
+        dismissalReason: '',
+        socialLeaves: [],
+        mobilePhone: String(row[colIndex.mobilePhone] || ''),
         universityName: uniName,
         graduationYear: uniGradYear ? `${uniGradYear}-01-01` : null,
-        department: normalizeDepartment(row[colIndex['Название кафедры']]),
-        specialtyProfile: String(row[colIndex['профили']] || ''),
-        specialty: String(row[colIndex['Специальность']] || ''),
+        department: normalizeDepartment(row[colIndex.department]),
+        specialtyProfile: String(row[colIndex.specialtyProfile] || ''),
+        specialty: String(row[colIndex.specialty] || ''),
         preparationForm: JSON.stringify(['очная']),
         identityDocument: identityDocument,
-        documentNumber: String(row[colIndex['номер паспорта']] || ''),
-        identNumber: String(row[colIndex['идентификационный номер']] || ''),
+        documentNumber: String(row[colIndex.passportNumber] || ''),
+        identNumber: String(row[colIndex.identNumber] || ''),
         residenceAddress: residenceAddress,
-        livingAddress: String(livingAddress),
+        livingAddress: livingAddress,
         registrationExpiry: null,
         enrollmentOrderNumber: '',
         enrollmentOrderDate: null,
@@ -400,24 +410,85 @@ const ImportData = () => {
         dismissalOrderDate: null,
         contractInfo: '',
         medicalCertificate: medicalCertificate,
-        currentControl: parseExcelDate(row[colIndex['текущий контроль']]),
-        login: String(row[colIndex['ЛОГИН']] || ''),
-        password: String(row[colIndex['ПАРОЛЬ']] || ''),
-        supervisors: parseSupervisor(row[colIndex['руководитель']]),
+        currentControl: parseExcelDate(row[colIndex.currentControl]),
+        login: String(row[colIndex.login] || ''),
+        password: String(row[colIndex.password] || ''),
+        supervisors: supervisors,
         sessionStart: null,
         sessionEnd: null,
         allowances: [],
         rivshCertificate: rivshCertificate,
         entryByInvitation: 'нет',
         distributionInfo: '',
-        extensions: parseExtensions(row, colIndex),
-        examDate: parseExcelDate(row[colIndex['итоговый экзамен']])
+        extensions: extensions,
+        examDate: parseExcelDate(row[colIndex.examDate])
       };
       
       ordinators.push(ordinator);
     }
     
     return ordinators;
+  };
+  
+  const parseSupervisor = (supervisor1Text, supervisor2Text) => {
+    const supervisors = [];
+    const fullText = [supervisor1Text, supervisor2Text].filter(s => s && s.trim()).join('; ');
+    
+    if (!fullText) return [];
+    
+    const parts = fullText.split(/[;,]\s*(?=[А-ЯЁ][а-яё]+)/);
+    
+    for (let part of parts) {
+      part = part.trim();
+      if (!part) continue;
+      
+      let name = '';
+      let position = '';
+      let rank = '';
+      let startDate = null;
+      let endDate = null;
+      
+      const nameMatch = part.match(/^([А-ЯЁ][а-яё]+\s+[А-ЯЁ]\.(?:\s*[А-ЯЁ]\.)?)/);
+      if (nameMatch) {
+        name = nameMatch[1];
+        let remaining = part.replace(name, '').trim();
+        
+        const positionMatch = remaining.match(/(доцент|профессор|старший преподаватель|ассистент|зав\. кафедрой)/i);
+        if (positionMatch) {
+          position = positionMatch[0];
+          remaining = remaining.replace(positionMatch[0], '').trim();
+        }
+        
+        const rankMatch = remaining.match(/(д\.м\.н\.|к\.м\.н\.|PhD)/i);
+        if (rankMatch) {
+          rank = rankMatch[0];
+          remaining = remaining.replace(rankMatch[0], '').trim();
+        }
+        
+        let dateMatch = remaining.match(/с\s+(\d{2}\.\d{2}\.\d{2,4})/i);
+        if (dateMatch) {
+          startDate = parseExcelDate(dateMatch[1]);
+          remaining = remaining.replace(dateMatch[0], '').trim();
+        }
+        
+        dateMatch = remaining.match(/по\s+(\d{2}\.\d{2}\.\d{2,4})/i);
+        if (dateMatch) {
+          endDate = parseExcelDate(dateMatch[1]);
+        }
+      }
+      
+      if (name) {
+        supervisors.push({
+          supervisorName: name,
+          position: position,
+          rank: rank,
+          startDate: startDate,
+          endDate: endDate
+        });
+      }
+    }
+    
+    return supervisors;
   };
 
   const parseBelarusFile = (rows) => {

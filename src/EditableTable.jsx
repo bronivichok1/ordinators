@@ -223,7 +223,7 @@ const EditableTable = () => {
     otherDocument: '',
     otherDismissalReason: '',
     otherCountry: '',
-    selectedPreparationForm: ['очная']
+    selectedPreparationForm: ['']
   });
   
   const [newRowData, setNewRowData] = useState({});
@@ -963,7 +963,7 @@ const EditableTable = () => {
       row.column10 = ordinator.mobilePhone || '';
       
       if (ordinator.university) {
-        row.column11 = ordinator.university.name || 'БГМУ';
+        row.column11 = ordinator.university.name || '';
         let graduationYear = ordinator.university.graduationYear;
         if (graduationYear) {
           if (typeof graduationYear === 'string') {
@@ -982,16 +982,16 @@ const EditableTable = () => {
         if (prepForm && typeof prepForm === 'object') {
           prepForm = JSON.stringify(prepForm);
         } else if (!prepForm) {
-          prepForm = JSON.stringify(['очная']);
+          prepForm = JSON.stringify(['']);
         }
         row.column16 = prepForm;
       } else {
-        row.column11 = 'БГМУ';
+        row.column11 = '';
         row.column12 = '';
         row.column13 = '';
         row.column14 = '';
         row.column15 = '';
-        row.column16 = JSON.stringify(['очная']);
+        row.column16 = JSON.stringify(['']);
       }
       
       row.column17 = ordinator.identityDocument || 'паспорт';
@@ -2946,7 +2946,7 @@ const EditableTable = () => {
       otherDocument: '',
       otherDismissalReason: '',
       otherCountry: '',
-      selectedPreparationForm: selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная']
+      selectedPreparationForm: selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['']
     });
   };
 
@@ -2973,7 +2973,7 @@ const EditableTable = () => {
       let otherUni = '';
       let otherDoc = '';
       let otherDismissal = '';
-      let prepForm = selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная'];
+      let prepForm = selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : [''];
       
       if (row['column11'] && !selectOptions.university.includes(row['column11'])) {
         otherUni = row['column11'];
@@ -2988,11 +2988,11 @@ const EditableTable = () => {
       try {
         if (row['column16']) {
           const parsed = JSON.parse(row['column16']);
-          prepForm = Array.isArray(parsed) ? parsed : (selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная']);
+          prepForm = Array.isArray(parsed) ? parsed : (selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['']);
         }
       } catch (e) {
         console.error('Ошибка парсинга данных:', e);
-        prepForm = selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная'];
+        prepForm = selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : [''];
       }
       
       setModalState({
@@ -3168,7 +3168,7 @@ const EditableTable = () => {
       otherDocument: '',
       otherDismissalReason: '',
       otherCountry: '',
-      selectedPreparationForm: selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['очная']
+      selectedPreparationForm: selectOptions.preparationForm?.length ? [selectOptions.preparationForm[0]] : ['']
     });
     setNewRowData({});
   };
