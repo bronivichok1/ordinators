@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './InstructionSimple.css';
 
 const InstructionSimple = () => {
-
   const navigate = useNavigate();
 
   const goBackToTable = () => {
@@ -18,7 +17,6 @@ const InstructionSimple = () => {
         </button>
 
         <div className="instr-simple-header">
-          <div className="instr-simple-header-icon">📘</div>
           <h1>Инструкция по работе с таблицей ординаторов</h1>
           <p>Краткое руководство для всех пользователей</p>
         </div>
@@ -37,11 +35,11 @@ const InstructionSimple = () => {
           <h2>1. Основы работы с таблицей</h2>
           
           <div className="instr-simple-card">
-            <h3>📌 Что здесь можно делать?</h3>
+            <h3>Что здесь можно делать?</h3>
             <ul>
               <li><strong>Просматривать</strong> список всех ординаторов (40 колонок информации)</li>
               <li><strong>Искать</strong> нужных людей по любому полю</li>
-              <li><strong>Редактировать</strong> данные прямо в таблице</li>
+              <li><strong>Редактировать</strong> данные через модальное окно</li>
               <li><strong>Добавлять</strong> новых ординаторов</li>
               <li><strong>Удалять</strong> записи (по одной или несколько сразу)</li>
               <li><strong>Экспортировать</strong> данные в Excel или Word</li>
@@ -50,7 +48,7 @@ const InstructionSimple = () => {
           </div>
 
           <div className="instr-simple-card">
-            <h3>📌 Как ориентироваться в таблице?</h3>
+            <h3>Как ориентироваться в таблице?</h3>
             <ul>
               <li><strong>Строки</strong> — это ординаторы (по 10 на странице)</li>
               <li><strong>Колонки</strong> — это разные данные (ФИО, даты, документы и т.д.)</li>
@@ -64,24 +62,24 @@ const InstructionSimple = () => {
           <h2>2. Поиск и фильтры</h2>
           
           <div className="instr-simple-card">
-            <h3>🔍 Быстрый поиск (над таблицей)</h3>
+            <h3>Быстрый поиск (над таблицей)</h3>
             <ol>
-              <li>Введите текст в поле <strong>"Поиск по таблице"</strong></li>
+              <li>Введите текст в поле для поиска</li>
               <li>Выберите, где искать: <strong>«Все колонки»</strong> или конкретную (например, «ФИО»)</li>
               <li>Таблица покажет только подходящие записи</li>
             </ol>
-            <div className="instr-simple-tip">💡 Чтобы сбросить поиск — нажмите кнопку «Сброс»</div>
+            <div className="instr-simple-tip">Чтобы сбросить поиск — нажмите кнопку «Сброс»</div>
           </div>
 
           <div className="instr-simple-card">
-            <h3>🔧 Расширенные фильтры (кнопка «Фильтры»)</h3>
+            <h3>Расширенные фильтры (кнопка «Фильтры»)</h3>
             <ol>
               <li>Нажмите <strong>«Фильтры»</strong> → откроется панель</li>
               <li>Нажмите <strong>«+ Добавить фильтр»</strong></li>
               <li>Выберите колонку, условие (Содержит, Равно, Больше и т.д.) и значение</li>
               <li>Если фильтров несколько — выберите логику: <strong>«И»</strong> (все условия) или <strong>«ИЛИ»</strong> (любое)</li>
             </ol>
-            <div className="instr-simple-tip">💡 Пример: «ФИО содержит Иванов» И «Статус активен»</div>
+            <div className="instr-simple-tip">Пример: «ФИО содержит Иванов» И «Страна Беларусь»</div>
           </div>
         </div>
 
@@ -89,27 +87,27 @@ const InstructionSimple = () => {
           <h2>3. Редактирование данных</h2>
           
           <div className="instr-simple-card">
-            <h3>✏️ Способ 1: Быстрое редактирование (прямо в таблице)</h3>
+            <h3>Быстрое редактирование (прямо в таблице)</h3>
             <ol>
               <li><strong>Дважды кликните</strong> по любой ячейке</li>
               <li>Введите новое значение</li>
-              <li>Нажмите <strong>✓ Сохранить</strong> или <strong>✗ Отмена</strong></li>
+              <li>Нажмите Enter для сохранения или Escape для отмены</li>
             </ol>
-            <div className="instr-simple-warning">⚠️ Для дат используйте формат: <strong>ДД.ММ.ГГГГ</strong> (например, 15.05.2024)</div>
+            <div className="instr-simple-warning">Для дат используйте формат: <strong>ДД.ММ.ГГГГ</strong> (например, 15.05.2024)</div>
           </div>
 
           <div className="instr-simple-card">
-            <h3>📝 Способ 2: Полное редактирование (все поля)</h3>
+            <h3>Полное редактирование (все поля)</h3>
             <ol>
-              <li>Нажмите кнопку <strong>«✏️ Редактировать»</strong> в столбце «Действия»</li>
-              <li>Откроется окно со всеми полями записи</li>
+              <li><strong>Дважды кликните</strong> по левой колонке с чекбоксом</li>
+              <li>Откроется модальное окно со всеми полями записи</li>
               <li>Измените нужные данные</li>
               <li>Нажмите <strong>«Сохранить изменения»</strong></li>
             </ol>
           </div>
 
           <div className="instr-simple-card">
-            <h3>📊 Как редактировать вложенные данные?</h3>
+            <h3>Как редактировать вложенные данные?</h3>
             <p>Некоторые поля содержат несколько записей внутри:</p>
             <ul>
               <li><strong>Социальный отпуск</strong> — можно добавить несколько периодов</li>
@@ -117,9 +115,9 @@ const InstructionSimple = () => {
               <li><strong>Продления</strong> и <strong>Надбавки</strong> — аналогично</li>
             </ul>
             <p>Внутри такого поля есть кнопки:<br/>
-            ➕ <strong>«Добавить»</strong> — новая запись<br/>
-            🗑️ <strong>«Удалить»</strong> — удалить запись<br/>
-            💾 <strong>«Сохранить»</strong> — сохранить все изменения внутри этого поля</p>
+              «Добавить» — новая запись<br/>
+              «Удалить» — удалить запись<br/>
+              «Сохранить» — сохранить все изменения внутри этого поля</p>
           </div>
         </div>
 
@@ -127,7 +125,7 @@ const InstructionSimple = () => {
           <h2>4. Действия с записями</h2>
           
           <div className="instr-simple-card">
-            <h3>✅ Как выбрать записи?</h3>
+            <h3>Как выбрать записи?</h3>
             <ul>
               <li>Поставьте <strong>галочку</strong> в первом столбце слева — выберется одна запись</li>
               <li>Поставьте <strong>галочку в шапке таблицы</strong> — выберутся все записи (с учётом фильтра)</li>
@@ -136,22 +134,22 @@ const InstructionSimple = () => {
           </div>
 
           <div className="instr-simple-card">
-            <h3>➕ Создание новой записи</h3>
+            <h3>Создание новой записи</h3>
             <ol>
-              <li>Нажмите кнопку <strong>«📋 Создать»</strong> над таблицей</li>
+              <li>Нажмите кнопку <strong>«Создать»</strong> над таблицей</li>
               <li>Заполните поля в открывшемся окне</li>
               <li>Нажмите <strong>«Создать ординатора»</strong></li>
             </ol>
-            <div className="instr-simple-tip">💡 Доступно только для ролей: Администратор и Диспетчер</div>
+            <div className="instr-simple-tip">Доступно только для ролей: Администратор и Диспетчер</div>
           </div>
 
           <div className="instr-simple-card">
-            <h3>🗑️ Удаление записей</h3>
+            <h3>Удаление записей</h3>
             <ul>
-              <li><strong>Одну запись:</strong> нажмите «🗑️ Удалить» в столбце «Действия» → подтвердите</li>
-              <li><strong>Несколько записей:</strong> отметьте их галочками → нажмите «🗑️ Удалить выбранные» → подтвердите</li>
+              <li><strong>Одну запись:</strong> выберите запись галочкой → нажмите «Удалить выбранные»</li>
+              <li><strong>Несколько записей:</strong> отметьте их галочками → нажмите «Удалить выбранные» → подтвердите</li>
             </ul>
-            <div className="instr-simple-warning">⚠️ Удаление НЕОБРАТИМО! Будьте внимательны.</div>
+            <div className="instr-simple-warning">Удаление НЕОБРАТИМО! Будьте внимательны.</div>
           </div>
         </div>
 
@@ -159,7 +157,7 @@ const InstructionSimple = () => {
           <h2>5. Экспорт и генерация справок</h2>
           
           <div className="instr-simple-card">
-            <h3>💾 Экспорт данных</h3>
+            <h3>Экспорт данных</h3>
             <ol>
               <li>Выберите записи (галочками)</li>
               <li>Нажмите <strong>«Экспорт (N)»</strong></li>
@@ -167,18 +165,18 @@ const InstructionSimple = () => {
               <li>Во второй панели выберите форматы: <strong>Excel</strong> и/или <strong>Word</strong></li>
               <li>Нажмите <strong>«Выполнить экспорт»</strong></li>
             </ol>
-            <div className="instr-simple-tip">💡 Файлы сохранятся в папку «Загрузки» с названием: ординаторы_2024-01-01_5записей.xlsx</div>
+            <div className="instr-simple-tip">Файлы сохранятся в папку «Загрузки» с названием: ординаторы_2024-01-01_5записей.xlsx</div>
           </div>
 
           <div className="instr-simple-card">
-            <h3>📜 Генерация справок</h3>
+            <h3>Генерация справок</h3>
             <ol>
               <li>Выберите записи (галочками)</li>
               <li>Нажмите <strong>«Справки (N)»</strong></li>
               <li>Отметьте нужные типы справок</li>
               <li>Нажмите <strong>«Сгенерировать справки»</strong></li>
             </ol>
-            <div className="instr-simple-tip">💡 После генерации появится отчёт об успешных и ошибочных справках</div>
+            <div className="instr-simple-tip">После генерации появится отчёт об успешных и ошибочных справках</div>
           </div>
         </div>
 
@@ -201,7 +199,7 @@ const InstructionSimple = () => {
         </div>
 
         <div className="instr-simple-faq">
-          <h2>❓ Частые вопросы</h2>
+          <h2>Частые вопросы</h2>
           
           <div className="instr-simple-question">
             <div className="instr-simple-q">Почему я не могу редактировать ячейку?</div>
@@ -225,8 +223,8 @@ const InstructionSimple = () => {
         </div>
 
         <div className="instr-simple-footer">
-          <p>© 2026 Система управления ординаторами | Актуально для версии 0.5.5</p>
-          <p>Вопросы и проблемы: обратитесь к системному администратору 279-42-14</p>
+          <p>Система управления ординаторами</p>
+          <p>Вопросы и проблемы: тел. 279-42-14</p>
         </div>
       </div>
     </div>

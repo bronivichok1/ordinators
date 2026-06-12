@@ -348,12 +348,22 @@ const EditableTable = () => {
         { value: 'equals', label: 'Равно' },
         { value: 'greaterThan', label: 'Больше' },
         { value: 'lessThan', label: 'Меньше' },
-        { value: 'between', label: 'Между' }
+        { value: 'between', label: 'Между' },
+        { value: 'contains', label: 'Содержит (текст)' }
       ];
     } else if (type === 'tel' || type === 'password') {
       return [
         { value: 'contains', label: 'Содержит' },
-        { value: 'equals', label: 'Равно' }
+        { value: 'equals', label: 'Равно' },
+        { value: 'notContains', label: 'Не содержит' },
+        { value: 'notEquals', label: 'Не равно' }
+      ];
+    } else if (type === 'number') {
+      return [
+        { value: 'equals', label: 'Равно' },
+        { value: 'greaterThan', label: 'Больше' },
+        { value: 'lessThan', label: 'Меньше' },
+        { value: 'between', label: 'Между' }
       ];
     }
     return [{ value: 'contains', label: 'Содержит' }];
@@ -361,64 +371,40 @@ const EditableTable = () => {
 
   const applyFilters = (rows) => {
     if (filters.length === 0) return rows;
-
+  
     return rows.filter(row => {
       const results = filters.map(filter => {
         let columnValue = row[filter.column] || '';
+        const columnNumber = parseInt(filter.column.replace('column', ''));
+        const fieldName = ColumnName[columnNumber];
         
-        if (filter.column === 'column18') {
-          try {
-            const parsed = JSON.parse(columnValue);
-            columnValue = Array.isArray(parsed) ? parsed.join(', ') : columnValue;
-          } catch {
-            columnValue = columnValue;
-          }
+        // Пропускаем фильтр, если значение фильтра пустое
+        if (!filter.value || filter.value.trim() === '') {
+          return true;
         }
         
-        if (filter.column === 'column9') {
-          try {
-            const leaves = JSON.parse(columnValue);
-            if (Array.isArray(leaves)) {
-              columnValue = leaves.map(l => 
-                `${formatDateToDisplay(l.startDate) || ''} - ${formatDateToDisplay(l.endDate) || ''} (${l.reason || ''})`
-              ).join('; ');
-            }
-          } catch {
-            columnValue = columnValue;
-          }
+        // Проверка на пустое значение в ячейке
+        const isEmptyValue = (value) => {
+          if (value === null || value === undefined) return true;
+          if (typeof value === 'string') return value.trim() === '';
+          if (Array.isArray(value)) return value.length === 0;
+          if (typeof value === 'object') return Object.keys(value).length === 0;
+          return false;
+        };
+        
+        // Обработка колонки "Форма подготовки" (column16)
+        if (filter.column === 'column16') {
+          columnValue = formatPreparationForm(columnValue);
         }
         
-        if (filter.column === 'column27') {
-          try {
-            const extensions = JSON.parse(columnValue);
-            if (Array.isArray(extensions)) {
-              columnValue = extensions.map(ext => 
-                `${ext.orderNumber || ''} (${formatDateToDisplay(ext.orderDate) || ''}, срок: ${ext.extensionTerm || ''})`
-              ).join('; ');
-            }
-          } catch {
-            columnValue = columnValue;
-          }
-        }
-
-        if (filter.column === 'column36') {
-          try {
-            const allowances = JSON.parse(columnValue);
-            if (Array.isArray(allowances)) {
-              columnValue = allowances.map(allow => 
-                `${allow.orderNumber || ''} (${formatDateToDisplay(allow.startDate) || ''} - ${formatDateToDisplay(allow.endDate) || ''})`
-              ).join('; ');
-            }
-          } catch {
-            columnValue = columnValue;
-          }
-        }
-
+        // Обработка колонки "Руководители" (column33)
         if (filter.column === 'column33') {
           try {
             const supervisors = JSON.parse(row[filter.column] || '[]');
-            
-            if (Array.isArray(supervisors) && supervisors.length > 0) {
+            if (!Array.isArray(supervisors) || supervisors.length === 0) {
+              columnValue = '';
+            } else {
+              // Формируем строку со всеми данными руководителей для поиска
               const supervisorsInfo = supervisors.map(sup => {
                 let info = sup.supervisorName || '';
                 if (sup.position) info += ` ${sup.position}`;
@@ -427,65 +413,231 @@ const EditableTable = () => {
                 if (sup.endDate) info += ` ${formatDateToDisplay(sup.endDate)}`;
                 return info;
               }).join(' ');
-              
               columnValue = supervisorsInfo;
-            } else {
-              return false;
             }
           } catch (e) {
-            return false;
+            columnValue = '';
           }
         }
-
-        let filterValue = filter.value;
-        let columnValueForCompare = columnValue;
-        let filterValueForCompare = filterValue;
         
-        const dateColumnNumbers = [3, 6, 7, 22, 24, 26, 30, 34, 35];
-        const columnNumber = parseInt(filter.column.replace('column', ''));
-        
-        if (filter.type === 'date' || dateColumnNumbers.includes(columnNumber)) {
-          columnValueForCompare = formatDateToDisplay(columnValue);
-          filterValueForCompare = filterValue;
+        // Обработка колонки "Социальный отпуск" (column9)
+        if (filter.column === 'column9') {
+          try {
+            const leaves = JSON.parse(columnValue || '[]');
+            if (Array.isArray(leaves) && leaves.length > 0) {
+              columnValue = leaves.map(l => 
+                `${formatDateToDisplay(l.startDate) || ''} ${formatDateToDisplay(l.endDate) || ''} ${l.reason || ''}`
+              ).join(' ');
+            } else {
+              columnValue = '';
+            }
+          } catch {
+            columnValue = '';
+          }
         }
         
-        let processedValue = String(columnValueForCompare || '').toLowerCase();
-        let processedFilterValue = String(filterValueForCompare || '').toLowerCase();
+        // Обработка колонки "Номер приказа о продлении" (column27)
+        if (filter.column === 'column27') {
+          try {
+            const extensions = JSON.parse(columnValue || '[]');
+            if (Array.isArray(extensions) && extensions.length > 0) {
+              columnValue = extensions.map(ext => 
+                `${ext.orderNumber || ''} ${formatDateToDisplay(ext.orderDate) || ''} ${ext.extensionTerm || ''}`
+              ).join(' ');
+            } else {
+              columnValue = '';
+            }
+          } catch {
+            columnValue = '';
+          }
+        }
+        
+        // Обработка колонки "Надбавка" (column36)
+        if (filter.column === 'column36') {
+          try {
+            const allowances = JSON.parse(columnValue || '[]');
+            if (Array.isArray(allowances) && allowances.length > 0) {
+              columnValue = allowances.map(allow => 
+                `${allow.orderNumber || ''} ${formatDateToDisplay(allow.startDate) || ''} ${formatDateToDisplay(allow.endDate) || ''}`
+              ).join(' ');
+            } else {
+              columnValue = '';
+            }
+          } catch {
+            columnValue = '';
+          }
+        }
+        
+        // Получаем значение фильтра
+        let filterValue = filter.value;
+        let filterValueTrimmed = filterValue.trim();
+        
+        // Определяем тип колонки для правильного сравнения
+        const dateColumns = [3, 6, 7, 22, 24, 26, 30, 34, 35];
+        const numberColumns = [3, 12]; // Год рождения и Год окончания
+        const booleanColumns = [38, 39];
+        
+        // Обработка пустых значений
+        const isColumnEmpty = isEmptyValue(columnValue);
+        
+        // Если колонка пустая, проверяем только операторы "равно" и "не равно" с пустой строкой
+        if (isColumnEmpty) {
+          switch (filter.operator) {
+            case 'equals':
+              return filterValueTrimmed === '';
+            case 'notEquals':
+              return filterValueTrimmed !== '';
+            case 'contains':
+            case 'notContains':
+            case 'startsWith':
+            case 'endsWith':
+              return false; // Пустая строка не содержит непустой подстроки
+            default:
+              return false;
+          }
+        }
+        
+        // Обработка для дат
+        if (dateColumns.includes(columnNumber) || filter.type === 'date') {
+          const formattedColumnValue = formatDateToAPI(columnValue);
+          const formattedFilterValue = formatDateToAPI(filterValueTrimmed);
+          
+          if (!formattedColumnValue) return false;
+          
+          const columnDate = new Date(formattedColumnValue);
+          if (isNaN(columnDate.getTime())) return false;
+          
+          switch (filter.operator) {
+            case 'equals':
+              const filterDate = new Date(formattedFilterValue);
+              if (isNaN(filterDate.getTime())) return false;
+              return columnDate.toDateString() === filterDate.toDateString();
+            
+            case 'greaterThan':
+              const greaterDate = new Date(formattedFilterValue);
+              if (isNaN(greaterDate.getTime())) return false;
+              return columnDate > greaterDate;
+            
+            case 'lessThan':
+              const lessDate = new Date(formattedFilterValue);
+              if (isNaN(lessDate.getTime())) return false;
+              return columnDate < lessDate;
+            
+            case 'between':
+              const [startDateStr, endDateStr] = filterValueTrimmed.split(',').map(s => s.trim());
+              if (!startDateStr || !endDateStr) return false;
+              const startDate = new Date(formatDateToAPI(startDateStr));
+              const endDate = new Date(formatDateToAPI(endDateStr));
+              if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
+              return columnDate >= startDate && columnDate <= endDate;
+            
+            default:
+              return String(columnValue).toLowerCase().includes(filterValueTrimmed.toLowerCase());
+          }
+        }
+        
+        // Обработка для чисел (Год рождения, Год окончания)
+        if (numberColumns.includes(columnNumber)) {
+          let numColumn = 0;
+          if (columnNumber === 3) {
+            // Извлекаем год из даты рождения
+            const yearMatch = String(columnValue).match(/\d{4}/);
+            numColumn = yearMatch ? parseInt(yearMatch[0]) : NaN;
+          } else {
+            numColumn = parseFloat(columnValue);
+          }
+          
+          const numFilter = parseFloat(filterValueTrimmed);
+          
+          if (isNaN(numColumn)) return false;
+          
+          switch (filter.operator) {
+            case 'equals':
+              return !isNaN(numFilter) && numColumn === numFilter;
+            case 'notEquals':
+              return !isNaN(numFilter) && numColumn !== numFilter;
+            case 'greaterThan':
+              return !isNaN(numFilter) && numColumn > numFilter;
+            case 'lessThan':
+              return !isNaN(numFilter) && numColumn < numFilter;
+            case 'between':
+              const [num1, num2] = filterValueTrimmed.split(',').map(s => parseFloat(s.trim()));
+              if (isNaN(num1) || isNaN(num2)) return false;
+              return numColumn >= num1 && numColumn <= num2;
+            default:
+              return String(numColumn).includes(filterValueTrimmed);
+          }
+        }
+        
+        // Обработка для boolean полей (есть/нет)
+        if (booleanColumns.includes(columnNumber)) {
+          const getBoolValue = (value) => {
+            const str = String(value || '').toLowerCase();
+            return str === 'есть' || str === 'да' || str === 'true';
+          };
+          
+          const boolColumn = getBoolValue(columnValue);
+          let boolFilter = false;
+          
+          if (filterValueTrimmed.toLowerCase() === 'есть' || filterValueTrimmed.toLowerCase() === 'да') {
+            boolFilter = true;
+          } else if (filterValueTrimmed.toLowerCase() === 'нет' || filterValueTrimmed.toLowerCase() === 'false') {
+            boolFilter = false;
+          } else {
+            return false; // Неверное значение фильтра
+          }
+          
+          switch (filter.operator) {
+            case 'equals':
+              return boolColumn === boolFilter;
+            case 'notEquals':
+              return boolColumn !== boolFilter;
+            default:
+              return boolColumn === boolFilter;
+          }
+        }
+        
+        // Стандартная строковая обработка
+        const columnStr = String(columnValue).toLowerCase();
+        const filterStr = filterValueTrimmed.toLowerCase();
         
         switch (filter.operator) {
           case 'contains':
-            return processedValue.includes(processedFilterValue);
+            return columnStr.includes(filterStr);
+          
           case 'notContains':
-            return !processedValue.includes(processedFilterValue);
+            return !columnStr.includes(filterStr);
+          
           case 'equals':
-            return processedValue === processedFilterValue;
+            return columnStr === filterStr;
+          
           case 'notEquals':
-            return processedValue !== processedFilterValue;
+            return columnStr !== filterStr;
+          
           case 'startsWith':
-            return processedValue.startsWith(processedFilterValue);
+            return columnStr.startsWith(filterStr);
+          
           case 'endsWith':
-            return processedValue.endsWith(processedFilterValue);
+            return columnStr.endsWith(filterStr);
+          
           case 'greaterThan':
-            return processedValue > processedFilterValue;
+            return columnStr > filterStr;
+          
           case 'lessThan':
-            return processedValue < processedFilterValue;
+            return columnStr < filterStr;
+          
           case 'between':
-            const [val1, val2] = filterValue.split(',').map(v => v.trim());
-            if (dateColumnNumbers.includes(columnNumber)) {
-              const formattedVal1 = formatDateToAPI(val1);
-              const formattedVal2 = formatDateToAPI(val2);
-              const currentDate = formatDateToAPI(columnValue);
-              return currentDate >= formattedVal1 && currentDate <= formattedVal2;
-            }
-            return columnValue >= val1 && columnValue <= val2;
+            const [val1, val2] = filterValueTrimmed.split(',').map(s => s.trim().toLowerCase());
+            return columnStr >= val1 && columnStr <= val2;
+          
           default:
-            return processedValue.includes(processedFilterValue);
+            return columnStr.includes(filterStr);
         }
       });
-
+      
       return filterLogic === 'AND' 
-        ? results.every(result => result)
-        : results.some(result => result);
+        ? results.every(result => result === true)
+        : results.some(result => result === true);
     });
   };
 
@@ -1471,6 +1623,51 @@ const EditableTable = () => {
     }));
   };
 
+  const handleCellSave = async (savedValue) => {
+    if (editingCell.rowId === null) return;
+  
+    try {
+      const { rowId, column, fieldType, columnNumber } = editingCell;
+      
+      const rowIndex = data.findIndex(row => row.id === rowId);
+      if (rowIndex === -1) return;
+  
+      let valueToSave = savedValue;
+  
+      if (fieldType === 'date' && valueToSave && columnNumber !== 3) {
+        valueToSave = formatDateToAPI(valueToSave);
+      }
+  
+      const updatedRow = { ...data[rowIndex] };
+      let valueToDisplay = savedValue;
+      if (columnNumber === 3 && savedValue && typeof savedValue === 'string' && savedValue.includes('-')) {
+        valueToDisplay = savedValue.split('-')[0];
+      }
+      updatedRow[column] = valueToDisplay;
+  
+      const updatedData = [...data];
+      updatedData[rowIndex] = updatedRow;
+      setData(updatedData);
+  
+      setPendingChanges(prev => ({
+        ...prev,
+        [rowId]: {
+          ...prev[rowId],
+          [column]: savedValue
+        }
+      }));
+  
+      const apiData = transformTableDataToApi(updatedRow, 'update');
+      await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
+  
+      setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null, subField: null, subIndex: null });
+  
+    } catch (error) {
+      console.error('Error saving cell:', error);
+      alert('Ошибка при сохранении изменений');
+    }
+  };
+  
   const handleCellDoubleClick = (rowId, column, currentValue, rowIndex) => {
     if (!canEditRow()) {
       alert('У вас нет прав для редактирования');
@@ -1512,51 +1709,6 @@ const EditableTable = () => {
     setEditValue(displayValue);
   };
 
-  const handleCellSave = async () => {
-    if (editingCell.rowId === null) return;
-
-    try {
-      const { rowId, column, fieldType } = editingCell;
-      
-      const rowIndex = data.findIndex(row => row.id === rowId);
-      if (rowIndex === -1) return;
-
-      let valueToSave = editValue;
-
-      if (fieldType === 'date' && valueToSave && editingCell.columnNumber !== 3) {
-        valueToSave = formatDateToAPI(valueToSave);
-      }
-
-      const updatedRow = { ...data[rowIndex] };
-      let valueToDisplay = editValue;
-      if (editingCell.columnNumber === 3 && editValue && typeof editValue === 'string' && editValue.includes('-')) {
-        valueToDisplay = editValue.split('-')[0];
-      }
-      updatedRow[column] = valueToDisplay;
-
-      const updatedData = [...data];
-      updatedData[rowIndex] = updatedRow;
-      setData(updatedData);
-
-      setPendingChanges(prev => ({
-        ...prev,
-        [rowId]: {
-          ...prev[rowId],
-          [column]: editValue
-        }
-      }));
-
-      const apiData = transformTableDataToApi(updatedRow, 'update');
-      await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-
-      setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null, subField: null, subIndex: null });
-
-    } catch (error) {
-      console.error('Error saving cell:', error);
-      alert('Ошибка при сохранении изменений');
-    }
-  };
-
   const handleCellCancel = () => {
     setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null, subField: null, subIndex: null });
     setEditValue('');
@@ -1565,7 +1717,12 @@ const EditableTable = () => {
   const InlineCellEditor = ({ editingCell, editValue, setEditValue, onSave, onCancel }) => {
     const { fieldType, columnNumber } = editingCell;
     const fieldName = ColumnName[columnNumber];
-    
+    const [localValue, setLocalValue] = useState(editValue);
+    const [menuIsOpen, setMenuIsOpen] = useState(false);
+    const selectRef = useRef(null);
+    const inputRef = useRef(null);
+    const containerRef = useRef(null);
+  
     const [selectedOptions, setSelectedOptions] = useState(() => {
       if (columnNumber === 16 && editValue) {
         try {
@@ -1580,34 +1737,54 @@ const EditableTable = () => {
       }
       return [];
     });
-    
-    const inputRef = useRef(null);
-    const selectRef = useRef(null);
   
     useEffect(() => {
-      // Фокусируемся на элементе при монтировании
-      if (selectRef.current) {
-        selectRef.current.focus();
-      } else if (inputRef.current) {
-        inputRef.current.focus();
-      }
+      setLocalValue(editValue);
+    }, [editValue]);
+  
+    useEffect(() => {
+      setTimeout(() => {
+        if (selectRef.current) {
+          selectRef.current.focus();
+        } else if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
     }, []);
   
+    const handleSave = () => {
+      onSave(localValue);
+    };
+  
     const handleKeyDown = (e) => {
+      if (menuIsOpen) {
+        return;
+      }
+      
       if (e.key === 'Enter') {
         e.preventDefault();
-        onSave();
+        e.stopPropagation();
+        handleSave();
       } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
         onCancel();
       }
+    };
+  
+    const handleMenuOpen = () => {
+      setMenuIsOpen(true);
+    };
+  
+    const handleMenuClose = () => {
+      setMenuIsOpen(false);
     };
   
     const getOptions = () => {
       switch(fieldType) {
         case 'creatable-department':
           const departments = selectData.departments;
-          const mappedOptions = departments?.map(option => ({ value: option, label: option })) || [];
-          return mappedOptions;
+          return departments?.map(option => ({ value: option, label: option })) || [];
         case 'creatable-gender':
           return selectData.gender.map(option => ({ value: option, label: option }));
         case 'creatable-country':
@@ -1659,7 +1836,12 @@ const EditableTable = () => {
     const renderEditor = () => {
       if (columnNumber === 16) {
         return (
-          <div className="inline-checkbox-group" onKeyDown={handleKeyDown}>
+          <div 
+            className="inline-checkbox-group" 
+            onKeyDown={handleKeyDown}
+            tabIndex={0}
+            ref={inputRef}
+          >
             {selectOptions.preparationForm.map(option => (
               <label key={option} className="inline-checkbox-label">
                 <input
@@ -1673,7 +1855,7 @@ const EditableTable = () => {
                       newOptions = selectedOptions.filter(o => o !== option);
                     }
                     setSelectedOptions(newOptions);
-                    setEditValue(JSON.stringify(newOptions));
+                    setLocalValue(JSON.stringify(newOptions));
                   }}
                 />
                 <span>{option}</span>
@@ -1688,19 +1870,21 @@ const EditableTable = () => {
         const optionField = getOptionField();
   
         return (
-          <div className="inline-creatable-wrapper" onKeyDown={handleKeyDown}>
+          <div className="inline-creatable-wrapper">
             <CreatableSelect
               ref={selectRef}
               options={options}
-              value={editValue ? { value: editValue, label: editValue } : null}
+              value={localValue ? { value: localValue, label: localValue } : null}
               onChange={(option) => {
                 if (option) {
-                  setEditValue(option.value);
+                  setLocalValue(option.value);
                 } else {
-                  setEditValue('');
+                  setLocalValue('');
                 }
               }}
               onKeyDown={handleKeyDown}
+              onMenuOpen={handleMenuOpen}
+              onMenuClose={handleMenuClose}
               isClearable
               placeholder="Выберите..."
               noOptionsMessage={() => "Нет вариантов, введите свой"}
@@ -1710,6 +1894,7 @@ const EditableTable = () => {
                 if (optionField) {
                   addCustomOption(optionField, inputValue);
                 }
+                setLocalValue(inputValue);
               }}
               styles={{
                 menuPortal: base => ({ ...base, zIndex: 9999 }),
@@ -1718,6 +1903,7 @@ const EditableTable = () => {
               className="react-select-inline"
               classNamePrefix="react-select"
               autoFocus
+              openMenuOnFocus
             />
           </div>
         );
@@ -1726,12 +1912,12 @@ const EditableTable = () => {
       switch(fieldType) {
         case 'date':
           if (columnNumber === 3) {
-            let yearDisplay = editValue;
-            if (editValue && typeof editValue === 'string') {
-              if (editValue.includes('-')) {
-                yearDisplay = editValue.split('-')[0];
-              } else if (editValue.includes('.')) {
-                yearDisplay = editValue.split('.')[2];
+            let yearDisplay = localValue;
+            if (localValue && typeof localValue === 'string') {
+              if (localValue.includes('-')) {
+                yearDisplay = localValue.split('-')[0];
+              } else if (localValue.includes('.')) {
+                yearDisplay = localValue.split('.')[2];
               }
             }
             return (
@@ -1742,7 +1928,7 @@ const EditableTable = () => {
                 onChange={(e) => {
                   const year = e.target.value.replace(/\D/g, '').slice(0, 4);
                   const fullDate = year ? `${year}-01-01` : '';
-                  setEditValue(fullDate);
+                  setLocalValue(fullDate);
                 }}
                 onKeyDown={handleKeyDown}
                 className="inline-input"
@@ -1752,22 +1938,22 @@ const EditableTable = () => {
             );
           }
           const displayDate = (() => {
-            if (!editValue) return '';
-            if (/^\d{2}\.\d{2}\.\d{4}$/.test(editValue)) return editValue;
-            if (/^\d{4}-\d{2}-\d{2}$/.test(editValue)) {
-              const [year, month, day] = editValue.split('-');
+            if (!localValue) return '';
+            if (/^\d{2}\.\d{2}\.\d{4}$/.test(localValue)) return localValue;
+            if (/^\d{4}-\d{2}-\d{2}$/.test(localValue)) {
+              const [year, month, day] = localValue.split('-');
               return `${day}.${month}.${year}`;
             }
-            return editValue;
+            return localValue;
           })();
-          const isDateInvalid = editValue && !isValidDate(displayDate);
+          const isDateInvalid = localValue && !isValidDate(displayDate);
           return (
             <>
               <input
                 ref={inputRef}
                 type="text"
                 value={displayDate}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={(e) => setLocalValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className={`inline-input ${isDateInvalid ? 'date-error' : ''}`}
                 placeholder="ДД.ММ.ГГГГ"
@@ -1782,8 +1968,8 @@ const EditableTable = () => {
             <input
               ref={inputRef}
               type="tel"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
+              value={localValue}
+              onChange={(e) => setLocalValue(e.target.value)}
               onKeyDown={handleKeyDown}
               className="inline-input"
               placeholder="+375XXXXXXXXX"
@@ -1794,8 +1980,8 @@ const EditableTable = () => {
             <input
               ref={inputRef}
               type="password"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
+              value={localValue}
+              onChange={(e) => setLocalValue(e.target.value)}
               onKeyDown={handleKeyDown}
               className="inline-input"
               placeholder="Введите пароль"
@@ -1806,10 +1992,12 @@ const EditableTable = () => {
           return (
             <input
               ref={inputRef}
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
+              type="text"
+              value={localValue}
+              onChange={(e) => setLocalValue(e.target.value)}
               onKeyDown={handleKeyDown}
               className="inline-input"
+              placeholder="Введите текст..."
             />
           );
         default:
@@ -1817,8 +2005,8 @@ const EditableTable = () => {
             <input
               ref={inputRef}
               type="text"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
+              value={localValue}
+              onChange={(e) => setLocalValue(e.target.value)}
               onKeyDown={handleKeyDown}
               className="inline-input"
               placeholder="Введите значение..."
@@ -1829,13 +2017,13 @@ const EditableTable = () => {
   
     return (
       <td className="editing-cell">
-        <div className="inline-editor-container">
+        <div className="inline-editor-container" ref={containerRef}>
           {renderEditor()}
         </div>
       </td>
     );
   };
-
+  
   const NestedSocialLeaveRenderer = ({ rowId, value }) => {
     const [editingLeaves, setEditingLeaves] = useState([]);
     const [hasChanges, setHasChanges] = useState(false);
@@ -3184,7 +3372,6 @@ const EditableTable = () => {
     if (sortConfig.key === columnKey && sortConfig.direction === 'ascending') {
       setSortConfig({ key: columnKey, direction: 'descending' });
     } else if (sortConfig.key === columnKey && sortConfig.direction === 'descending') {
-      // Третий клик - сброс сортировки
       setSortConfig({ key: null, direction: 'ascending' });
     } else {
       setSortConfig({ key: columnKey, direction: 'ascending' });
@@ -3200,136 +3387,238 @@ const EditableTable = () => {
       const columnNumber = parseInt(sortConfig.key.replace('column', ''));
       const fieldName = ColumnName[columnNumber];
       
+      // Проверка на пустые значения
+      const isEmpty = (value) => {
+        if (value === null || value === undefined) return true;
+        if (typeof value === 'string') return value.trim() === '';
+        if (Array.isArray(value)) return value.length === 0;
+        if (typeof value === 'object') return Object.keys(value).length === 0;
+        return false;
+      };
+      
       // Обработка специальных колонок
       if (sortConfig.key === 'column16') {
         aValue = formatPreparationForm(aValue);
         bValue = formatPreparationForm(bValue);
       }
       
-      // Обработка вложенных колонок для сортировки
+      // Сортировка для руководителей (column33) - по последнему руководителю
       if (sortConfig.key === 'column33') {
-        try {
-          const aSupervisors = JSON.parse(aValue || '[]');
-          const bSupervisors = JSON.parse(bValue || '[]');
-          
-          // Получаем последнего руководителя по дате начала
-          const getLastSupervisor = (supervisors) => {
-            if (!Array.isArray(supervisors) || supervisors.length === 0) return null;
+        const getLastSupervisorName = (value) => {
+          try {
+            const supervisors = JSON.parse(value || '[]');
+            if (!Array.isArray(supervisors) || supervisors.length === 0) return '';
             const sorted = [...supervisors].sort((x, y) => {
               const dateX = x.startDate ? new Date(x.startDate) : new Date(0);
               const dateY = y.startDate ? new Date(y.startDate) : new Date(0);
               return dateY - dateX;
             });
-            return sorted[0];
-          };
-          
-          const aLast = getLastSupervisor(aSupervisors);
-          const bLast = getLastSupervisor(bSupervisors);
-          
-          aValue = aLast?.supervisorName || '';
-          bValue = bLast?.supervisorName || '';
-        } catch {
-          aValue = '';
-          bValue = '';
-        }
+            return sorted[0]?.supervisorName || '';
+          } catch {
+            return '';
+          }
+        };
+        aValue = getLastSupervisorName(aValue);
+        bValue = getLastSupervisorName(bValue);
       }
       
+      // Сортировка для социального отпуска (column9) - по самой ранней дате начала
       if (sortConfig.key === 'column9') {
-        try {
-          const aLeaves = JSON.parse(aValue || '[]');
-          const bLeaves = JSON.parse(bValue || '[]');
-          
-          // Сортируем по дате начала первого отпуска
-          const getFirstLeaveDate = (leaves) => {
+        const getEarliestLeaveDate = (value) => {
+          try {
+            const leaves = JSON.parse(value || '[]');
             if (!Array.isArray(leaves) || leaves.length === 0) return null;
-            const validDates = leaves
-              .map(l => l.startDate ? new Date(l.startDate) : null)
-              .filter(d => d && !isNaN(d));
-            if (validDates.length === 0) return null;
-            return Math.min(...validDates);
-          };
-          
-          const aDate = getFirstLeaveDate(aLeaves);
-          const bDate = getFirstLeaveDate(bLeaves);
-          
-          aValue = aDate ? aDate.getTime() : '';
-          bValue = bDate ? bDate.getTime() : '';
-        } catch {
-          aValue = '';
-          bValue = '';
-        }
+            let earliestDate = null;
+            for (const leave of leaves) {
+              if (leave.startDate) {
+                const date = new Date(leave.startDate);
+                if (!isNaN(date) && (!earliestDate || date < earliestDate)) {
+                  earliestDate = date;
+                }
+              }
+            }
+            return earliestDate;
+          } catch {
+            return null;
+          }
+        };
+        const aDate = getEarliestLeaveDate(aValue);
+        const bDate = getEarliestLeaveDate(bValue);
+        
+        // Пустые значения в конец
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;  // a пустое -> в конец
+        if (!bDate) return -1; // b пустое -> в конец
+        
+        const timeA = aDate.getTime();
+        const timeB = bDate.getTime();
+        return sortConfig.direction === 'ascending' ? timeA - timeB : timeB - timeA;
       }
       
-      // Определяем тип колонки для правильной сортировки
-      const dateColumns = [3, 6, 7, 22, 24, 26, 30, 34, 35];
-      const numberColumns = [12]; // Год окончания и другие числовые колонки
+      // Сортировка для продлений (column27) - по самой поздней дате приказа
+      if (sortConfig.key === 'column27') {
+        const getLatestExtensionDate = (value) => {
+          try {
+            const extensions = JSON.parse(value || '[]');
+            if (!Array.isArray(extensions) || extensions.length === 0) return null;
+            let latestDate = null;
+            for (const ext of extensions) {
+              if (ext.orderDate) {
+                const date = new Date(ext.orderDate);
+                if (!isNaN(date) && (!latestDate || date > latestDate)) {
+                  latestDate = date;
+                }
+              }
+            }
+            return latestDate;
+          } catch {
+            return null;
+          }
+        };
+        const aDate = getLatestExtensionDate(aValue);
+        const bDate = getLatestExtensionDate(bValue);
+        
+        // Пустые значения в конец
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;  // a пустое -> в конец
+        if (!bDate) return -1; // b пустое -> в конец
+        
+        const timeA = aDate.getTime();
+        const timeB = bDate.getTime();
+        return sortConfig.direction === 'ascending' ? timeA - timeB : timeB - timeA;
+      }
+      
+      // Сортировка для надбавок (column36) - по дате начала
+      if (sortConfig.key === 'column36') {
+        const getEarliestAllowanceDate = (value) => {
+          try {
+            const allowances = JSON.parse(value || '[]');
+            if (!Array.isArray(allowances) || allowances.length === 0) return null;
+            let earliestDate = null;
+            for (const allow of allowances) {
+              if (allow.startDate) {
+                const date = new Date(allow.startDate);
+                if (!isNaN(date) && (!earliestDate || date < earliestDate)) {
+                  earliestDate = date;
+                }
+              }
+            }
+            return earliestDate;
+          } catch {
+            return null;
+          }
+        };
+        const aDate = getEarliestAllowanceDate(aValue);
+        const bDate = getEarliestAllowanceDate(bValue);
+        
+        // Пустые значения в конец
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;  // a пустое -> в конец
+        if (!bDate) return -1; // b пустое -> в конец
+        
+        const timeA = aDate.getTime();
+        const timeB = bDate.getTime();
+        return sortConfig.direction === 'ascending' ? timeA - timeB : timeB - timeA;
+      }
+      
+      // Определяем типы колонок для правильной сортировки
+      const dateColumns = [3, 6, 7, 22, 24, 26, 30, 34, 35]; // индекс 3 = Год рождения, 6 = Дата зачисления и т.д.
+      const numberColumns = [12]; // Год окончания - числовая колонка
+      
+      // Сортировка для Года рождения (колонка 3)
+      if (columnNumber === 3) {
+        const getYear = (value) => {
+          if (isEmpty(value)) return null;
+          if (typeof value === 'number') return value;
+          const yearMatch = String(value).match(/\d{4}/);
+          return yearMatch ? parseInt(yearMatch[0]) : null;
+        };
+        const yearA = getYear(aValue);
+        const yearB = getYear(bValue);
+        
+        // Пустые значения в конец
+        if (yearA === null && yearB === null) return 0;
+        if (yearA === null) return 1;  // a пустое -> в конец
+        if (yearB === null) return -1; // b пустое -> в конец
+        
+        return sortConfig.direction === 'ascending' ? yearA - yearB : yearB - yearA;
+      }
       
       // Сортировка для дат
       if (dateColumns.includes(columnNumber)) {
-        const dateA = aValue ? new Date(formatDateToAPI(aValue)) : null;
-        const dateB = bValue ? new Date(formatDateToAPI(bValue)) : null;
+        const getDate = (value) => {
+          if (isEmpty(value)) return null;
+          const formatted = formatDateToAPI(value);
+          if (!formatted) return null;
+          const date = new Date(formatted);
+          return isNaN(date.getTime()) ? null : date;
+        };
+        const dateA = getDate(aValue);
+        const dateB = getDate(bValue);
         
+        // Пустые значения в конец
         if (!dateA && !dateB) return 0;
-        if (!dateA) return sortConfig.direction === 'ascending' ? 1 : -1;
-        if (!dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
+        if (!dateA) return 1;  // a пустое -> в конец
+        if (!dateB) return -1; // b пустое -> в конец
         
         const timeA = dateA.getTime();
         const timeB = dateB.getTime();
-        
-        return sortConfig.direction === 'ascending' 
-          ? timeA - timeB 
-          : timeB - timeA;
+        return sortConfig.direction === 'ascending' ? timeA - timeB : timeB - timeA;
       }
       
-      // Сортировка для чисел
+      // Сортировка для чисел (Год окончания)
       if (numberColumns.includes(columnNumber)) {
         const numA = parseFloat(aValue);
         const numB = parseFloat(bValue);
         
-        if (isNaN(numA) && isNaN(numB)) return 0;
-        if (isNaN(numA)) return sortConfig.direction === 'ascending' ? 1 : -1;
-        if (isNaN(numB)) return sortConfig.direction === 'ascending' ? -1 : 1;
+        const isNumAValid = !isNaN(numA) && !isEmpty(aValue);
+        const isNumBValid = !isNaN(numB) && !isEmpty(bValue);
         
-        return sortConfig.direction === 'ascending' 
-          ? numA - numB 
-          : numB - numA;
-      }
-      
-      // Сортировка для года рождения (колонка 3)
-      if (columnNumber === 3) {
-        const yearA = parseInt(aValue);
-        const yearB = parseInt(bValue);
+        // Пустые значения в конец
+        if (!isNumAValid && !isNumBValid) return 0;
+        if (!isNumAValid) return 1;  // a пустое -> в конец
+        if (!isNumBValid) return -1; // b пустое -> в конец
         
-        if (isNaN(yearA) && isNaN(yearB)) return 0;
-        if (isNaN(yearA)) return sortConfig.direction === 'ascending' ? 1 : -1;
-        if (isNaN(yearB)) return sortConfig.direction === 'ascending' ? -1 : 1;
-        
-        return sortConfig.direction === 'ascending' 
-          ? yearA - yearB 
-          : yearB - yearA;
+        return sortConfig.direction === 'ascending' ? numA - numB : numB - numA;
       }
       
       // Сортировка для boolean значений (есть/нет)
       const booleanColumns = [38, 39]; // Сертификат РИВШ, Въезд по приглашению
       if (booleanColumns.includes(columnNumber)) {
-        const boolA = aValue === 'есть' || aValue === 'да' ? 1 : 0;
-        const boolB = bValue === 'есть' || bValue === 'да' ? 1 : 0;
+        const getBoolValue = (value) => {
+          if (isEmpty(value)) return -1; // пустые значения будут в конце
+          const str = String(value || '').toLowerCase();
+          return (str === 'есть' || str === 'да' || str === 'true') ? 1 : 0;
+        };
+        const boolA = getBoolValue(aValue);
+        const boolB = getBoolValue(bValue);
         
-        return sortConfig.direction === 'ascending' 
-          ? boolA - boolB 
-          : boolB - boolA;
+        // Пустые значения в конец (-1 уже даст их в конец)
+        if (boolA === -1 && boolB === -1) return 0;
+        if (boolA === -1) return 1;
+        if (boolB === -1) return -1;
+        
+        return sortConfig.direction === 'ascending' ? boolA - boolB : boolB - boolA;
       }
       
-      // Стандартная строковая сортировка
-      const aStr = String(aValue || '').toLowerCase();
-      const bStr = String(bValue || '').toLowerCase();
+      // Сортировка для строковых полей
+      const aStr = String(aValue || '').trim();
+      const bStr = String(bValue || '').trim();
       
-      if (aStr < bStr) {
-        return sortConfig.direction === 'ascending' ? -1 : 1;
-      }
-      if (aStr > bStr) {
-        return sortConfig.direction === 'ascending' ? 1 : -1;
-      }
+      const isAEmpty = aStr === '';
+      const isBEmpty = bStr === '';
+      
+      // Пустые строки всегда в конец
+      if (isAEmpty && isBEmpty) return 0;
+      if (isAEmpty) return 1;  // a пустое -> в конец
+      if (isBEmpty) return -1; // b пустое -> в конец
+      
+      // Сравнение непустых строк
+      const aLower = aStr.toLowerCase();
+      const bLower = bStr.toLowerCase();
+      
+      if (aLower < bLower) return sortConfig.direction === 'ascending' ? -1 : 1;
+      if (aLower > bLower) return sortConfig.direction === 'ascending' ? 1 : -1;
       return 0;
     });
   };
@@ -3514,7 +3803,7 @@ const EditableTable = () => {
   }, [selectedRows, sortedFilteredData]);
 
   const getSortIcon = (columnKey) => {
-    if (sortConfig.key !== columnKey) return '↕️';
+    if (sortConfig.key !== columnKey) return '';
     return sortConfig.direction === 'ascending' ? '↑' : '↓';
   };
 
@@ -4996,9 +5285,20 @@ case 'Номер приказа о продлении':
                   
                   return (
                     <tr key={`row-${row.id}`} className="table-row">
-                      <td className="id-checkbox-cell sticky-left">
+                      <td className="id-checkbox-cell sticky-left"
+                        onDoubleClick={() => {
+                          if (canEditRow()) {
+                            handleRowClick(originalIndex, row, 'edit');
+                          } else if (userData?.role === 'supervisor') {
+                            handleRowClick(originalIndex, row, 'view');
+                          } else {
+                            alert('У вас нет прав для редактирования');
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className="id-checkbox-container">
-                          <div className="checkbox-wrapper">
+                          <div className="checkbox-wrapper" onClick={(e) => e.stopPropagation()}>
                             <input
                               type="checkbox"
                               checked={selectedRows.has(row.id)}
