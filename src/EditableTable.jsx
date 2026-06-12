@@ -1128,8 +1128,8 @@ const EditableTable = () => {
         }
         row.column12 = graduationYear || '';
         row.column13 = ordinator.university.department || '';
-        row.column15 = ordinator.university.specialtyProfile || '';
-        row.column14 = ordinator.university.specialty || '';
+        row.column14 = ordinator.university.specialtyProfile || '';
+        row.column15 = ordinator.university.specialty || '';
         let prepForm = ordinator.university.preparationForm;
         if (prepForm && typeof prepForm === 'object') {
           prepForm = JSON.stringify(prepForm);
