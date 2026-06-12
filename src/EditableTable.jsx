@@ -851,12 +851,12 @@ const EditableTable = () => {
   const handleSelectAllColumns = () => {
     const allColumns = new Set();
     for (let i = 1; i <= 40; i++) {
-      if (i !== 9) {
-        allColumns.add(i);
-      }
+      allColumns.add(i);
     }
     
-    if (selectedColumns.size === allColumns.size) {
+    const isAllSelected = selectedColumns.size === allColumns.size;
+    
+    if (isAllSelected) {
       setSelectedColumns(new Set());
     } else {
       setSelectedColumns(allColumns);
