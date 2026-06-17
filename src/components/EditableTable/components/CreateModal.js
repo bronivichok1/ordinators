@@ -284,28 +284,8 @@ const CreateModal = ({
                       newSelection = [...parsedPrepForm, option];
                     }
                     
-                    setModalState(prev => ({
-                      ...prev,
-                      selectedPreparationForm: newSelection
-                    }));
-                    
                     const stringValue = JSON.stringify(newSelection);
-                    if (modalState.mode === 'create') {
-                      setNewRowData(prev => ({
-                        ...prev,
-                        column16: stringValue
-                      }));
-                    } else {
-                      const updatedRowData = [...modalState.rowData];
-                      const itemIndex = updatedRowData.findIndex(item => item.columnName === 'column16');
-                      if (itemIndex !== -1) {
-                        updatedRowData[itemIndex].value = stringValue;
-                        setModalState(prev => ({
-                          ...prev,
-                          rowData: updatedRowData
-                        }));
-                      }
-                    }
+                    handleChange(stringValue);
                   }}
                   className="modal-checkbox"
                 />
@@ -909,7 +889,7 @@ const CreateModal = ({
             
             <div className="modal-actions">
               <button 
-                onClick={() => handleSave()}
+                onClick={handleSave}
                 className="save-button"
                 disabled={Object.values(dateErrors).some(error => error === true)}
               >

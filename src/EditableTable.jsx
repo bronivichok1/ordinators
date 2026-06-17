@@ -1061,8 +1061,6 @@ const EditableTable = () => {
           handleCancel={handleCancel}
           userData={userData}
           columns={columns}
-          setModalState={setModalState}
-          setNewRowData={setNewRowData}
         />
       )}
 
