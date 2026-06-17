@@ -1494,9 +1494,8 @@
     margin-top: 8px;
     padding: 6px 12px;
     background: #ffffff;
-    border: 1px solid #313131;
-    border-radius: 4px;
-    color: #313131;
+    border: none;
+    color: #000000;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
@@ -1504,10 +1503,15 @@
     font-size: 12px;
     transition: all 0.2s ease;
   }
-  .nested-save-btn:hover,
+  
   .nested-add-btn:hover {
     background: #ffffff;
     transform: translateY(-1px);
+  }
+  .nested-save-btn:hover{
+    transform: translateY(-1px);
+    background: #ffffff;
+    color: #1976d2;
   }
   
   .nested-actions {

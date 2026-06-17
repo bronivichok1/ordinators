@@ -235,16 +235,13 @@ const RegisterPage = ({ onRegister, onBack, loading, message }) => {
             </select>
           </div>
           <div className='registr-container'>
+            <button className="back-button-reg" onClick={onBack} disabled={loading}>
+              <ArrowLeft size={16} /><span>Назад к списку</span>
+            </button>
             <button type="submit" className="registr-button" disabled={loading}>
               <UserPlus size={20} /><span>{loading ? 'Регистрация...' : 'Зарегистрировать'}</span>
             </button>
           </div>
-          
-            <div className="registr-container">
-              <button className="back-button-reg" onClick={onBack} disabled={loading}>
-                <ArrowLeft size={16} /><span>Назад к списку</span>
-              </button>
-            </div>
         </form>
       </div>
     </div>

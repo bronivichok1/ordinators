@@ -267,25 +267,24 @@ input:-moz-ui-invalid {
 
 .registr-button,
 .back-button-reg {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: 50%;
+  width: 25%;
   padding: 14px;
-  border-color: #1f1f1f;
+  border: none;
   background-color: white;
-  border-radius: 12px;
   color: rgb(37, 37, 37);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   margin-top: 14px;
 }
+
 .registr-button:hover,
 .back-button-reg:hover {
-  background: rgba(241, 241, 241, 0.767);
-  box-shadow: 0 10px 25px rgba(178, 178, 179, 0.4);
+  transform: translateY(-1px);
 }
 
 .admin-controls {
@@ -368,12 +367,13 @@ input:-moz-ui-invalid {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid #c4c4c4;
+  border: none;
   background-color: white;
 }
 
 .add-user-button:hover {
-  box-shadow: 0 5px 15px rgba(143, 151, 143, 0.3);
+  transform: translateY(-1px);
+  color: #000000;
 }
 
 .loading-users,
@@ -396,7 +396,7 @@ input:-moz-ui-invalid {
 
 .table-header {
   display: grid;
-  grid-template-columns: 80px 2fr 1.5fr 1.2fr 2fr;
+  grid-template-columns: 80px 2fr 1.7fr 1.4fr 1.5fr;
   background: #f1f5f9;
   padding: 15px 20px;
   font-weight: 600;
@@ -452,23 +452,23 @@ input:-moz-ui-invalid {
 }
 
 .edit-button {
-  background: #ffffff;
   color: #000000;
-  border: 1px solid #636363;
+  border: none;
+  background-color: white;
 }
 
 .edit-button:hover {
-  background: #eeeeee;
+  transform: translateY(-1px);
 }
 
 .delete-button {
-  background: #ffffff;
-  color: #000000;
-  border: 1px solid #636363;
+  color: #ff0000;
+  border: none;
+  background-color: white;
 }
 
 .delete-button:hover {
-  background: #eeeeee;
+  transform: translateY(-1px);
 }
 
 .admin-footer {
@@ -497,7 +497,7 @@ input:-moz-ui-invalid {
   cursor: pointer;
   min-width: 180px;
   background-color: white;
-  border: 1px solid #c4c4c4;
+  border: none;
   border-radius: 6px;
   color: #333;
 }
@@ -521,13 +521,12 @@ input:-moz-ui-invalid {
 }
 
 .logout-button-app {
-  background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
-  color: white;
+  background-color: white;
+  color: #ff0000;
 }
 
 .logout-button-app:hover {
-  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
-  box-shadow: 0 5px 15px rgba(229, 62, 62, 0.3);
+  transform: translateY(-1px);
 }
 
 .modal-overlay {
