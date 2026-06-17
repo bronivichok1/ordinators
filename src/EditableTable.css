@@ -843,27 +843,22 @@
   
   .selected-count-table {
     color: #000000;
-    background-color: #e4e4e4;
   }
   
   .filter-info {
-    color: #2196f3;
-    background-color: #e3f2fd;
+    color: #000000;
   }
   
   .columns-info {
     color: #000000;
-    background-color: #e4e4e4;
   }
   
   .certificate-info {
     color: #000000;
-    background-color: #e4e4e4;
   }
   
   .selected-columns-info {
     color: #000000;
-    background-color: #e4e4e4;
   }
   
   .search-info {
@@ -1536,7 +1531,7 @@
   
   .nested-cell-td {
     padding: 4px;
-    background: #fafafa;
+    background: #ffffff;
   }
   
   .last-item-row,

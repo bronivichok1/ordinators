@@ -93,6 +93,7 @@ const EditableTable = () => {
     showCertificatePanel,
     setShowCertificatePanel,
     selectedCertificateTypes,
+    setSelectedCertificateTypes,
     generatingCertificates,
     handleCertificateTypeChange,
     handleGenerateCertificates,
@@ -203,6 +204,25 @@ const EditableTable = () => {
     setSelectedRows(new Set());
     setSelectAll(false);
     setCurrentPage(1);
+    
+    setShowFilterPanel(false);
+    setShowColumnsPanel(false);
+    setShowCertificatePanel(false);
+    setShowExportPanel(false);
+    
+    const allColumns = new Set();
+    for (let i = 1; i <= 40; i++) {
+      allColumns.add(i);
+    }
+    setSelectedColumns(allColumns);
+    
+    const initialVisible = new Set();
+    for (let i = 1; i <= 40; i++) {
+      initialVisible.add(i);
+    }
+    setVisibleColumns(initialVisible);
+    
+    setSelectedCertificateTypes(new Set());
   };
 
   const handleSelectRow = (rowId) => {
@@ -391,7 +411,41 @@ const EditableTable = () => {
     }
   };
 
-  const filteredData = applyFilters(data);
+  const filteredData = (() => {
+    let result = [...data];
+    
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      result = result.filter(row => {
+        if (searchColumn === 'all') {
+          for (const [key, value] of Object.entries(row)) {
+            if (key !== 'id' && key !== 'originalData') {
+              let displayValue = value;
+              if (key === 'column16') {
+                displayValue = formatPreparationForm(value);
+              }
+              if (String(displayValue || '').toLowerCase().includes(searchLower)) {
+                return true;
+              }
+            }
+          }
+          return false;
+        } else {
+          let displayValue = row[searchColumn] || '';
+          if (searchColumn === 'column16') {
+            displayValue = formatPreparationForm(displayValue);
+          }
+          return String(displayValue || '').toLowerCase().includes(searchLower);
+        }
+      });
+    }
+    
+    if (filters.length > 0) {
+      result = applyFilters(result);
+    }
+    
+    return result;
+  })();
   
   const getSortedData = (dataToSort) => {
     if (!sortConfig.key || !dataToSort.length) return dataToSort;
