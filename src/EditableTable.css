@@ -20,7 +20,6 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    min-height: 125px;
     transition: none;
     will-change: auto;
     transform: translateZ(0);
@@ -45,8 +44,8 @@
   
   .search-input:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    border-color: #2196f3;
+    box-shadow: 0 0 0 3px rgba(66, 169, 253, 0.2);
   }
   
   .column-select {
@@ -61,8 +60,8 @@
   
   .column-select:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    border-color: #2196f3;
+    box-shadow: 0 0 0 3px rgba(66, 169, 253, 0.2);
   }
   
   .filter-button,
@@ -93,27 +92,18 @@
   .create-row-button:hover,
   .export-button:hover:not(:disabled),
   .certificate-button:hover:not(:disabled) {
-    background-color: #f5f5f5;
-    border-color: #999;
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #1976d2;
     transform: translateY(-1px);
   }
-  
+
+  .certificate-button.active,
+  .columns-button.active,
   .filter-button.active {
     background-color: #e3f2fd;
     border-color: #2196f3;
     color: #1976d2;
-  }
-  
-  .columns-button.active {
-    background-color: #ffffff;
-    border-color: #000000;
-    color: #000000;
-  }
-  
-  .certificate-button.active {
-    background-color: #ffffff;
-    border-color: #000000;
-
   }
   
   .export-button:disabled,
@@ -541,6 +531,7 @@
     min-width: 200px;
   }
   
+  
   .remove-filter-button {
     display: flex;
     align-items: center;
@@ -564,23 +555,6 @@
     display: flex;
     gap: 10px;
     justify-content: flex-end;
-  }
-  
-  .add-filter-button {
-    padding: 8px 16px;
-    background-color: #4caf50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-  }
-  
-  .add-filter-button:hover {
-    background-color: #45a049;
-    transform: translateY(-1px);
   }
   
   .clear-filters-button {
@@ -737,7 +711,8 @@
     gap: 15px;
   }
   
-  .export-confirm-button {
+  .export-confirm-button,
+  .add-filter-button {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -747,11 +722,11 @@
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     transition: all 0.2s ease;
   }
-  
+  .add-filter-button:hover,
   .export-confirm-button:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
@@ -769,7 +744,7 @@
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     transition: all 0.2s ease;
   }
