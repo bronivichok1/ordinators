@@ -90,6 +90,8 @@
   .columns-button:hover,
   .reset-search-button:hover,
   .create-row-button:hover,
+  .nested-save-btn:hover,
+  .nested-add-btn:hover,
   .export-button:hover:not(:disabled),
   .certificate-button:hover:not(:disabled) {
     background-color: #e3f2fd;
@@ -140,7 +142,10 @@
   .editable-table th,
   .editable-table td {
     border: 1px solid #e0e0e0;
-    padding: 12px 14px;
+    padding-right: 10px;
+    padding-left: 20px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     font-size: 16px;
     white-space: nowrap;
   }
@@ -529,6 +534,15 @@
   .filter-item input {
     flex: 1;
     min-width: 200px;
+  }
+
+  .filter-item select:hover,
+  .filter-item select:focus,
+  .filter-item input:hover,
+  .filter-item input:focus {
+    outline: none ;
+    border-color: #2196f3 ;
+    box-shadow: 0 0 0 2px rgba(79, 159, 250, 0.25) ;
   }
   
   
@@ -1069,13 +1083,14 @@
   .cancel-button-modal,
   .save-button {
     padding: 10px 24px;
-    border: none;
+    border: 2px solid #000000c0;
     border-radius: 6px;
     cursor: pointer;
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 600;
     min-width: 140px;
     transition: all 0.2s ease;
+    background-color: white;
   }
   
   .cancel-button-modal {
@@ -1090,14 +1105,14 @@
   }
   
   .save-button {
-    background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
-    color: white;
+    color: #000000c0;
   }
   
   .save-button:hover {
-    background: linear-gradient(135deg, #30c9d4 0%, #4a76d4 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(54, 209, 220, 0.5);
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #1976d2;
+    transform: translateY(-1px);
   }
   
   .modal-nested-header {
@@ -1413,13 +1428,15 @@
   }
   
   .page-button:hover:not(:disabled) {
-    border-color: #667eea;
+    border-color: #2196f3;
     transform: trargb(97, 122, 233)(-2px);
+    color: #1976d2;
+    background-color: #e3f2fd;
   }
   
   .page-button.active {
-    border-color: #1900ffbb;
-    color: black;
+    border-color: #2196f3;
+    color: #1976d2;
   }
   
   .page-button:disabled {
@@ -1489,7 +1506,8 @@
     margin-top: 8px;
     padding: 6px 12px;
     background: #ffffff;
-    border: none;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
     color: #000000;
     cursor: pointer;
     display: inline-flex;
@@ -1497,16 +1515,6 @@
     gap: 6px;
     font-size: 12px;
     transition: all 0.2s ease;
-  }
-  
-  .nested-add-btn:hover {
-    background: #ffffff;
-    transform: translateY(-1px);
-  }
-  .nested-save-btn:hover{
-    transform: translateY(-1px);
-    background: #ffffff;
-    color: #1976d2;
   }
   
   .nested-actions {

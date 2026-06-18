@@ -163,7 +163,6 @@ const ExtensionsRenderer = ({ rowId, value, data, setData, userData }) => {
       <div className="nested-cell">
         {canEdit && (
           <button onClick={addExtension} className="nested-add-btn">
-            <Plus size={14} />
             <span>Добавить продление</span>
           </button>
         )}
@@ -223,7 +222,6 @@ const ExtensionsRenderer = ({ rowId, value, data, setData, userData }) => {
         
         {canEdit && (editingExtensions.length <= 1 || isExpanded) && (
           <button onClick={addExtension} className="nested-add-btn">
-            <Plus size={14} />
             <span>Добавить продление</span>
           </button>
         )}

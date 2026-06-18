@@ -562,7 +562,6 @@ function App() {
         <div className="auth-card">
           <div className="auth-header">
             <h1 className="auth-title">Панель администратора</h1>
-            <p className="auth-subtitle">Управление пользователями системы</p>
           </div>
 
           <Message text={message.text} type={message.type} />

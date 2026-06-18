@@ -405,7 +405,7 @@ const CreateModal = ({
               }}
               className="modal-nested-add"
             >
-              <Plus size={14} /> Добавить период отпуска
+              Добавить период отпуска
             </button>
           </div>
         );
@@ -529,7 +529,7 @@ const CreateModal = ({
               }}
               className="modal-nested-add"
             >
-              <Plus size={14} /> Добавить руководителя
+              Добавить руководителя
             </button>
           </div>
         );
@@ -626,7 +626,7 @@ const CreateModal = ({
               onClick={addExtension}
               className="modal-nested-add"
             >
-              <Plus size={14} /> Добавить продление
+              Добавить продление
             </button>
           </div>
         );
@@ -728,7 +728,7 @@ const CreateModal = ({
               onClick={addAllowanceModal}
               className="modal-nested-add"
             >
-              <Plus size={14} /> Добавить надбавку
+               Добавить надбавку
             </button>
           </div>
         );
