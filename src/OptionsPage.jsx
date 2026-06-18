@@ -13,7 +13,7 @@ import {
   GripVertical
 } from 'lucide-react';
 import CheckAccess from './components/CheckAccess';
-import './OptionsPage.css';
+import './styles/OptionsPage.css';
 
 const OptionsPage = () => {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Home } from 'lucide-react';
-import './Unauthorized.css';
+import './styles/Unauthorized.css';
 
 const Unauthorized = () => {
   const navigate = useNavigate();

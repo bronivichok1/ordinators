@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CheckAccess from './components/CheckAccess';
-import './LogsViewer.css';
+import './styles/LogsViewer.css';
 
 const LogsViewer = () => {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, User, Shield, HelpCircle } from 'lucide-react';
-import './EditableTable.css';
+import './styles/EditableTable.css';
 
 import { useApi } from './components/EditableTable/hooks/useApi';
 import { useOrdinators } from './components/EditableTable/hooks/useOrdinators';

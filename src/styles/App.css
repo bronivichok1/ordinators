@@ -35,6 +35,12 @@ input:-moz-ui-invalid {
   padding: 20px;
 }
 
+.auth-container-register {
+  width: 100%;
+  max-width: 800px;
+  padding: 20px;
+}
+
 .auth-container-auth {
   width: 100%;
   max-width: 600px;
@@ -133,7 +139,6 @@ input:-moz-ui-invalid {
 }
 
 .input-field2 {
-  width: 94%;
   padding: 16px 16px 16px 48px;
   border: 2px solid #e2e8f0;
   border-radius: 12px;
@@ -503,16 +508,6 @@ input:-moz-ui-invalid {
   border-radius: 6px;
   color: #333;
 }
-
-.table-button {
-}
-
-.options-button {
-}
-
-.app-logs-button {
-}
-
 .app-logs-button:hover,
 .options-button:hover,
 .table-button:hover {

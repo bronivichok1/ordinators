@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
-import './ImportData.css';
+import './styles/ImportData.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
 

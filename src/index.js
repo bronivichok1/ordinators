@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {  BrowserRouter, Routes, Route} from 'react-router-dom';
-import './index.css';
+import './styles/index.css';
 import App from './App';
 import Main from './EditableTable';
 import LogsViewer from './LogsViewer';

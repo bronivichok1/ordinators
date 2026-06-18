@@ -1,4 +1,4 @@
-import './App.css';
+import './styles/App.css';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -182,7 +182,7 @@ const RegisterPage = ({ onRegister, onBack, loading, message }) => {
   };
 
   return (
-    <div className="auth-container">
+    <div className="auth-container-register">
       <div className="auth-card">
         <div className="auth-header">
           <h1 className="auth-title">Регистрация нового пользователя</h1>
