@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { formatDateToDisplay, isValidDate } from '../utils/dateUtils';
+import { EXTENSION_TERMS } from '../utils/constants';
 
-const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
-  const [editingAllowances, setEditingAllowances] = useState([]);
+const ExtensionsRenderer = ({ rowId, value, data, setData, userData }) => {
+  const [editingExtensions, setEditingExtensions] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [originalAllowances, setOriginalAllowances] = useState([]);
+  const [originalExtensions, setOriginalExtensions] = useState([]);
   const [dateErrors, setDateErrors] = useState({});
 
   const canEdit = userData?.role === 'admin' || userData?.role === 'dispatcher';
@@ -15,25 +16,25 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
     try {
       const parsed = JSON.parse(value || '[]');
       const newValue = Array.isArray(parsed) ? parsed : [];
-      const sorted = sortAllowances(newValue);
-      setOriginalAllowances(sorted);
-      setEditingAllowances(JSON.parse(JSON.stringify(sorted)));
+      const sorted = sortExtensions(newValue);
+      setOriginalExtensions(sorted);
+      setEditingExtensions(JSON.parse(JSON.stringify(sorted)));
       setHasChanges(false);
     } catch {
-      setOriginalAllowances([]);
-      setEditingAllowances([]);
+      setOriginalExtensions([]);
+      setEditingExtensions([]);
       setHasChanges(false);
     }
   }, [value]);
 
-  const updateAllowance = (idx, field, val) => {
-    const updated = [...editingAllowances];
+  const updateExtension = (idx, field, val) => {
+    const updated = [...editingExtensions];
     if (updated[idx]) {
       updated[idx] = { ...updated[idx], [field]: val };
-      setEditingAllowances(updated);
+      setEditingExtensions(updated);
       setHasChanges(true);
     }
-    if (field === 'startDate' || field === 'endDate') {
+    if (field === 'orderDate') {
       if (val && !isValidDate(val)) {
         setDateErrors(prev => ({ ...prev, [`${idx}-${field}`]: true }));
       } else {
@@ -42,36 +43,36 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
     }
   };
 
-  const addAllowance = () => {
-    const newAllowance = { orderNumber: '', startDate: '', endDate: '' };
-    const updated = [...editingAllowances, newAllowance];
-    setEditingAllowances(updated);
+  const addExtension = () => {
+    const newExtension = { orderNumber: '', orderDate: '', extensionTerm: '1 год' };
+    const updated = [...editingExtensions, newExtension];
+    setEditingExtensions(updated);
     setHasChanges(true);
   };
 
-  const removeAllowance = async (idx) => {
-    const updated = editingAllowances.filter((_, i) => i !== idx);
-    setEditingAllowances(updated);
+  const removeExtension = async (idx) => {
+    const updated = editingExtensions.filter((_, i) => i !== idx);
+    setEditingExtensions(updated);
     setHasChanges(updated.length > 0);
     
     const rowIndex = data.findIndex(row => row.id === rowId);
     if (rowIndex !== -1) {
       const updatedData = [...data];
-      const toSave = sortAllowances(updated);
-      updatedData[rowIndex].column36 = JSON.stringify(toSave);
+      const toSave = sortExtensions(updated);
+      updatedData[rowIndex].column27 = JSON.stringify(toSave);
       setData(updatedData);
       
       try {
         const token = localStorage.getItem('auth_token');
         const payload = {
-          allowances: toSave.map(item => ({
-            orderNumber: item.orderNumber || '',
-            startDate: item.startDate || null,
-            endDate: item.endDate || null
+          extensions: toSave.map(ext => ({
+            orderNumber: ext.orderNumber || '',
+            orderDate: ext.orderDate || null,
+            extensionTerm: ext.extensionTerm || '1 год'
           }))
         };
         
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/ordinators/${rowId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/ordinators/${rowId}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -89,8 +90,8 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Ошибка при удалении');
         }
-        setOriginalAllowances(toSave);
-        setEditingAllowances(JSON.parse(JSON.stringify(toSave)));
+        setOriginalExtensions(toSave);
+        setEditingExtensions(JSON.parse(JSON.stringify(toSave)));
         setHasChanges(false);
         alert('Запись успешно удалена');
       } catch (error) {
@@ -103,22 +104,22 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
   const saveChanges = async () => {
     const rowIndex = data.findIndex(row => row.id === rowId);
     if (rowIndex !== -1) {
-      const sorted = sortAllowances(editingAllowances);
+      const sorted = sortExtensions(editingExtensions);
       const updatedData = [...data];
-      updatedData[rowIndex].column36 = JSON.stringify(sorted);
+      updatedData[rowIndex].column27 = JSON.stringify(sorted);
       setData(updatedData);
       
       try {
         const token = localStorage.getItem('auth_token');
         const payload = {
-          allowances: sorted.map(item => ({
-            orderNumber: item.orderNumber || '',
-            startDate: item.startDate || null,
-            endDate: item.endDate || null
+          extensions: sorted.map(ext => ({
+            orderNumber: ext.orderNumber || '',
+            orderDate: ext.orderDate || null,
+            extensionTerm: ext.extensionTerm || '1 год'
           }))
         };
         
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/ordinators/${rowId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/ordinators/${rowId}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -136,8 +137,8 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Ошибка сохранения');
         }
-        setOriginalAllowances(sorted);
-        setEditingAllowances(JSON.parse(JSON.stringify(sorted)));
+        setOriginalExtensions(sorted);
+        setEditingExtensions(JSON.parse(JSON.stringify(sorted)));
         setHasChanges(false);
         alert('Изменения успешно сохранены');
       } catch (error) {
@@ -147,22 +148,22 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
     }
   };
 
-  const sortAllowances = (allowances) => {
-    return [...allowances].sort((a, b) => {
-      const dateA = a?.startDate ? new Date(a.startDate) : new Date(0);
-      const dateB = b?.startDate ? new Date(b.startDate) : new Date(0);
+  const sortExtensions = (extensions) => {
+    return [...extensions].sort((a, b) => {
+      const dateA = a?.orderDate ? new Date(a.orderDate) : new Date(0);
+      const dateB = b?.orderDate ? new Date(b.orderDate) : new Date(0);
       return dateB - dateA;
     });
   };
 
-  const displayAllowances = isExpanded ? editingAllowances : [editingAllowances[0]].filter(l => l);
+  const displayExtensions = isExpanded ? editingExtensions : [editingExtensions[0]].filter(l => l);
 
-  if (editingAllowances.length === 0) {
+  if (editingExtensions.length === 0) {
     return (
       <div className="nested-cell">
         {canEdit && (
-          <button onClick={addAllowance} className="nested-add-btn">
-            <span>Добавить надбавку</span>
+          <button onClick={addExtension} className="nested-add-btn">
+            <span>Добавить продление</span>
           </button>
         )}
       </div>
@@ -171,8 +172,8 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
 
   return (
     <div className="nested-cell">
-      {displayAllowances.map((item, idx) => {
-        const originalIdx = editingAllowances.findIndex(l => l === item);
+      {displayExtensions.map((ext, idx) => {
+        const originalIdx = editingExtensions.findIndex(l => l === ext);
         return (
           <div key={idx} className={!isExpanded && idx === 0 ? "last-item-row" : "nested-item-row"}>
             <div className="nested-fields-row">
@@ -180,28 +181,30 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
                 type="text"
                 className="nested-date-term"
                 placeholder="Номер приказа"
-                value={item?.orderNumber || ''}
-                onChange={(e) => updateAllowance(originalIdx, 'orderNumber', e.target.value)}
+                value={ext?.orderNumber || ''}
+                onChange={(e) => updateExtension(originalIdx, 'orderNumber', e.target.value)}
                 readOnly={!canEdit}
               />
               <input
                 type="text"
-                className={`nested-date-term ${dateErrors[`${originalIdx}-startDate`] ? 'date-error' : ''}`}
-                placeholder="Дата начала"
-                value={item?.startDate ? formatDateToDisplay(item.startDate) : ''}
-                onChange={(e) => updateAllowance(originalIdx, 'startDate', e.target.value)}
+                className={`nested-date-term ${dateErrors[`${originalIdx}-orderDate`] ? 'date-error' : ''}`}
+                placeholder="Дата приказа"
+                value={ext?.orderDate ? formatDateToDisplay(ext.orderDate) : ''}
+                onChange={(e) => updateExtension(originalIdx, 'orderDate', e.target.value)}
                 readOnly={!canEdit}
               />
-              <input
-                type="text"
-                className={`nested-date-term ${dateErrors[`${originalIdx}-endDate`] ? 'date-error' : ''}`}
-                placeholder="Дата окончания"
-                value={item?.endDate ? formatDateToDisplay(item.endDate) : ''}
-                onChange={(e) => updateAllowance(originalIdx, 'endDate', e.target.value)}
-                readOnly={!canEdit}
-              />
+              <select
+                className="nested-term-select"
+                value={ext?.extensionTerm || '1 год'}
+                onChange={(e) => updateExtension(originalIdx, 'extensionTerm', e.target.value)}
+                disabled={!canEdit}
+              >
+                {EXTENSION_TERMS.map(term => (
+                  <option key={term} value={term}>{term}</option>
+                ))}
+              </select>
               {canEdit && (
-                <button onClick={() => removeAllowance(originalIdx)} className="nested-remove-btn">
+                <button onClick={() => removeExtension(originalIdx)} className="nested-remove-btn">
                   <Trash2 size={14} />
                 </button>
               )}
@@ -211,18 +214,18 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
       })}
       
       <div className="nested-actions">
-        {editingAllowances.length > 1 && (
+        {editingExtensions.length > 1 && (
           <button className="expand-btn" onClick={() => setIsExpanded(!isExpanded)}>
-            {isExpanded ? "▲ Свернуть" : `▼ Развернуть (${editingAllowances.length - 1})`}
+            {isExpanded ? "▲ Свернуть" : `▼ Развернуть (${editingExtensions.length - 1})`}
           </button>
         )}
         
-        {canEdit && (editingAllowances.length <= 1 || isExpanded) && (
-          <button onClick={addAllowance} className="nested-add-btn">
-            <span>Добавить надбавку</span>
+        {canEdit && (editingExtensions.length <= 1 || isExpanded) && (
+          <button onClick={addExtension} className="nested-add-btn">
+            <span>Добавить продление</span>
           </button>
         )}
-        
+
         {canEdit && hasChanges && (
           <button onClick={saveChanges} className="nested-save-btn">
             Сохранить
@@ -233,4 +236,4 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
   );
 };
 
-export default AllowanceRenderer;
+export default ExtensionsRenderer;

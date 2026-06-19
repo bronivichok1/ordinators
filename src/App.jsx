@@ -8,7 +8,7 @@ import {
   FileText, Settings
 } from 'lucide-react';
 
-const URL=process.env.REACT_APP_API_URL
+const URL=import.meta.env.VITE_API_URL
 
 const api = {
   async request(endpoint, options = {}) {
@@ -367,8 +367,8 @@ function App() {
   const [adminToken, setAdminToken] = useState(null);
 
   const ADMIN_CREDENTIALS = {
-    login: process.env.REACT_APP_ADMIN_LOGIN,
-    password: process.env.REACT_APP_ADMIN_PASSWORD
+    login: import.meta.env.VITE_ADMIN_LOGIN,
+    password: import.meta.env.VITE_ADMIN_PASSWORD
   };
 
   const showMessage = useCallback((text, type) => {

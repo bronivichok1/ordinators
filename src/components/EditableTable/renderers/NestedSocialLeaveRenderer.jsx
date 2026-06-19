@@ -20,7 +20,7 @@ const NestedSocialLeaveRenderer = ({ rowId, value, data, setData, userData }) =>
   const loadSocialLeaveOptions = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/options`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/options`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -46,7 +46,7 @@ const NestedSocialLeaveRenderer = ({ rowId, value, data, setData, userData }) =>
   const addCustomSocialLeaveOption = async (value) => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/options/socialLeave/add`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/options/socialLeave/add`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -122,7 +122,7 @@ const NestedSocialLeaveRenderer = ({ rowId, value, data, setData, userData }) =>
           }))
         };
         
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/ordinators/${rowId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/ordinators/${rowId}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -169,7 +169,7 @@ const NestedSocialLeaveRenderer = ({ rowId, value, data, setData, userData }) =>
           }))
         };
         
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/ordinators/${rowId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/ordinators/${rowId}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,

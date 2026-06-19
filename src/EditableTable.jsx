@@ -175,7 +175,7 @@ const EditableTable = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${process.env.REACT_APP_API_URL}/auth/logout`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
         method: 'POST',
         credentials: 'include',
       });

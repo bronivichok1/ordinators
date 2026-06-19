@@ -73,7 +73,7 @@ const NestedSupervisorsRenderer = ({ rowId, value, data, setData, userData }) =>
           }))
         };
         
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/ordinators/${rowId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/ordinators/${rowId}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -122,7 +122,7 @@ const NestedSupervisorsRenderer = ({ rowId, value, data, setData, userData }) =>
           }))
         };
         
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/ordinators/${rowId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/ordinators/${rowId}`, {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
