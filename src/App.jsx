@@ -18,7 +18,9 @@ const api = {
       credentials: 'include'
     });
     return response;
+    
   },
+  
 
   async login(credentials) {
     const response = await this.request('/auth/login', {
