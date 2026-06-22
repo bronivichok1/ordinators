@@ -132,7 +132,6 @@ const LoginPage = ({ onLogin, loading, message }) => {
     <div className="auth-container-auth">
       <div className="auth-card">
         <div className="auth-header">
-          <div className="logo-container"><div className="logo"><LogIn size={32} /></div></div>
           <h1 className="auth-title">Авторизация</h1>
         </div>
 

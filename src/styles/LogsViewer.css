@@ -2,7 +2,6 @@
     padding: 20px;
     margin: 0 auto;
     min-height: 100vh;
-    background-color: #f5f5f5;
   }
   
   .logs-header {
@@ -45,51 +44,22 @@
     border: none;
     border-radius: 8px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 525;
     cursor: pointer;
     transition: all 0.2s;
+    background-color: white;
+    color:black;
   }
   
-  .refresh-button-logs {
-    background-color: #4a90e2;
-    color: white;
-  }
-  
-  .refresh-button-logs:hover:not(:disabled) {
-    background-color: #357abd;
-  }
-  
-  .back-button-logs {
-    background-color: #6c757d;
-    color: white;
-  }
-  
-  .back-button-logs:hover:not(:disabled) {
-    background-color: #5a6268;
+  .refresh-button-logs:hover:not(:disabled),
+  .back-button-logs:hover:not(:disabled),
+  .cleanup-button-logs:hover:not(:disabled),
+  .export-button-logs:hover:not(:disabled){
+    transform: translateY(-1px);
   }
   
   .cleanup-button-logs {
-    background-color: #dc3545;
-    color: white;
-  }
-  
-  .cleanup-button-logs:hover:not(:disabled) {
-    background-color: #c82333;
-  }
-  
-  .export-button-logs {
-    background-color: #28a745;
-    color: white;
-  }
-  
-  .export-button-logs:hover:not(:disabled) {
-    background-color: #218838;
-  }
-  
-  .refresh-button-logs:disabled, .back-button-logs:disabled, 
-  .cleanup-button-logs:disabled, .export-button-logs:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+    color: red;
   }
   
   .filters-panel {

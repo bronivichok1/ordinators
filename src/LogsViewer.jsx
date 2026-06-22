@@ -281,7 +281,7 @@ const LogsViewer = () => {
             </button>
             
             <button 
-              className="export-excel-button-logs"
+              className="export-button-logs"
               onClick={exportToExcel}
               disabled={logs.length === 0}
             >
@@ -368,7 +368,7 @@ const LogsViewer = () => {
           
           <div className="filter-actions">
             <button className="reset-filters-button" onClick={resetFilters}>
-              Сбросить все фильтры
+              Сбросить
             </button>
           </div>
         </div>

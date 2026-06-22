@@ -301,8 +301,8 @@ const OptionsPage = () => {
               className="back-button"
               disabled={saving}
             >
-              <ArrowLeft size={20} />
-              <span>Назад к таблице</span>
+              <ArrowLeft size={15} />
+              <span>Назад</span>
             </button>
           </div>
           
@@ -318,7 +318,7 @@ const OptionsPage = () => {
               className="reset-button" 
               disabled={saving}
             >
-              <RefreshCw size={20} />
+              <RefreshCw size={15} />
               <span>Сбросить</span>
             </button>
             <button 
@@ -326,7 +326,7 @@ const OptionsPage = () => {
               className="save-button-option" 
               disabled={saving}
             >
-              <Save size={20} />
+              <Save size={15} />
               <span>{saving ? 'Сохранение...' : 'Сохранить все'}</span>
             </button>
           </div>
@@ -454,7 +454,7 @@ const OptionsPage = () => {
         </div>
 
         <div className="info-panel">
-          <h4>📋 Информация</h4>
+          <h4> Инструкция</h4>
           <ul>
             <li>
               <GripVertical size={14} />
