@@ -43,9 +43,6 @@ const ExportPanel = ({
       </div>
 
       <div className="export-panel">
-        <div className="export-panel-header">
-          <h3>Настройки экспорта</h3>
-        </div>
         <div className="export-formats">
           <label className="format-checkbox">
             <input
