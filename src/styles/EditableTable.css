@@ -19,9 +19,6 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  transition: none;
-  will-change: auto;
-  transform: translateZ(0);
 }
 
 .search-input-group {
@@ -121,21 +118,15 @@
   border: 1px solid #e2e8f0;
   background: #ffffff;
   max-height: calc(100vh - 250px);
-  transition: none;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-  will-change: transform;
+  position: relative;
 }
 
 .editable-table {
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse;
   min-width: 1600px;
   background-color: white;
-  transition: none;
-  transform: translateZ(0);
   font-size: 14px;
+  width: 100%;
 }
 
 .editable-table th,
@@ -144,7 +135,7 @@
   border-right: 1px solid #e2e8f0;
   padding: 12px 14px;
   font-size: 14px;
-  white-space: break-spaces;
+  white-space: nowrap;
   line-height: 1.5;
 }
 
@@ -161,6 +152,9 @@
   text-transform: uppercase;
   letter-spacing: 0.4px;
   border-bottom: 2px solid #1e293b;
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .editable-table tbody tr {
@@ -183,21 +177,20 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background-color: #0f172a;
 }
 
 .sticky-left {
   position: sticky;
   left: 0;
   z-index: 15;
-  background-color: white;
+  background: white;
 }
 
 .sticky-right {
   position: sticky;
   right: 0;
   z-index: 15;
-  background-color: white;
+  background: white;
 }
 
 .sticky-top-left {
@@ -205,7 +198,7 @@
   top: 0;
   left: 0;
   z-index: 30;
-  background-color: #0f172a;
+  background: #0f172a;
 }
 
 .sticky-top-right {
@@ -213,7 +206,7 @@
   top: 0;
   right: 0;
   z-index: 30;
-  background-color: #0f172a;
+  background: #0f172a;
 }
 
 .sortable-header {
@@ -248,7 +241,7 @@
   position: sticky;
   left: 0;
   z-index: 15;
-  background-color: #ffffff;
+  background: #ffffff;
   border-right: 1px solid #e2e8f0;
   text-align: center;
   width: 55px;
@@ -257,12 +250,12 @@
 }
 
 .id-checkbox-header {
-  background-color: #0f172a;
+  background: #0f172a;
   z-index: 25;
 }
 
 .id-checkbox-cell {
-  background-color: white;
+  background: white;
 }
 
 .id-checkbox-container {
@@ -288,7 +281,7 @@
 }
 
 .action-header {
-  background-color: #0f172a;
+  background: #0f172a;
   color: #f1f5f9;
   font-weight: 600;
   text-align: center;
@@ -301,7 +294,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px;
-  background-color: white;
+  background: white;
 }
 
 .edit-row-button,
