@@ -154,7 +154,6 @@
   border-bottom: 2px solid #1e293b;
   position: sticky;
   top: 0;
-  z-index: 20;
 }
 
 .editable-table tbody tr {
@@ -251,7 +250,7 @@
 
 .id-checkbox-header {
   background: #0f172a;
-  z-index: 25;
+  z-index: 30;
 }
 
 .id-checkbox-cell {
@@ -262,6 +261,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 30;
+
 }
 
 .select-all-checkbox,
@@ -1243,7 +1244,7 @@ mark {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: rgb(31, 31, 31);
+  background: #0f172a;
   padding: 12px 24px;
   display: flex;
   justify-content: space-between;
