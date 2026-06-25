@@ -27,7 +27,7 @@ const SearchPanel = ({
   handleResetSearch,
   visibleColumns,
 }) => {
-  const columns = Array.from({ length: 40 }, (_, i) => `column${i + 1}`);
+  const columns = Array.from({ length: 39 }, (_, i) => `column${i + 1}`);
 
   return (
     <div className="search-panel">
@@ -71,7 +71,7 @@ const SearchPanel = ({
         </button>
         <button 
           onClick={() => setShowColumnsPanel(!showColumnsPanel)}
-          className={`columns-button ${visibleColumns.size < 40 ? 'active' : ''}`}
+          className={`columns-button ${visibleColumns.size < 39 ? 'active' : ''}`}
           title="Выбор колонок для отображения"
         >
           <Eye size={18} />

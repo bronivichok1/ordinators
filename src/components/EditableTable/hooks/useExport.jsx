@@ -13,7 +13,7 @@ export const useExport = () => {
 
   const handleSelectAllColumns = () => {
     const allColumns = new Set();
-    for (let i = 1; i <= 40; i++) {
+    for (let i = 1; i <= 39; i++) {
       allColumns.add(i);
     }
     

@@ -7,6 +7,10 @@ const ColumnsPanel = ({
   handleShowAllColumns,
   handleHideAllColumns,
 }) => {
+  const allColumnNumbers = Object.keys(COLUMN_NAMES)
+    .map(Number)
+    .filter(num => COLUMN_NAMES[num] && COLUMN_NAMES[num] !== '');
+
   return (
     <div className="columns-panel">
       <div className="columns-panel-header">
@@ -21,11 +25,15 @@ const ColumnsPanel = ({
         </div>
       </div>
       <div className="columns-grid">
-        {Object.entries(COLUMN_NAMES).map(([key, name]) => {
-          const columnNumber = parseInt(key);
+        {allColumnNumbers.map((columnNumber) => {
+          const name = COLUMN_NAMES[columnNumber];
           if (!name || name === '') return null;
+          
           return (
-            <label key={columnNumber} className={`column-checkbox-label ${visibleColumns.has(columnNumber) ? 'selected' : ''}`}>
+            <label 
+              key={columnNumber} 
+              className={`column-checkbox-label ${visibleColumns.has(columnNumber) ? 'selected' : ''}`}
+            >
               <input
                 type="checkbox"
                 checked={visibleColumns.has(columnNumber)}

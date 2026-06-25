@@ -19,6 +19,7 @@ import ExportPanel from './components/EditableTable/components/ExportPanel';
 import CertificatePanel from './components/EditableTable/components/CertificatePanel';
 import CreateModal from './components/EditableTable/components/CreateModal';
 import Pagination from './components/EditableTable/components/Pagination';
+import FloatingPanel from './components/EditableTable/components/FloatingPanel';
 
 import InlineCellEditor from './components/EditableTable/renderers/InlineCellEditor';
 import NestedSocialLeaveRenderer from './components/EditableTable/renderers/NestedSocialLeaveRenderer';
@@ -30,6 +31,20 @@ import { COLUMN_NAMES, ROWS_PER_PAGE } from './components/EditableTable/utils/co
 import { formatPreparationForm, formatDateToAPI } from './components/EditableTable/utils/dateUtils';
 import { transformTableDataToApi } from './components/EditableTable/utils/dataTransformers';
 import { getFieldType } from './components/EditableTable/utils/fieldUtils';
+
+const PANEL_POSITIONS = {
+  filter: 'panel_position_filter',
+  columns: 'panel_position_columns',
+  certificate: 'panel_position_certificate',
+  export: 'panel_position_export'
+};
+
+const DEFAULT_POSITIONS = {
+  filter: { x: 50, y: 50 },
+  columns: { x: 150, y: 150 },
+  certificate: { x: 200, y: 100 },
+  export: { x: 250, y: 150 }
+};
 
 const EditableTable = () => {
   const navigate = useNavigate();
@@ -135,10 +150,36 @@ const EditableTable = () => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showColumnsPanel, setShowColumnsPanel] = useState(false);
 
+  const getPanelPosition = (storageKey, defaultPosition) => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const position = JSON.parse(saved);
+        const maxX = window.innerWidth - 400;
+        const maxY = window.innerHeight - 300;
+        return {
+          x: Math.min(position.x, maxX),
+          y: Math.min(position.y, maxY)
+        };
+      }
+    } catch (e) {
+      console.error('Error loading panel position:', e);
+    }
+    return defaultPosition;
+  };
+
+  const savePanelPosition = (storageKey, position) => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(position));
+    } catch (e) {
+      console.error('Error saving panel position:', e);
+    }
+  };
+
   useEffect(() => {
     const allColumns = new Set();
     const initialVisible = new Set();
-    for (let i = 1; i <= 40; i++) {
+    for (let i = 1; i <= 39; i++) {
       allColumns.add(i);
       initialVisible.add(i);
     }
@@ -211,13 +252,13 @@ const EditableTable = () => {
     setShowExportPanel(false);
     
     const allColumns = new Set();
-    for (let i = 1; i <= 40; i++) {
+    for (let i = 1; i <= 39; i++) {
       allColumns.add(i);
     }
     setSelectedColumns(allColumns);
     
     const initialVisible = new Set();
-    for (let i = 1; i <= 40; i++) {
+    for (let i = 1; i <= 39; i++) {
       initialVisible.add(i);
     }
     setVisibleColumns(initialVisible);
@@ -246,6 +287,11 @@ const EditableTable = () => {
   };
 
   const handleToggleColumn = (columnIndex) => {
+    if (visibleColumns.size === 1 && visibleColumns.has(columnIndex)) {
+      alert('Нельзя скрыть последнюю видимую колонку');
+      return;
+    }
+    
     const newVisible = new Set(visibleColumns);
     if (newVisible.has(columnIndex)) {
       newVisible.delete(columnIndex);
@@ -254,17 +300,20 @@ const EditableTable = () => {
     }
     setVisibleColumns(newVisible);
   };
-
+  
   const handleShowAllColumns = () => {
     const allColumns = new Set();
-    for (let i = 1; i <= 40; i++) {
-      if (i !== 9) {
-        allColumns.add(i);
-      }
-    }
+    const allColumnNumbers = Object.keys(COLUMN_NAMES)
+      .map(Number)
+      .filter(num => COLUMN_NAMES[num] && COLUMN_NAMES[num] !== '');
+    
+    allColumnNumbers.forEach(num => {
+      allColumns.add(num);
+    });
+    
     setVisibleColumns(allColumns);
   };
-
+  
   const handleHideAllColumns = () => {
     setVisibleColumns(new Set());
   };
@@ -665,7 +714,7 @@ const EditableTable = () => {
     currentPage * ROWS_PER_PAGE
   );
 
-  const columns = Array.from({ length: 40 }, (_, i) => `column${i + 1}`);
+  const columns = Array.from({ length: 39 }, (_, i) => `column${i + 1}`);
 
   if (!userData || optionsLoading) {
     return (
@@ -791,50 +840,6 @@ const EditableTable = () => {
           visibleColumns={visibleColumns}
         />
 
-        {showFilterPanel && (
-          <FilterPanel
-            filters={filters}
-            filterLogic={filterLogic}
-            setFilterLogic={setFilterLogic}
-            getOperatorsByType={getOperatorsByType}
-            updateFilter={updateFilter}
-            removeFilter={removeFilter}
-            addFilter={addFilter}
-            setFilters={setFilters}
-          />
-        )}
-
-        {showColumnsPanel && (
-          <ColumnsPanel
-            visibleColumns={visibleColumns}
-            handleToggleColumn={handleToggleColumn}
-            handleShowAllColumns={handleShowAllColumns}
-            handleHideAllColumns={handleHideAllColumns}
-          />
-        )}
-
-        {showCertificatePanel && (
-          <CertificatePanel
-            selectedCertificateTypes={selectedCertificateTypes}
-            generatingCertificates={generatingCertificates}
-            handleCertificateTypeChange={handleCertificateTypeChange}
-            handleGenerateCertificates={() => handleGenerateCertificates(data, selectedRows)}
-            setShowCertificatePanel={setShowCertificatePanel}
-          />
-        )}
-
-        {showExportPanel && (
-          <ExportPanel
-            selectedColumns={selectedColumns}
-            exportFormats={exportFormats}
-            handleSelectColumn={handleSelectColumn}
-            handleSelectAllColumns={handleSelectAllColumns}
-            handleFormatChange={handleFormatChange}
-            handleExport={() => handleExport(data, selectedRows)}
-            setShowExportPanel={setShowExportPanel}
-          />
-        )}
-
         <div className="selection-info">
           {selectedRows.size > 0 && (
             <p className="selected-count-table">
@@ -846,9 +851,9 @@ const EditableTable = () => {
               Активных фильтров: {filters.length} (логика: {filterLogic === 'AND' ? 'И' : 'ИЛИ'})
             </p>
           )}
-          {visibleColumns.size < 40 && (
+          {visibleColumns.size < 39 && (
             <p className="columns-info">
-              Отображается колонок: {visibleColumns.size} из 40
+              Отображается колонок: {visibleColumns.size} из 39
             </p>
           )}
         </div>
@@ -1046,6 +1051,79 @@ const EditableTable = () => {
           Показано {paginatedData.length} из {sortedFilteredData.length} записей (стр. {currentPage} из {totalPages})
         </div>
       </div>
+
+      {/* Floating Panels */}
+      <FloatingPanel
+        isOpen={showFilterPanel}
+        onClose={() => setShowFilterPanel(false)}
+        title="Фильтры"
+        width={450}
+        initialPosition={getPanelPosition(PANEL_POSITIONS.filter, DEFAULT_POSITIONS.filter)}
+        onPositionChange={(position) => savePanelPosition(PANEL_POSITIONS.filter, position)}
+      >
+        <FilterPanel
+          filters={filters}
+          filterLogic={filterLogic}
+          setFilterLogic={setFilterLogic}
+          getOperatorsByType={getOperatorsByType}
+          updateFilter={updateFilter}
+          removeFilter={removeFilter}
+          addFilter={addFilter}
+          setFilters={setFilters}
+        />
+      </FloatingPanel>
+
+      <FloatingPanel
+        isOpen={showColumnsPanel}
+        onClose={() => setShowColumnsPanel(false)}
+        title="Управление колонками"
+        width={500}
+        initialPosition={getPanelPosition(PANEL_POSITIONS.columns, DEFAULT_POSITIONS.columns)}
+        onPositionChange={(position) => savePanelPosition(PANEL_POSITIONS.columns, position)}
+      >
+        <ColumnsPanel
+          visibleColumns={visibleColumns}
+          handleToggleColumn={handleToggleColumn}
+          handleShowAllColumns={handleShowAllColumns}
+          handleHideAllColumns={handleHideAllColumns}
+        />
+      </FloatingPanel>
+
+      <FloatingPanel
+        isOpen={showCertificatePanel}
+        onClose={() => setShowCertificatePanel(false)}
+        title="Генерация сертификатов"
+        width={450}
+        initialPosition={getPanelPosition(PANEL_POSITIONS.certificate, DEFAULT_POSITIONS.certificate)}
+        onPositionChange={(position) => savePanelPosition(PANEL_POSITIONS.certificate, position)}
+      >
+        <CertificatePanel
+          selectedCertificateTypes={selectedCertificateTypes}
+          generatingCertificates={generatingCertificates}
+          handleCertificateTypeChange={handleCertificateTypeChange}
+          handleGenerateCertificates={() => handleGenerateCertificates(data, selectedRows)}
+          setShowCertificatePanel={setShowCertificatePanel}
+        />
+      </FloatingPanel>
+
+      <FloatingPanel
+        isOpen={showExportPanel}
+        onClose={() => setShowExportPanel(false)}
+        title="Экспорт данных"
+        width={500}
+        initialPosition={getPanelPosition(PANEL_POSITIONS.export, DEFAULT_POSITIONS.export)}
+        onPositionChange={(position) => savePanelPosition(PANEL_POSITIONS.export, position)}
+      >
+        <ExportPanel
+          selectedColumns={selectedColumns}
+          exportFormats={exportFormats}
+          handleSelectColumn={handleSelectColumn}
+          handleSelectAllColumns={handleSelectAllColumns}
+          handleFormatChange={handleFormatChange}
+          handleExport={() => handleExport(data, selectedRows)}
+          setShowExportPanel={setShowExportPanel}
+        />
+      </FloatingPanel>
 
       {modalState.isOpen && (
         <CreateModal

@@ -19,7 +19,7 @@ export const useModal = (selectOptions) => {
 
   const initCreateRow = (options) => {
     const initialRowData = {};
-    for (let i = 1; i <= 40; i++) {
+    for (let i = 1; i <= 39; i++) {
       const columnKey = `column${i}`;
       const fieldName = COLUMN_NAMES[i];
       switch(fieldName) {
@@ -89,7 +89,7 @@ export const useModal = (selectOptions) => {
       try {
         const response = await getOrdinatorById(row.id);
         const rowValues = [];
-        for (let i = 1; i <= 40; i++) {
+        for (let i = 1; i <= 39; i++) {
           const columnKey = `column${i}`;
           const value = row[columnKey] || '';
           rowValues.push({

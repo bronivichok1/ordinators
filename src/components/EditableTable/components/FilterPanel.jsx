@@ -1,5 +1,3 @@
-// src/components/EditableTable/components/FilterPanel.js
-
 import React from 'react';
 import { X } from 'lucide-react';
 import { COLUMN_NAMES } from '../utils/constants';
