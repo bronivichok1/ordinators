@@ -11,16 +11,26 @@ const ColumnsPanel = ({
     .map(Number)
     .filter(num => COLUMN_NAMES[num] && COLUMN_NAMES[num] !== '');
 
+  const allColumnsVisible = visibleColumns.size === allColumnNumbers.length;
+
+  const handleToggleAllColumns = () => {
+    if (allColumnsVisible) {
+      handleHideAllColumns();
+    } else {
+      handleShowAllColumns();
+    }
+  };
+
   return (
     <div className="columns-panel">
       <div className="columns-panel-header">
         <h3>Выбор колонок для отображения</h3>
         <div className="columns-actions">
-          <button onClick={handleShowAllColumns} className="show-all-columns-button">
-            Показать все
-          </button>
-          <button onClick={handleHideAllColumns} className="hide-all-columns-button">
-            Скрыть все
+          <button 
+            onClick={handleToggleAllColumns} 
+            className='show-all-columns-button'
+          >
+            {allColumnsVisible ? 'Скрыть все' : 'Показать все'}
           </button>
         </div>
       </div>

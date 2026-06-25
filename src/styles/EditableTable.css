@@ -632,28 +632,24 @@ mark {
 }
 
 .show-all-columns-button,
-.hide-all-columns-button {
+.select-all-columns-button {
   padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #666;
-  cursor: pointer;
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s ease;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
 }
 
-.show-all-columns-button:hover {
-  background-color: #e8f5e8;
-  border-color: #4caf50;
-  color: #4caf50;
-}
-
-.hide-all-columns-button:hover {
-  background-color: #ffebee;
-  border-color: #f44336;
-  color: #f44336;
+.show-all-columns-button:hover,
+.select-all-columns-button {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+  color: #1976d2;
+  transform: translateY(-1px);
 }
 
 .columns-grid,
@@ -704,24 +700,6 @@ mark {
   margin: 0;
   font-size: 16px;
   color: #555;
-}
-
-.select-all-columns-button {
-  padding: 6px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  background-color: white;
-  color: #333;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.select-all-columns-button:hover {
-  background-color: #f5f5f5;
-  border-color: #999;
-  transform: translateY(-1px);
 }
 
 .export-formats {

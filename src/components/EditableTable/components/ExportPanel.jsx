@@ -20,7 +20,7 @@ const ExportPanel = ({
             onClick={handleSelectAllColumns}
             className="select-all-columns-button"
           >
-            {selectedColumns.size === 40 ? 'Снять все' : 'Выбрать все'}
+            {selectedColumns.size === 39 ? 'Снять все' : 'Выбрать все'}
           </button>
         </div>
         <div className="column-selector-grid">
