@@ -174,7 +174,10 @@ const EditableTable = () => {
 
   const allColumns = useMemo(() => {
     return Object.entries(COLUMN_NAMES)
-      .filter(([_, name]) => name && name !== '')
+      .filter(([key, name]) => {
+        if (parseInt(key) === 32) return false;
+        return name && name !== '';
+      })
       .map(([key, label]) => ({
         key: `column${key}`,
         label: label
