@@ -21,7 +21,6 @@ import CertificatePanel from './components/EditableTable/components/CertificateP
 import CreateModal from './components/EditableTable/components/CreateModal';
 import Pagination from './components/EditableTable/components/Pagination';
 import FloatingPanel from './components/EditableTable/components/FloatingPanel';
-
 import InlineCellEditor from './components/EditableTable/renderers/InlineCellEditor';
 import NestedSocialLeaveRenderer from './components/EditableTable/renderers/NestedSocialLeaveRenderer';
 import NestedSupervisorsRenderer from './components/EditableTable/renderers/NestedSupervisorsRenderer';
