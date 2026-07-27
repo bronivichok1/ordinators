@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Shield, HelpCircle } from 'lucide-react';
+import { LogOut, User, Shield, HelpCircle, Users, Globe } from 'lucide-react';
 import './styles/EditableTable.css';
 
 import { useApi } from './components/EditableTable/hooks/useApi';
@@ -50,6 +50,8 @@ const EditableTable = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState(null); // 'rb' или 'in'
+  const [showSelection, setShowSelection] = useState(true);
   
   const [columnFilters, setColumnFilters] = useState(new Map());
   
@@ -208,6 +210,28 @@ const EditableTable = () => {
     } catch (e) {
       console.error('Error saving panel position:', e);
     }
+  };
+
+  // Функция для определения страны из строки
+  const getCountryFromRow = (row) => {
+    const countryValue = row.column5 || '';
+    const countryStr = String(countryValue).trim();
+    
+    if (!countryStr) return 'Не указана';
+    
+    if (countryStr.toLowerCase().includes('беларусь') || 
+        countryStr.toLowerCase().includes('belarus') || 
+        countryStr === 'рб' ||
+        countryStr === 'республика беларусь') {
+      return 'Беларусь';
+    }
+    
+    return countryStr;
+  };
+
+  // Проверка является ли ординатор из Беларуси
+  const isBelarus = (row) => {
+    return getCountryFromRow(row) === 'Беларусь';
   };
 
   useEffect(() => {
@@ -539,8 +563,21 @@ const EditableTable = () => {
     }
   };
 
+  // Фильтрация данных по выбранной группе
+  const groupFilteredData = useMemo(() => {
+    if (!selectedGroup) return [];
+    return data.filter(row => {
+      if (selectedGroup === 'rb') {
+        return isBelarus(row);
+      } else {
+        return !isBelarus(row) && getCountryFromRow(row) !== 'Не указана';
+      }
+    });
+  }, [data, selectedGroup]);
+
+  // Применение остальных фильтров к уже отфильтрованным по группе данным
   const filteredData = useMemo(() => {
-    let result = [...data];
+    let result = [...groupFilteredData];
     
     if (columnFilters.size > 0) {
       columnFilters.forEach((filterValue, columnKey) => {
@@ -600,7 +637,7 @@ const EditableTable = () => {
     }
     
     return result;
-  }, [data, columnFilters, searchTerm, searchColumn, filters, applyFilters]);
+  }, [groupFilteredData, columnFilters, searchTerm, searchColumn, filters, applyFilters]);
 
   const getSortedData = useCallback((dataToSort) => {
     if (!sortConfig.key || !dataToSort.length) return dataToSort;
@@ -807,6 +844,46 @@ const EditableTable = () => {
     currentPage * ROWS_PER_PAGE
   );
 
+  // Экран выбора группы
+  if (showSelection && !loading && !optionsLoading) {
+    return (
+      <div className="selection-screen">
+        <div className="selection-container">
+          <h1>Выберите группу ординаторов</h1>
+          <p className="selection-subtitle">Для продолжения работы выберите одну из групп</p>
+          <div className="selection-buttons">
+            <button 
+              className="selection-btn rb-btn"
+              onClick={() => {
+                setSelectedGroup('rb');
+                setShowSelection(false);
+              }}
+            >
+              <Users size={48} />
+              <span className="selection-btn-title">Ординаторы РБ</span>
+              <span className="selection-btn-count">
+                {data.filter(row => isBelarus(row)).length} ординаторов
+              </span>
+            </button>
+            <button 
+              className="selection-btn in-btn"
+              onClick={() => {
+                setSelectedGroup('in');
+                setShowSelection(false);
+              }}
+            >
+              <Globe size={48} />
+              <span className="selection-btn-title">Ординаторы ИГ</span>
+              <span className="selection-btn-count">
+                {data.filter(row => !isBelarus(row) && getCountryFromRow(row) !== 'Не указана').length} ординаторов
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!userData || optionsLoading) {
     return (
       <div className="table-page">
@@ -874,6 +951,12 @@ const EditableTable = () => {
                   <div className="menu-item" onClick={fetchOrdinators}>
                     <span>Обновить данные</span>
                   </div>
+                  <div className="menu-item" onClick={() => {
+                    setShowSelection(true);
+                    setSelectedGroup(null);
+                  }}>
+                    <span>Сменить группу</span>
+                  </div>
                 </div>
                 <div className="menu-divider"></div>
                 <div className="menu-section">
@@ -891,7 +974,9 @@ const EditableTable = () => {
           <div className="app-title">
             <h1>Система управления ординаторами</h1>
             <p>Таблица данных клинических ординаторов</p>
-            <p className="data-info">Количество ординаторов: {data.length}</p>
+            <p className="data-info">
+              {selectedGroup === 'rb' ? 'Ординаторы РБ' : 'Ординаторы ИГ'}: {sortedFilteredData.length} ординаторов
+            </p>
           </div>
         </div>
 
@@ -986,7 +1071,7 @@ const EditableTable = () => {
         <div className="search-info">
           {searchTerm && (
             <p>
-              Найдено строк: {filteredData.length} из {data.length}
+              Найдено строк: {filteredData.length} из {groupFilteredData.length}
             </p>
           )}
           {sortConfig.key && (

@@ -1202,10 +1202,8 @@ mark {
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 12px;
   cursor: pointer;
   font-size: 14px;
-  padding: 6px 12px;
   border-radius: 6px;
   transition: all 0.2s ease;
 }
@@ -1379,7 +1377,7 @@ mark {
 /* Кнопки действий модального окна */
 .modal-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 16px;
   padding: 20px 0;
   border-top: 2px solid #e2e8f0;
@@ -2522,5 +2520,128 @@ mark {
   .modal-nested-header.extension-header,
   .modal-nested-header.allowance-header {
     display: none;
+  }
+}
+
+/* Стили для экрана выбора группы */
+.selection-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.selection-container {
+  text-align: center;
+  padding: 40px;
+  max-width: 800px;
+  width: 100%;
+}
+
+.selection-container h1 {
+  font-size: 36px;
+  color: #2d3436;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.selection-subtitle {
+  font-size: 18px;
+  color: #636e72;
+  margin-bottom: 48px;
+}
+
+.selection-buttons {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.selection-btn {
+  flex: 1;
+  min-width: 250px;
+  max-width: 350px;
+  padding: 40px 30px;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.selection-btn:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.selection-btn:active {
+  transform: translateY(-4px);
+}
+
+.selection-btn .selection-btn-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.selection-btn .selection-btn-count {
+  font-size: 14px;
+  color: #636e72;
+}
+
+.selection-btn.rb-btn {
+  border: 3px solid #0984e3;
+  background: linear-gradient(135deg, #ffffff 0%, #dfe6e9 100%);
+}
+
+.selection-btn.rb-btn:hover {
+  border-color: #0652DD;
+  background: linear-gradient(135deg, #ffffff 0%, #dfe6e9 100%);
+}
+
+.selection-btn.rb-btn svg {
+  color: #0984e3;
+}
+
+.selection-btn.in-btn {
+  border: 3px solid #00b894;
+  background: linear-gradient(135deg, #ffffff 0%, #dfe6e9 100%);
+}
+
+.selection-btn.in-btn:hover {
+  border-color: #00a381;
+  background: linear-gradient(135deg, #ffffff 0%, #dfe6e9 100%);
+}
+
+.selection-btn.in-btn svg {
+  color: #00b894;
+}
+
+@media (max-width: 768px) {
+  .selection-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .selection-btn {
+    min-width: 200px;
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .selection-container h1 {
+    font-size: 28px;
   }
 }
