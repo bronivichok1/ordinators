@@ -1,3 +1,4 @@
+/* Основные стили страницы */
 .table-page {
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -10,6 +11,7 @@
   min-width: 1600px;
 }
 
+/* Стили поисковой панели */
 .search-panel {
   background-color: white;
   padding: 20px;
@@ -31,11 +33,12 @@
 
 .search-input {
   flex: 1;
-  min-width: 300px;
+  min-width: 400px;
   padding: 12px 15px;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   font-size: 14px;
+  width: 400px;
 }
 
 .search-input:focus {
@@ -60,6 +63,7 @@
   box-shadow: 0 0 0 3px rgba(66, 169, 253, 0.2);
 }
 
+/* Кнопки панели */
 .filter-button,
 .columns-button,
 .reset-search-button,
@@ -111,6 +115,7 @@
   transform: none;
 }
 
+/* Стили таблицы */
 .table-wrapper {
   border-radius: 12px;
   overflow: auto;
@@ -172,6 +177,7 @@
   background-color: #f1f5f9;
 }
 
+/* Sticky колонки */
 .sticky-top {
   position: sticky;
   top: 0;
@@ -208,6 +214,7 @@
   background: #0f172a;
 }
 
+/* Сортировка */
 .sortable-header {
   cursor: pointer;
   user-select: none;
@@ -235,6 +242,7 @@
   opacity: 1;
 }
 
+/* Чекбоксы */
 .id-checkbox-header,
 .id-checkbox-cell {
   position: sticky;
@@ -262,7 +270,6 @@
   align-items: center;
   justify-content: center;
   z-index: 30;
-
 }
 
 .select-all-checkbox,
@@ -281,6 +288,7 @@
   transform: scale(1.05);
 }
 
+/* Кнопки действий */
 .action-header {
   background: #0f172a;
   color: #f1f5f9;
@@ -343,6 +351,7 @@
   box-shadow: 0 4px 8px rgba(91, 134, 229, 0.3);
 }
 
+/* Редактирование ячеек */
 .editable-cell {
   cursor: pointer;
   transition: background-color 0.15s ease, box-shadow 0.15s ease;
@@ -486,6 +495,7 @@ mark {
   color: #0f172a;
 }
 
+/* Панели фильтров и колонок */
 .filter-panel,
 .columns-panel,
 .certificate-panel,
@@ -606,7 +616,7 @@ mark {
 .filter-actions {
   display: flex;
   gap: 10px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .clear-filters-button {
@@ -702,6 +712,7 @@ mark {
   color: #555;
 }
 
+/* Экспорт */
 .export-formats {
   display: flex;
   justify-content: center;
@@ -785,6 +796,7 @@ mark {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+/* Сертификаты */
 .certificate-types {
   display: flex;
   justify-content: center;
@@ -853,6 +865,7 @@ mark {
   box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
 }
 
+/* Информация */
 .selection-info {
   margin-top: 12px;
   display: flex;
@@ -910,79 +923,114 @@ mark {
   color: #667eea;
 }
 
+/* ============================================ */
+/* МОДАЛЬНОЕ ОКНО НА ВСЮ СТРАНИЦУ */
+/* ============================================ */
+
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
-  backdrop-filter: blur(3px);
-  padding: 20px;
+  backdrop-filter: blur(4px);
+  padding: 0;
+  margin: 0;
   overflow: hidden;
 }
 
 .modal {
   background-color: white;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 1200px;
-  height: auto;
-  max-height: 85vh;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  width: 100vw;
+  height: 100vh;
+  max-width: 100vw;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  margin: 0;
+  border-radius: 0;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
-  background: #0f172a;
+  padding: 20px 32px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: white;
   flex-shrink: 0;
+  border-bottom: 2px solid #334155;
+  min-height: 72px;
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .close-button {
-  background: none;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   color: white;
-  font-size: 28px;
+  font-size: 32px;
   cursor: pointer;
   padding: 0;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
+  line-height: 1;
 }
 
 .close-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
 }
 
 .modal-content {
-  padding: 20px 24px;
+  padding: 20px 32px;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  background: #f8fafc;
   scroll-behavior: smooth;
-  will-change: scroll-position;
-  -webkit-overflow-scrolling: touch;
+}
+
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.row-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .editor-info {
@@ -1001,223 +1049,390 @@ mark {
 }
 
 .columns-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-bottom: 24px;
-  overflow-y: visible;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
   flex: 1;
+  align-content: start;
 }
 
 .column-editor-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 14px 16px;
+  padding: 16px 20px;
   background-color: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
 }
 
-.column-editor-item label {
+.column-editor-item:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.column-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.column-number {
   font-weight: 600;
-  color: #333;
+  color: #0f172a;
   font-size: 14px;
 }
 
-.column-editor-item input {
+.column-label::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.modal-input {
   padding: 10px 14px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
-  color: #333;
+  color: #0f172a;
+  background: white;
+  transition: all 0.2s ease;
+  font-family: inherit;
 }
 
-.column-editor-item input:focus {
+.modal-input:focus {
   outline: none;
-  border-color: #36d1dc;
-  box-shadow: 0 0 0 3px rgba(54, 209, 220, 0.2);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.modal-input.date-input {
+  font-family: 'Courier New', monospace;
+}
+
+.modal-input.date-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.date-error-message {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
 }
 
 .readonly-field {
   padding: 10px 14px;
-  background-color: white;
-  border-radius: 6px;
-  color: #666;
+  background-color: #f1f5f9;
+  border-radius: 8px;
+  color: #475569;
   font-size: 14px;
-  border: 1px solid #e0e0e0;
-  min-height: 16px;
+  border: 2px solid #e2e8f0;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  word-break: break-word;
 }
 
+.readonly-nested-container {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+}
+
+.readonly-nested-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.readonly-nested-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.readonly-nested-container::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 3px;
+}
+
+.readonly-nested-item {
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.readonly-nested-item:last-child {
+  margin-bottom: 0;
+}
+
+.readonly-nested-line {
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.readonly-nested-line strong {
+  font-weight: 600;
+  color: #0f172a;
+  min-width: 120px;
+  display: inline-block;
+}
+
+.nested-separator {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px dashed #e2e8f0;
+}
+
+/* Чекбоксы в модальном окне */
 .checkbox-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 4px 0;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   cursor: pointer;
   font-size: 14px;
-}
-
-.modal-checkbox {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
 .checkbox-label:hover {
-  background-color: #e3f2fd;
+  background-color: #f1f5f9;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+.modal-checkbox {
+  width: 18px;
+  height: 18px;
   cursor: pointer;
+  accent-color: #3b82f6;
 }
 
 .checkbox-label span {
-  font-size: 13px;
-  color: #333;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
-  flex-shrink: 0;
-  background-color: white;
-}
-
-.cancel-button-modal,
-.save-button {
-  padding: 10px 24px;
-  border: 2px solid #000000c0;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  min-width: 140px;
-  transition: all 0.2s ease;
-  background-color: white;
-}
-
-.cancel-button-modal {
-  background-color: #f5f5f5;
-  color: #666;
-  border: 1px solid #ddd;
-}
-
-.cancel-button-modal:hover {
-  background-color: #e0e0e0;
-  transform: translateY(-1px);
-}
-
-.save-button {
-  color: white;
-  background-color: black;
-}
-
-.save-button:hover {
-  background-color: rgb(27, 27, 27);
-  color: white;
-  transform: translateY(-1px);
-}
-
-.modal-nested-header {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  padding: 0 5px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #666;
-}
-
-.modal-nested-header .nested-header-start,
-.modal-nested-header .nested-header-end,
-.modal-nested-header .nested-header-reason,
-.modal-nested-header .nested-header-supervisor,
-.modal-nested-header .nested-header-position,
-.modal-nested-header .nested-header-rank,
-.modal-nested-header .nested-header-order,
-.modal-nested-header .nested-header-date,
-.modal-nested-header .nested-header-term {
-  flex: 1;
-}
-
-.modal-nested-header .nested-header-actions {
-  width: 30px;
+  font-size: 14px;
+  color: #0f172a;
 }
 
 .modal-nested-container {
   width: 100%;
+  margin-top: 4px;
+}
+
+.modal-nested-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 40px;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.modal-nested-header .nested-header-start,
+.modal-nested-header .nested-header-end,
+.modal-nested-header .nested-header-reason {
+  font-size: 11px;
 }
 
 .modal-nested-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 40px;
   gap: 10px;
   align-items: center;
   margin-bottom: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  transition: all 0.2s ease;
 }
 
 .modal-nested-input {
-  flex: 1;
-  padding: 8px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   font-size: 14px;
+  background: white;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+  color: #0f172a;
 }
 
 .modal-nested-input:focus {
   outline: none;
-  border-color: #2196f3;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-nested-input.date-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
 }
 
 .modal-nested-remove {
-  width: 30px;
+  width: 32px;
   height: 32px;
-  background: #ffebee;
-  border: 1px solid #ffcdd2;
-  border-radius: 4px;
-  color: #f44336;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 18px;
 }
 
 .modal-nested-remove:hover {
-  background: #f44336;
+  background: #dc2626;
   color: white;
+  transform: scale(1.05);
 }
 
 .modal-nested-add {
-  margin-top: 8px;
-  padding: 8px 12px;
-  background: #e3f2fd;
-  border: 1px solid #90caf9;
-  border-radius: 4px;
-  color: #1976d2;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: #eff6ff;
+  border: 2px dashed #93c5fd;
+  border-radius: 8px;
+  color: #2563eb;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .modal-nested-add:hover {
-  background: #bbdef5;
+  background: #dbeafe;
+  border-color: #60a5fa;
+  transform: translateY(-1px);
 }
 
+/* Select в модальном окне */
+.modal-nested-select-wrapper {
+  width: 100%;
+}
+
+.modal-nested-select-wrapper .react-select__control {
+  min-height: 40px;
+  border-radius: 6px;
+  border-color: #e2e8f0;
+  background-color: white;
+  box-shadow: none;
+}
+
+.modal-nested-select-wrapper .react-select__control:hover {
+  border-color: #94a3b8;
+}
+
+.modal-nested-select-wrapper .react-select__control--is-focused {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-nested-select-wrapper .react-select__menu {
+  z-index: 10000;
+}
+
+.react-select-container {
+  width: 100%;
+}
+
+.react-select__control {
+  border-color: #e2e8f0 !important;
+  min-height: 42px;
+  border-radius: 8px;
+  box-shadow: none !important;
+}
+
+.react-select__control:hover {
+  border-color: #94a3b8 !important;
+}
+
+.react-select__control--is-focused {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.react-select__menu {
+  z-index: 9999 !important;
+}
+
+/* Кнопки действий модального окна */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  padding: 20px 0;
+  border-top: 2px solid #e2e8f0;
+  flex-shrink: 0;
+  background: transparent;
+  margin-top: auto;
+}
+
+.cancel-button-modal,
+.save-button {
+  padding: 12px 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  min-width: 140px;
+  transition: all 0.25s ease;
+  border: none;
+}
+
+.cancel-button-modal {
+  background: #f1f5f9;
+  color: #475569;
+  border: 2px solid #e2e8f0;
+}
+
+.cancel-button-modal:hover {
+  background: #e2e8f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.save-button {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+}
+
+.save-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.3);
+}
+
+.save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================ */
+/* КОНЕЦ МОДАЛЬНОГО ОКНА */
+/* ============================================ */
+
+/* Шапка пользователя */
 .user-header {
   position: sticky;
   top: 0;
@@ -1419,6 +1634,7 @@ mark {
   transform: translateY(-2px);
 }
 
+/* Пагинация */
 .pagination {
   display: flex;
   justify-content: center;
@@ -1474,6 +1690,7 @@ mark {
   margin-top: 10px;
 }
 
+/* Вложенные поля */
 .nested-fields-row {
   display: flex;
   gap: 8px;
@@ -1598,6 +1815,7 @@ mark {
   border-left: 1px dashed #cbd5e1;
 }
 
+/* Select вложенных полей */
 .nested-select-wrapper {
   flex: 1;
   min-width: 280px;
@@ -1734,6 +1952,7 @@ mark {
   padding-bottom: '5px';
 }
 
+/* React select */
 .react-select-container {
   width: 100%;
 }
@@ -1803,6 +2022,7 @@ mark {
   cursor: pointer;
 }
 
+/* Состояния загрузки и ошибок */
 .loading-users {
   text-align: center;
   padding: 50px;
@@ -1860,6 +2080,7 @@ mark {
   padding: 10px;
 }
 
+/* Скроллбары */
 .table-wrapper::-webkit-scrollbar,
 .columns-grid::-webkit-scrollbar,
 .column-selector-grid::-webkit-scrollbar,
@@ -1891,6 +2112,7 @@ mark {
   background: #555;
 }
 
+/* Ошибки дат */
 .date-error {
   border-color: #f44336 !important;
   background-color: #ffebee !important;
@@ -1920,6 +2142,7 @@ mark {
   transform: none;
 }
 
+/* Кнопка помощи */
 .floating-help-button {
   position: fixed;
   bottom: 30px;
@@ -1948,6 +2171,7 @@ mark {
   transform: scale(0.95);
 }
 
+/* Дополнительные стили для модалки */
 .modal-nested-select-wrapper {
   flex: 2;
   min-width: 200px;
@@ -1988,49 +2212,6 @@ mark {
   border-right: 1px solid #e0e0e0;
 }
 
-.readonly-nested-container {
-  background-color: #f9f9f9;
-  border-radius: 4px;
-  padding: 8px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.readonly-nested-item {
-  padding: 8px;
-  margin-bottom: 8px;
-}
-
-.readonly-nested-item:last-child {
-  margin-bottom: 0;
-}
-
-.readonly-nested-line {
-  margin-bottom: 4px;
-  font-size: 13px;
-}
-
-.readonly-nested-line strong {
-  font-weight: 600;
-  color: #333;
-  min-width: 120px;
-  display: inline-block;
-}
-
-.nested-separator {
-  margin: 8px 0;
-  border: 0;
-  border-top: 1px solid #e0e0e0;
-}
-
-.readonly-field {
-  padding: 8px 12px;
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  color: #666;
-  line-height: 1.4;
-}
-
 .inline-creatable-wrapper {
   min-width: 200px;
   width: 100%;
@@ -2038,4 +2219,308 @@ mark {
 
 .react-select-inline {
   font-size: 15px;
+}
+
+/* Активные фильтры */
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2d3436;
+  margin-right: 4px;
+}
+
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #e3f2fd;
+  border: 1px solid #4a90e2;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #1976d2;
+  animation: fadeIn 0.3s ease;
+}
+
+.filter-tag .remove-filter {
+  background: none;
+  border: none;
+  color: #1976d2;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.filter-tag .remove-filter:hover {
+  color: #dc3545;
+  transform: scale(1.2);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Адаптивность модального окна */
+@media (max-width: 1200px) {
+  .columns-editor {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 992px) {
+  .modal-header {
+    padding: 16px 24px;
+    min-height: 64px;
+  }
+  
+  .modal-header h2 {
+    font-size: 20px;
+  }
+  
+  .modal-content {
+    padding: 16px 24px;
+  }
+  
+  .columns-editor {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  
+  .modal-nested-item {
+    grid-template-columns: 1fr 1fr 1fr 32px;
+    gap: 8px;
+    padding: 8px;
+  }
+  
+  .modal-nested-header {
+    grid-template-columns: 1fr 1fr 1fr 32px;
+    gap: 8px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .modal-header {
+    padding: 14px 16px;
+    min-height: 56px;
+  }
+  
+  .modal-header h2 {
+    font-size: 18px;
+  }
+  
+  .close-button {
+    width: 36px;
+    height: 36px;
+    font-size: 28px;
+  }
+  
+  .modal-content {
+    padding: 12px 16px;
+  }
+  
+  .columns-editor {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .column-editor-item {
+    padding: 12px 16px;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+    padding: 16px 0;
+  }
+  
+  .cancel-button-modal,
+  .save-button {
+    width: 100%;
+    min-width: unset;
+    padding: 12px 20px;
+  }
+  
+  .modal-nested-header {
+    display: none;
+  }
+  
+  .modal-nested-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+    border-left: 3px solid #3b82f6;
+  }
+  
+  .modal-nested-remove {
+    width: 100%;
+    height: 36px;
+  }
+  
+  .readonly-nested-line strong {
+    min-width: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-header h2 {
+    font-size: 16px;
+  }
+  
+  .modal-header {
+    padding: 10px 12px;
+    min-height: 48px;
+  }
+  
+  .close-button {
+    width: 32px;
+    height: 32px;
+    font-size: 24px;
+  }
+  
+  .modal-content {
+    padding: 10px 12px;
+  }
+  
+  .column-editor-item {
+    padding: 10px 12px;
+  }
+  
+  .modal-input {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .modal-nested-input {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
+/* Секция с вложенными полями */
+.nested-fields-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 2px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.nested-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.nested-field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  width: 100%;
+}
+
+.nested-field-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.nested-field-title {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+/* Специальные заголовки для вложенных полей */
+.modal-nested-header.supervisor-header {
+  grid-template-columns: 1fr 0.8fr 0.8fr 1fr 1fr 40px;
+}
+
+.modal-nested-header.extension-header {
+  grid-template-columns: 1fr 1fr 0.8fr 40px;
+}
+
+.modal-nested-header.allowance-header {
+  grid-template-columns: 1fr 1fr 1fr 40px;
+}
+
+.modal-nested-item.supervisor-item {
+  grid-template-columns: 1fr 0.8fr 0.8fr 1fr 1fr 40px;
+}
+
+.modal-nested-item.extension-item {
+  grid-template-columns: 1fr 1fr 0.8fr 40px;
+}
+
+.modal-nested-item.allowance-item {
+  grid-template-columns: 1fr 1fr 1fr 40px;
+}
+
+/* Адаптивность для вложенных полей */
+@media (max-width: 992px) {
+  .modal-nested-header.supervisor-header,
+  .modal-nested-item.supervisor-item {
+    grid-template-columns: 1fr 0.8fr 0.8fr 1fr 1fr 32px;
+  }
+  
+  .modal-nested-header.extension-header,
+  .modal-nested-item.extension-item {
+    grid-template-columns: 1fr 1fr 0.8fr 32px;
+  }
+  
+  .modal-nested-header.allowance-header,
+  .modal-nested-item.allowance-item {
+    grid-template-columns: 1fr 1fr 1fr 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .nested-field-item {
+    padding: 16px;
+  }
+  
+  .modal-nested-header.supervisor-header,
+  .modal-nested-item.supervisor-item,
+  .modal-nested-header.extension-header,
+  .modal-nested-item.extension-item,
+  .modal-nested-header.allowance-header,
+  .modal-nested-item.allowance-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .modal-nested-header.supervisor-header,
+  .modal-nested-header.extension-header,
+  .modal-nested-header.allowance-header {
+    display: none;
+  }
 }

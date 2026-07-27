@@ -34,7 +34,7 @@ export const getFieldType = (columnNumber) => {
       return 'nested-social-leave';
     case 'Руководители':
       return 'nested-supervisors';
-    case 'Год рождения':
+    case 'Дата рождения':
     case 'Дата зачисления':
     case 'Дата отчисления':
     case 'Дата приказа о зачислении':

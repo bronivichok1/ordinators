@@ -1,9 +1,9 @@
-export const ROWS_PER_PAGE = 10;
+export const ROWS_PER_PAGE = 250;
 
 export const COLUMN_NAMES = {
   1: 'ФИО',
   2: 'ФИО(EN)',
-  3: 'Год рождения',
+  3: 'Дата рождения',
   4: 'Пол',
   5: 'Страна',
   6: 'Дата зачисления',

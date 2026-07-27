@@ -166,7 +166,7 @@ const NestedSupervisorsRenderer = ({ rowId, value, data, setData, userData }) =>
       <div className="nested-cell">
         {canEdit && (
           <button onClick={addSupervisor} className="nested-add-btn">
-            <span>Добавить руководителя</span>
+            <span>Добавить</span>
           </button>
         )}
       </div>
@@ -239,7 +239,7 @@ const NestedSupervisorsRenderer = ({ rowId, value, data, setData, userData }) =>
         
         {canEdit && (editingSupervisors.length <= 1 || isExpanded) && (
           <button onClick={addSupervisor} className="nested-add-btn">
-            <span>Добавить руководителя</span>
+            <span>Добавить</span>
           </button>
         )}
         

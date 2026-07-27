@@ -6,7 +6,7 @@ export const transformApiDataToTable = (apiData) => {
     const row = {};
     row.column1 = ordinator.fio || '';
     row.column2 = ordinator.fioEn || '';
-    row.column3 = formatYearFromDate(ordinator.birthYear) || '';
+    row.column3 = formatDateToDisplay(ordinator.enrollmentDate) || '';
     row.column4 = ordinator.gender || 'М';
     row.column5 = ordinator.country || '';
     row.column6 = formatDateToDisplay(ordinator.enrollmentDate) || '';
@@ -196,10 +196,28 @@ export const transformTableDataToApi = (tableData, mode = 'create', modalState =
     allowancesValue = [];
   }
 
+  // ИСПРАВЛЕНО: преобразуем дату рождения в строку для валидации
+  let birthDateString = null;
+  if (tableData.column3) {
+    // Если дата в формате DD.MM.YYYY
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(tableData.column3)) {
+      birthDateString = tableData.column3;
+    } 
+    // Если дата в формате YYYY-MM-DD
+    else if (/^\d{4}-\d{2}-\d{2}$/.test(tableData.column3)) {
+      const [year, month, day] = tableData.column3.split('-');
+      birthDateString = `${day}.${month}.${year}`;
+    }
+    // Если только год
+    else if (/^\d{4}$/.test(tableData.column3)) {
+      birthDateString = `01.01.${tableData.column3}`;
+    }
+  }
+
   const apiData = {
     fio: tableData.column1 || '',
     fioEn: tableData.column2 || '',
-    birthYear: tableData.column3 ? new Date(Date.UTC(parseInt(tableData.column3), 0, 1)) : null,
+    birthYear: formatDateToAPI(tableData.column3),
     gender: tableData.column4 || 'М',
     country: tableData.column5 || 'Беларусь',
     enrollmentDate: formatDateToAPI(tableData.column6),

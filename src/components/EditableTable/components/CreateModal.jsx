@@ -18,6 +18,39 @@ const CreateModal = ({
   userData,
   columns,
 }) => {
+  // Определяем, является ли поле вложенным (должно быть в отдельной секции)
+  const isNestedField = (fieldName) => {
+    const nestedFields = [
+      'Социальный отпуск',
+      'Руководители',
+      'Номер приказа о продлении',
+      'Надбавка'
+    ];
+    return nestedFields.includes(fieldName);
+  };
+
+  // Разделяем колонки на обычные и вложенные
+  const getOrderedColumns = () => {
+    const regularColumns = [];
+    const nestedColumns = [];
+
+    columns.forEach((column) => {
+      const columnNumber = parseInt(column.replace('column', ''));
+      const fieldName = COLUMN_NAMES[columnNumber];
+      
+      if (!fieldName || fieldName === '') return null;
+      if (fieldName === 'Дата установки надбавки' || fieldName === 'Дата окончания надбавки') return null;
+      
+      if (isNestedField(fieldName)) {
+        nestedColumns.push({ column, columnNumber, fieldName });
+      } else {
+        regularColumns.push({ column, columnNumber, fieldName });
+      }
+    });
+
+    return { regularColumns, nestedColumns };
+  };
+
   const renderModalField = (columnName, columnNumber, isEditMode = false, currentValue = '') => {
     const fieldName = COLUMN_NAMES[columnNumber];
     const columnKey = `column${columnNumber}`;
@@ -45,6 +78,7 @@ const CreateModal = ({
       handleModalChange(columnKey, newValue);
     };
 
+    // Readonly режим
     if (isReadOnly) {
       let displayValue = value;
       
@@ -178,6 +212,7 @@ const CreateModal = ({
       return <div className="readonly-field">{displayValue}</div>;
     }
 
+    // Получение опций для select
     const getModalOptions = (field) => {
       switch(field) {
         case 'Пол':
@@ -235,6 +270,7 @@ const CreateModal = ({
       );
     }
 
+    // Рендеринг разных типов полей
     switch(fieldName) {
       case 'Год окончания':
         return (
@@ -250,6 +286,7 @@ const CreateModal = ({
             placeholder="ГГГГ"
           />
         );
+      
       case 'Форма подготовки':
         let parsedPrepForm = [];
         try {
@@ -294,6 +331,7 @@ const CreateModal = ({
             ))}
           </div>
         );
+
       case 'Социальный отпуск':
         const socialLeaves = (() => {
           try {
@@ -405,7 +443,7 @@ const CreateModal = ({
               }}
               className="modal-nested-add"
             >
-              Добавить период отпуска
+              <Plus size={14} /> Добавить
             </button>
           </div>
         );
@@ -422,7 +460,7 @@ const CreateModal = ({
         
         return (
           <div className="modal-nested-container">
-            <div className="modal-nested-header">
+            <div className="modal-nested-header supervisor-header">
               <div className="nested-header-supervisor">Руководитель</div>
               <div className="nested-header-position">Должность</div>
               <div className="nested-header-rank">Звания</div>
@@ -434,7 +472,7 @@ const CreateModal = ({
               const startErrorKey = `supervisor-start-${idx}`;
               const endErrorKey = `supervisor-end-${idx}`;
               return (
-                <div key={idx} className="modal-nested-item">
+                <div key={idx} className="modal-nested-item supervisor-item">
                   <input
                     type="text"
                     placeholder="ФИО руководителя"
@@ -444,7 +482,7 @@ const CreateModal = ({
                       newSupervisors[idx] = { ...newSupervisors[idx], supervisorName: e.target.value };
                       handleChange(JSON.stringify(newSupervisors));
                     }}
-                    className="modal-nested-input supervisor-input"
+                    className="modal-nested-input"
                   />
                   <input
                     type="text"
@@ -455,7 +493,7 @@ const CreateModal = ({
                       newSupervisors[idx] = { ...newSupervisors[idx], position: e.target.value };
                       handleChange(JSON.stringify(newSupervisors));
                     }}
-                    className="modal-nested-input position-input"
+                    className="modal-nested-input"
                   />
                   <input
                     type="text"
@@ -466,7 +504,7 @@ const CreateModal = ({
                       newSupervisors[idx] = { ...newSupervisors[idx], rank: e.target.value };
                       handleChange(JSON.stringify(newSupervisors));
                     }}
-                    className="modal-nested-input rank-input"
+                    className="modal-nested-input"
                   />
                   <div style={{ flex: 1 }}>
                     <input
@@ -529,7 +567,7 @@ const CreateModal = ({
               }}
               className="modal-nested-add"
             >
-              Добавить руководителя
+              <Plus size={14} /> Добавить
             </button>
           </div>
         );
@@ -571,7 +609,7 @@ const CreateModal = ({
 
         return (
           <div className="modal-nested-container">
-            <div className="modal-nested-header">
+            <div className="modal-nested-header extension-header">
               <div className="nested-header-order">Номер приказа</div>
               <div className="nested-header-date">Дата приказа</div>
               <div className="nested-header-term">Срок продления</div>
@@ -580,7 +618,7 @@ const CreateModal = ({
             {extensionsList.map((ext, idx) => {
               const dateErrorKey = `extension-date-${idx}`;
               return (
-                <div key={idx} className="modal-nested-item">
+                <div key={idx} className="modal-nested-item extension-item">
                   <input
                     type="text"
                     placeholder="Номер приказа"
@@ -601,7 +639,7 @@ const CreateModal = ({
                           setDateErrors(prev => ({ ...prev, [dateErrorKey]: false }));
                         }
                       }}
-                      className={`modal-nested-input ${dateErrors[dateErrorKey] ? 'date-error' : ''}`}
+                      className={`modal-nested-input date-input ${dateErrors[dateErrorKey] ? 'date-error' : ''}`}
                     />
                   </div>
                   <select
@@ -626,7 +664,7 @@ const CreateModal = ({
               onClick={addExtension}
               className="modal-nested-add"
             >
-              Добавить продление
+              <Plus size={14} /> Добавить
             </button>
           </div>
         );
@@ -665,7 +703,7 @@ const CreateModal = ({
 
         return (
           <div className="modal-nested-container">
-            <div className="modal-nested-header">
+            <div className="modal-nested-header allowance-header">
               <div className="nested-header-order">Номер приказа</div>
               <div className="nested-header-start">Дата начала</div>
               <div className="nested-header-end">Дата окончания</div>
@@ -675,7 +713,7 @@ const CreateModal = ({
               const startErrorKey = `allowance-start-${idx}`;
               const endErrorKey = `allowance-end-${idx}`;
               return (
-                <div key={idx} className="modal-nested-item">
+                <div key={idx} className="modal-nested-item allowance-item">
                   <input
                     type="text"
                     placeholder="Номер приказа"
@@ -728,33 +766,13 @@ const CreateModal = ({
               onClick={addAllowanceModal}
               className="modal-nested-add"
             >
-               Добавить надбавку
+              <Plus size={14} /> Добавить
             </button>
           </div>
         );
 
-      case 'Год рождения':
-        let yearOnly = value;
-        if (value && typeof value === 'string' && value.includes('-')) {
-          yearOnly = value.split('-')[0];
-        } else if (value && typeof value === 'string' && value.includes('.')) {
-          yearOnly = value.split('.')[2];
-        }
-        return (
-          <input
-            type="text"
-            value={yearOnly || ''}
-            onChange={(e) => {
-              const year = e.target.value.replace(/\D/g, '').slice(0, 4);
-              const fullDate = year ? `${year}-01-01` : '';
-              handleChange(fullDate);
-            }}
-            className="modal-input"
-            maxLength="4"
-            placeholder="ГГГГ"
-          />
-        );
-
+      // Даты
+      case 'Дата рождения':
       case 'Дата зачисления':
       case 'Дата отчисления':
       case 'Дата приказа о зачислении':
@@ -844,6 +862,9 @@ const CreateModal = ({
     }
   };
 
+  // Получаем разделенные колонки
+  const { regularColumns, nestedColumns } = getOrderedColumns();
+
   return (
     <div className="modal-overlay">
       <div className="modal create-modal">
@@ -858,15 +879,9 @@ const CreateModal = ({
         
         <div className="modal-content">
           <div className="row-editor">
+            {/* Обычные поля в сетке */}
             <div className="columns-editor">
-              {columns.map((column, index) => {
-                const columnNumber = parseInt(column.replace('column', ''));
-                const fieldName = COLUMN_NAMES[columnNumber];
-                
-                if (!fieldName || fieldName === '') return null;
-                
-                if (fieldName === 'Дата установки надбавки' || fieldName === 'Дата окончания надбавки') return null;
-                
+              {regularColumns.map(({ column, columnNumber, fieldName }) => {
                 const currentValue = modalState.mode === 'edit'
                   ? modalState.rowData.find(item => item.columnName === column)?.value || ''
                   : '';
@@ -886,6 +901,32 @@ const CreateModal = ({
                 );
               })}
             </div>
+
+            {/* Вложенные поля в отдельной секции */}
+            {nestedColumns.length > 0 && (
+              <div className="nested-fields-section">
+                <div className="nested-section-title">Дополнительная информация</div>
+                {nestedColumns.map(({ column, columnNumber, fieldName }) => {
+                  const currentValue = modalState.mode === 'edit'
+                    ? modalState.rowData.find(item => item.columnName === column)?.value || ''
+                    : '';
+                  
+                  return (
+                    <div key={column} className="nested-field-item">
+                      <div className="nested-field-label">
+                        <span className="nested-field-title">{fieldName}</span>
+                      </div>
+                      {renderModalField(
+                        column, 
+                        columnNumber, 
+                        modalState.mode === 'edit', 
+                        currentValue
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             
             <div className="modal-actions">
               <button 

@@ -213,7 +213,7 @@ const NestedSocialLeaveRenderer = ({ rowId, value, data, setData, userData }) =>
       <div className="nested-cell">
         {canEdit && (
           <button onClick={addLeave} className="nested-add-btn">
-            <span>Добавить период</span>
+            <span>Добавить</span>
           </button>
         )}
       </div>
@@ -292,7 +292,7 @@ const NestedSocialLeaveRenderer = ({ rowId, value, data, setData, userData }) =>
         
         {canEdit && (editingLeaves.length <= 1 || isExpanded) && (
           <button onClick={addLeave} className="nested-add-btn">
-            <span>Добавить период</span>
+            <span>Добавить</span>
           </button>
         )}
         

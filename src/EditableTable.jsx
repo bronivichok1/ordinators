@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, User, Shield, HelpCircle } from 'lucide-react';
 import './styles/EditableTable.css';
@@ -12,6 +12,7 @@ import { useExport } from './components/EditableTable/hooks/useExport';
 import { useCertificates } from './components/EditableTable/hooks/useCertificates';
 import { useModal } from './components/EditableTable/hooks/useModal';
 
+import ColumnFilter from './components/EditableTable/components/ColumnFilter';
 import SearchPanel from './components/EditableTable/components/SearchPanel';
 import FilterPanel from './components/EditableTable/components/FilterPanel';
 import ColumnsPanel from './components/EditableTable/components/ColumnsPanel';
@@ -28,7 +29,7 @@ import ExtensionsRenderer from './components/EditableTable/renderers/ExtensionsR
 import AllowanceRenderer from './components/EditableTable/renderers/AllowanceRenderer';
 
 import { COLUMN_NAMES, ROWS_PER_PAGE } from './components/EditableTable/utils/constants';
-import { formatPreparationForm, formatDateToAPI } from './components/EditableTable/utils/dateUtils';
+import { formatPreparationForm, formatDateToAPI, formatDateToDisplay, isValidDate } from './components/EditableTable/utils/dateUtils';
 import { transformTableDataToApi } from './components/EditableTable/utils/dataTransformers';
 import { getFieldType } from './components/EditableTable/utils/fieldUtils';
 
@@ -50,6 +51,8 @@ const EditableTable = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  const [columnFilters, setColumnFilters] = useState(new Map());
   
   const { apiRequest } = useApi();
   const {
@@ -150,6 +153,35 @@ const EditableTable = () => {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [showColumnsPanel, setShowColumnsPanel] = useState(false);
 
+  const columns = useMemo(() => {
+    return Array.from({ length: 39 }, (_, i) => `column${i + 1}`);
+  }, []);
+
+  const handleColumnFilterChange = (columnKey, value) => {
+    const newFilters = new Map(columnFilters);
+    if (value === null) {
+      newFilters.delete(columnKey);
+    } else {
+      newFilters.set(columnKey, value);
+    }
+    setColumnFilters(newFilters);
+    setCurrentPage(1);
+  };
+
+  const clearAllColumnFilters = () => {
+    setColumnFilters(new Map());
+    setCurrentPage(1);
+  };
+
+  const allColumns = useMemo(() => {
+    return Object.entries(COLUMN_NAMES)
+      .filter(([_, name]) => name && name !== '')
+      .map(([key, label]) => ({
+        key: `column${key}`,
+        label: label
+      }));
+  }, []);
+
   const getPanelPosition = (storageKey, defaultPosition) => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -212,7 +244,7 @@ const EditableTable = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, searchColumn, filters, sortConfig]);
+  }, [searchTerm, searchColumn, filters, sortConfig, columnFilters]);
 
   const handleLogout = async () => {
     try {
@@ -245,6 +277,8 @@ const EditableTable = () => {
     setSelectedRows(new Set());
     setSelectAll(false);
     setCurrentPage(1);
+    
+    setColumnFilters(new Map());
     
     setShowFilterPanel(false);
     setShowColumnsPanel(false);
@@ -320,32 +354,61 @@ const EditableTable = () => {
 
   const handleCellSave = async (savedValue) => {
     if (editingCell.rowId === null) return;
-
+  
     try {
-      const { rowId, column, fieldType, columnNumber } = editingCell;
+      const { rowId, column, fieldType } = editingCell;
       const rowIndex = data.findIndex(row => row.id === rowId);
       if (rowIndex === -1) return;
-
+  
+      if (fieldType === 'date' && savedValue) {
+        const dateRegex = /^\d{2}\.\d{2}\.\d{4}$/;
+        if (!dateRegex.test(savedValue)) {
+          alert('Неверный формат даты. Используйте ДД.ММ.ГГГГ');
+          return;
+        }
+        
+        const [day, month, year] = savedValue.split('.');
+        const dayNum = parseInt(day, 10);
+        const monthNum = parseInt(month, 10);
+        const yearNum = parseInt(year, 10);
+        
+        if (monthNum < 1 || monthNum > 12) {
+          alert('Неверный месяц. Используйте от 01 до 12');
+          return;
+        }
+        
+        const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+        if (dayNum < 1 || dayNum > daysInMonth) {
+          alert(`Неверный день. В месяце ${monthNum} максимум ${daysInMonth} дней`);
+          return;
+        }
+      }
+  
       let valueToSave = savedValue;
-      if (fieldType === 'date' && valueToSave && columnNumber !== 3) {
+      if (fieldType === 'date' && valueToSave) {
         valueToSave = formatDateToAPI(valueToSave);
       }
-
+  
       const updatedRow = { ...data[rowIndex] };
-      let valueToDisplay = savedValue;
-      if (columnNumber === 3 && savedValue && typeof savedValue === 'string' && savedValue.includes('-')) {
-        valueToDisplay = savedValue.split('-')[0];
-      }
-      updatedRow[column] = valueToDisplay;
-
+      updatedRow[column] = valueToSave;
+  
       const updatedData = [...data];
       updatedData[rowIndex] = updatedRow;
       setData(updatedData);
-
+  
       const apiData = transformTableDataToApi(updatedRow, 'update');
       await apiRequest(`/ordinators/${rowId}`, 'PATCH', apiData);
-
-      setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null, subField: null, subIndex: null });
+  
+      setEditingCell({ 
+        rowId: null, 
+        column: null, 
+        value: '', 
+        rowIndex: null, 
+        fieldType: null, 
+        columnNumber: null, 
+        subField: null, 
+        subIndex: null 
+      });
     } catch (error) {
       console.error('Error saving cell:', error);
       alert('Ошибка при сохранении изменений');
@@ -376,6 +439,11 @@ const EditableTable = () => {
     
     const fieldType = getFieldType(columnNumber);
     let displayValue = currentValue;
+    
+    if (fieldType === 'date' && displayValue) {
+      displayValue = formatDateToDisplay(displayValue);
+    }
+    
     if (column === 'column16') {
       displayValue = formatPreparationForm(currentValue);
     }
@@ -392,7 +460,16 @@ const EditableTable = () => {
   };
 
   const handleCellCancel = () => {
-    setEditingCell({ rowId: null, column: null, value: '', rowIndex: null, fieldType: null, columnNumber: null, subField: null, subIndex: null });
+    setEditingCell({ 
+      rowId: null, 
+      column: null, 
+      value: '', 
+      rowIndex: null, 
+      fieldType: null, 
+      columnNumber: null, 
+      subField: null, 
+      subIndex: null 
+    });
     setEditValue('');
   };
 
@@ -460,8 +537,35 @@ const EditableTable = () => {
     }
   };
 
-  const filteredData = (() => {
+  const filteredData = useMemo(() => {
     let result = [...data];
+    
+    if (columnFilters.size > 0) {
+      columnFilters.forEach((filterValue, columnKey) => {
+        result = result.filter(row => {
+          let cellValue = row[columnKey];
+          
+          if (cellValue === undefined || cellValue === null) {
+            cellValue = 'Не указано';
+          }
+          
+          if (columnKey === 'column16') {
+            cellValue = formatPreparationForm(cellValue);
+          }
+          
+          if (typeof cellValue === 'object') {
+            try {
+              cellValue = JSON.stringify(cellValue);
+            } catch {
+              cellValue = String(cellValue);
+            }
+          }
+          
+          const strValue = String(cellValue).trim() || 'Не указано';
+          return strValue === filterValue;
+        });
+      });
+    }
     
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase().trim();
@@ -494,9 +598,9 @@ const EditableTable = () => {
     }
     
     return result;
-  })();
-  
-  const getSortedData = (dataToSort) => {
+  }, [data, columnFilters, searchTerm, searchColumn, filters, applyFilters]);
+
+  const getSortedData = useCallback((dataToSort) => {
     if (!sortConfig.key || !dataToSort.length) return dataToSort;
     
     return [...dataToSort].sort((a, b) => {
@@ -626,21 +730,6 @@ const EditableTable = () => {
       const dateColumns = [3, 6, 7, 22, 24, 26, 30, 34, 35];
       const numberColumns = [12];
       
-      if (columnNumber === 3) {
-        const getYear = (value) => {
-          if (isEmpty(value)) return null;
-          if (typeof value === 'number') return value;
-          const yearMatch = String(value).match(/\d{4}/);
-          return yearMatch ? parseInt(yearMatch[0]) : null;
-        };
-        const yearA = getYear(aValue);
-        const yearB = getYear(bValue);
-        if (yearA === null && yearB === null) return 0;
-        if (yearA === null) return 1;
-        if (yearB === null) return -1;
-        return sortConfig.direction === 'ascending' ? yearA - yearB : yearB - yearA;
-      }
-      
       if (dateColumns.includes(columnNumber)) {
         const getDate = (value) => {
           if (isEmpty(value)) return null;
@@ -698,9 +787,11 @@ const EditableTable = () => {
       if (aLower > bLower) return sortConfig.direction === 'ascending' ? 1 : -1;
       return 0;
     });
-  };
+  }, [sortConfig]);
 
-  const sortedFilteredData = getSortedData(filteredData);
+  const sortedFilteredData = useMemo(() => {
+    return getSortedData(filteredData);
+  }, [filteredData, getSortedData]);
 
   useEffect(() => {
     const allFilteredIds = sortedFilteredData.map(row => row.id);
@@ -713,8 +804,6 @@ const EditableTable = () => {
     (currentPage - 1) * ROWS_PER_PAGE,
     currentPage * ROWS_PER_PAGE
   );
-
-  const columns = Array.from({ length: 39 }, (_, i) => `column${i + 1}`);
 
   if (!userData || optionsLoading) {
     return (
@@ -747,6 +836,13 @@ const EditableTable = () => {
 
   return (
     <div className="table-page">
+      <ColumnFilter 
+        data={data}
+        onFilterChange={handleColumnFilterChange}
+        currentFilters={columnFilters}
+        columns={allColumns}
+      />
+
       <header className="user-header">
         <div className="header-left">
           <div className="user-profile-button" onClick={() => setShowUserMenu(!showUserMenu)}>
@@ -839,6 +935,33 @@ const EditableTable = () => {
           handleResetSearch={handleResetSearch}
           visibleColumns={visibleColumns}
         />
+
+        {columnFilters.size > 0 && (
+          <div className="active-column-filters">
+            <span className="filter-label">Активные фильтры по колонкам:</span>
+            {Array.from(columnFilters.entries()).map(([key, value]) => {
+              const columnNumber = parseInt(key.replace('column', ''));
+              const columnName = COLUMN_NAMES[columnNumber] || key;
+              return (
+                <span key={key} className="filter-tag">
+                  {columnName}: {value}
+                  <button 
+                    className="remove-filter"
+                    onClick={() => handleColumnFilterChange(key, null)}
+                  >
+                    ×
+                  </button>
+                </span>
+              );
+            })}
+            <button 
+              className="clear-all-filters-btn"
+              onClick={clearAllColumnFilters}
+            >
+              Сбросить все
+            </button>
+          </div>
+        )}
 
         <div className="selection-info">
           {selectedRows.size > 0 && (
@@ -944,6 +1067,11 @@ const EditableTable = () => {
 
                         let cellValue = row[column] || '';
                         const isEditing = editingCell.rowId === row.id && editingCell.column === column;
+                        const fieldType = getFieldType(columnNumber);
+
+                        if (fieldType === 'date' && cellValue) {
+                          cellValue = formatDateToDisplay(cellValue);
+                        }
 
                         if (column === 'column16') {
                           cellValue = formatPreparationForm(cellValue);
@@ -1021,15 +1149,20 @@ const EditableTable = () => {
                           );
                         }
 
+                        const isDateInvalid = fieldType === 'date' && cellValue && !isValidDate(cellValue);
+
                         return (
                           <td
                             key={`cell-${row.id}-${column}`}
                             onDoubleClick={() => handleCellDoubleClick(row.id, column, cellValue, rowIndex)}
                             className={permissions.canEditRow() ? 'editable-cell' : ''}
                           >
-                            <span className="cell-value" title={cellValue}>
+                            <span className={`cell-value ${isDateInvalid ? 'date-error' : ''}`} title={cellValue}>
                               {cellValue}
                             </span>
+                            {isDateInvalid && (
+                              <span className="date-error-message-inline">Неверный формат даты. Используйте ДД.ММ.ГГГГ</span>
+                            )}
                           </td>
                         );
                       })}
@@ -1052,7 +1185,6 @@ const EditableTable = () => {
         </div>
       </div>
 
-      {/* Floating Panels */}
       <FloatingPanel
         isOpen={showFilterPanel}
         onClose={() => setShowFilterPanel(false)}

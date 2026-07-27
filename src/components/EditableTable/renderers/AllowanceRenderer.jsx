@@ -162,7 +162,7 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
       <div className="nested-cell">
         {canEdit && (
           <button onClick={addAllowance} className="nested-add-btn">
-            <span>Добавить надбавку</span>
+            <span>Добавить</span>
           </button>
         )}
       </div>
@@ -219,7 +219,7 @@ const AllowanceRenderer = ({ rowId, value, data, setData, userData }) => {
         
         {canEdit && (editingAllowances.length <= 1 || isExpanded) && (
           <button onClick={addAllowance} className="nested-add-btn">
-            <span>Добавить надбавку</span>
+            <span>Добавить</span>
           </button>
         )}
         

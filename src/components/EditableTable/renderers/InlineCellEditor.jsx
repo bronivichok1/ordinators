@@ -208,58 +208,41 @@ const InlineCellEditor = ({
 
     switch(fieldType) {
       case 'date':
-        if (columnNumber === 3) {
-          let yearDisplay = localValue;
-          if (localValue && typeof localValue === 'string') {
-            if (localValue.includes('-')) {
-              yearDisplay = localValue.split('-')[0];
-            } else if (localValue.includes('.')) {
-              yearDisplay = localValue.split('.')[2];
-            }
-          }
-          return (
-            <input
-              ref={inputRef}
-              type="text"
-              value={yearDisplay}
-              onChange={(e) => {
-                const year = e.target.value.replace(/\D/g, '').slice(0, 4);
-                const fullDate = year ? `${year}-01-01` : '';
-                setLocalValue(fullDate);
-              }}
-              onKeyDown={handleKeyDown}
-              className="inline-input"
-              placeholder="ГГГГ"
-              maxLength="4"
-            />
-          );
+
+        let displayDate = localValue || '';
+        if (displayDate && /^\d{4}-\d{2}-\d{2}$/.test(displayDate)) {
+          const [year, month, day] = displayDate.split('-');
+          displayDate = `${day}.${month}.${year}`;
+        } else if (displayDate && /^\d{4}$/.test(displayDate)) {
+          displayDate = `01.01.${displayDate}`;
         }
-        const displayDate = (() => {
-          if (!localValue) return '';
-          if (/^\d{2}\.\d{2}\.\d{4}$/.test(localValue)) return localValue;
-          if (/^\d{4}-\d{2}-\d{2}$/.test(localValue)) {
-            const [year, month, day] = localValue.split('-');
-            return `${day}.${month}.${year}`;
-          }
-          return localValue;
-        })();
+        
         const isDateInvalid = localValue && !isValidDate(displayDate);
+        
         return (
           <>
             <input
               ref={inputRef}
               type="text"
-              value={displayDate}
-              onChange={(e) => setLocalValue(e.target.value)}
+              value={displayDate || ''}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                if (/^\d{4}$/.test(newValue) && newValue.length === 4) {
+                  setLocalValue(`01.01.${newValue}`);
+                } else {
+                  setLocalValue(newValue);
+                }
+              }}
               onKeyDown={handleKeyDown}
               className={`inline-input ${isDateInvalid ? 'date-error' : ''}`}
               placeholder="ДД.ММ.ГГГГ"
             />
             {isDateInvalid && (
-              <span className="date-error-message-inline"> Неверный формат даты. Используйте ДД.ММ.ГГГГ</span>
+              <span className="date-error-message-inline">Неверный формат даты. Используйте ДД.ММ.ГГГГ</span>
             )}
           </>
         );
+        
       case 'tel':
         return (
           <input
