@@ -1266,10 +1266,6 @@ const EditableTable = () => {
           totalPages={totalPages}
           onPageChange={setCurrentPage}
         />
-
-        <div className="pagination-info">
-          Показано {paginatedData.length} из {sortedFilteredData.length} записей (стр. {currentPage} из {totalPages})
-        </div>
       </div>
 
       <FloatingPanel

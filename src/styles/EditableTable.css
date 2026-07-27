@@ -1,22 +1,25 @@
-/* Основные стили страницы */
 .table-page {
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  overflow-x: auto;
   background: #f1f5f9;
+  overflow: hidden;
 }
 
 .table-container {
-  padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 20px;
   min-width: 1600px;
+  overflow: hidden;
 }
 
-/* Стили поисковой панели */
 .search-panel {
   background-color: white;
   padding: 20px;
   border-radius: 10px;
-  margin-bottom: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
@@ -2530,7 +2533,6 @@ mark {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2603,12 +2605,10 @@ mark {
 
 .selection-btn.rb-btn {
   border: 3px solid #0984e3;
-  background: linear-gradient(135deg, #ffffff 0%, #dfe6e9 100%);
 }
 
 .selection-btn.rb-btn:hover {
   border-color: #0652DD;
-  background: linear-gradient(135deg, #ffffff 0%, #dfe6e9 100%);
 }
 
 .selection-btn.rb-btn svg {
@@ -2617,12 +2617,10 @@ mark {
 
 .selection-btn.in-btn {
   border: 3px solid #00b894;
-  background: linear-gradient(135deg, #ffffff 0%, #dfe6e9 100%);
 }
 
 .selection-btn.in-btn:hover {
   border-color: #00a381;
-  background: linear-gradient(135deg, #ffffff 0%, #dfe6e9 100%);
 }
 
 .selection-btn.in-btn svg {
