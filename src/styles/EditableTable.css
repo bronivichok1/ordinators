@@ -970,7 +970,6 @@ mark {
   color: white;
   flex-shrink: 0;
   border-bottom: 2px solid #334155;
-  min-height: 72px;
 }
 
 .modal-header h2 {
@@ -1641,13 +1640,8 @@ mark {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
   margin-top: 20px;
   flex-wrap: wrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e2e8f0;
 }
 
 .page-button {
@@ -2281,141 +2275,6 @@ mark {
   }
 }
 
-/* Адаптивность модального окна */
-@media (max-width: 1200px) {
-  .columns-editor {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  }
-}
-
-@media (max-width: 992px) {
-  .modal-header {
-    padding: 16px 24px;
-    min-height: 64px;
-  }
-  
-  .modal-header h2 {
-    font-size: 20px;
-  }
-  
-  .modal-content {
-    padding: 16px 24px;
-  }
-  
-  .columns-editor {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 12px;
-  }
-  
-  .modal-nested-item {
-    grid-template-columns: 1fr 1fr 1fr 32px;
-    gap: 8px;
-    padding: 8px;
-  }
-  
-  .modal-nested-header {
-    grid-template-columns: 1fr 1fr 1fr 32px;
-    gap: 8px;
-    font-size: 10px;
-  }
-}
-
-@media (max-width: 768px) {
-  .modal-header {
-    padding: 14px 16px;
-    min-height: 56px;
-  }
-  
-  .modal-header h2 {
-    font-size: 18px;
-  }
-  
-  .close-button {
-    width: 36px;
-    height: 36px;
-    font-size: 28px;
-  }
-  
-  .modal-content {
-    padding: 12px 16px;
-  }
-  
-  .columns-editor {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  
-  .column-editor-item {
-    padding: 12px 16px;
-  }
-  
-  .modal-actions {
-    flex-direction: column;
-    padding: 16px 0;
-  }
-  
-  .cancel-button-modal,
-  .save-button {
-    width: 100%;
-    min-width: unset;
-    padding: 12px 20px;
-  }
-  
-  .modal-nested-header {
-    display: none;
-  }
-  
-  .modal-nested-item {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 12px;
-    border-left: 3px solid #3b82f6;
-  }
-  
-  .modal-nested-remove {
-    width: 100%;
-    height: 36px;
-  }
-  
-  .readonly-nested-line strong {
-    min-width: 100px;
-  }
-}
-
-@media (max-width: 480px) {
-  .modal-header h2 {
-    font-size: 16px;
-  }
-  
-  .modal-header {
-    padding: 10px 12px;
-    min-height: 48px;
-  }
-  
-  .close-button {
-    width: 32px;
-    height: 32px;
-    font-size: 24px;
-  }
-  
-  .modal-content {
-    padding: 10px 12px;
-  }
-  
-  .column-editor-item {
-    padding: 10px 12px;
-  }
-  
-  .modal-input {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-  
-  .modal-nested-input {
-    padding: 6px 10px;
-    font-size: 13px;
-  }
-}
 /* Секция с вложенными полями */
 .nested-fields-section {
   margin-top: 24px;
@@ -2484,46 +2343,6 @@ mark {
 
 .modal-nested-item.allowance-item {
   grid-template-columns: 1fr 1fr 1fr 40px;
-}
-
-/* Адаптивность для вложенных полей */
-@media (max-width: 992px) {
-  .modal-nested-header.supervisor-header,
-  .modal-nested-item.supervisor-item {
-    grid-template-columns: 1fr 0.8fr 0.8fr 1fr 1fr 32px;
-  }
-  
-  .modal-nested-header.extension-header,
-  .modal-nested-item.extension-item {
-    grid-template-columns: 1fr 1fr 0.8fr 32px;
-  }
-  
-  .modal-nested-header.allowance-header,
-  .modal-nested-item.allowance-item {
-    grid-template-columns: 1fr 1fr 1fr 32px;
-  }
-}
-
-@media (max-width: 768px) {
-  .nested-field-item {
-    padding: 16px;
-  }
-  
-  .modal-nested-header.supervisor-header,
-  .modal-nested-item.supervisor-item,
-  .modal-nested-header.extension-header,
-  .modal-nested-item.extension-item,
-  .modal-nested-header.allowance-header,
-  .modal-nested-item.allowance-item {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-  
-  .modal-nested-header.supervisor-header,
-  .modal-nested-header.extension-header,
-  .modal-nested-header.allowance-header {
-    display: none;
-  }
 }
 
 /* Стили для экрана выбора группы */
@@ -2625,21 +2444,4 @@ mark {
 
 .selection-btn.in-btn svg {
   color: #00b894;
-}
-
-@media (max-width: 768px) {
-  .selection-buttons {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .selection-btn {
-    min-width: 200px;
-    max-width: 100%;
-    width: 100%;
-  }
-  
-  .selection-container h1 {
-    font-size: 28px;
-  }
 }
