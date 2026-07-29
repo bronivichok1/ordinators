@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronRight, X, Filter, Search, Users, Columns, ChevronLeft } from 'lucide-react';
+import { ChevronRight, X, Filter, Search, ChevronLeft } from 'lucide-react';
 import '../styles/ColumnFilter.css';
 
 const ColumnFilter = ({
@@ -9,43 +9,24 @@ const ColumnFilter = ({
   columns
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeSubMenu, setActiveSubMenu] = useState(null); // 'ordinators', 'columns'
-  const [activeSubSubMenu, setActiveSubSubMenu] = useState(null); // 'rb', 'in'
-  const [activeColumn, setActiveColumn] = useState(null);
-  const [columnStats, setColumnStats] = useState(new Map());
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [activeSubFilter, setActiveSubFilter] = useState(null);
+  const [activeYear, setActiveYear] = useState(null);
+  const [activeMonth, setActiveMonth] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterSearchTerm, setFilterSearchTerm] = useState('');
+  const [yearSearchTerm, setYearSearchTerm] = useState('');
+  const [monthSearchTerm, setMonthSearchTerm] = useState('');
+  const [valueSearchTerm, setValueSearchTerm] = useState('');
   const menuRef = useRef(null);
-
-  useEffect(() => {
-    const stats = new Map();
-    
-    columns.forEach(col => {
-      const colStats = new Map();
-      data.forEach(row => {
-        let value = row[col.key] || 'Не указано';
-        if (col.key === 'column16') {
-          value = formatPreparationForm(value);
-        }
-        if (typeof value === 'object') {
-          value = JSON.stringify(value);
-        }
-        const strValue = String(value).trim() || 'Не указано';
-        colStats.set(strValue, (colStats.get(strValue) || 0) + 1);
-      });
-      stats.set(col.key, colStats);
-    });
-    
-    setColumnStats(stats);
-  }, [data, columns]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setIsOpen(false);
-        setActiveSubMenu(null);
-        setActiveSubSubMenu(null);
-        setActiveColumn(null);
+        setActiveCategory(null);
+        setActiveSubFilter(null);
+        setActiveYear(null);
+        setActiveMonth(null);
       }
     };
 
@@ -61,24 +42,120 @@ const ColumnFilter = ({
     };
   }, [isOpen]);
 
-  const handleColumnClick = (columnKey) => {
-    setActiveColumn(activeColumn === columnKey ? null : columnKey);
-    setFilterSearchTerm('');
-  };
-
   const handleValueClick = (columnKey, value) => {
-    const currentFilter = currentFilters.get(columnKey);
-    if (currentFilter === value) {
+    const currentValues = currentFilters.get(columnKey) || [];
+    let newValues;
+    
+    if (currentValues.includes(value)) {
+      newValues = currentValues.filter(v => v !== value);
+    } else {
+      newValues = [...currentValues, value];
+    }
+    
+    if (newValues.length === 0) {
       onFilterChange(columnKey, null);
     } else {
-      onFilterChange(columnKey, value);
+      onFilterChange(columnKey, newValues);
+    }
+  };
+
+  const applyDateFilter = (year, month) => {
+    if (!year || !month) return;
+    
+    const dates = data
+      .map(row => row.column6)
+      .filter(date => {
+        if (!date) return false;
+        const parts = date.split('.');
+        if (parts.length !== 3) return false;
+        const dateYear = parts[2];
+        const dateMonth = getMonthsFromDate(date);
+        return dateYear === year && dateMonth === month;
+      });
+    
+    const uniqueDates = [...new Set(dates)];
+    if (uniqueDates.length > 0) {
+      onFilterChange('column6', uniqueDates);
+    } else {
+      onFilterChange('column6', null);
+    }
+  };
+
+  const applyYearFilter = (year) => {
+    if (!year) return;
+    
+    const dates = data
+      .map(row => row.column6)
+      .filter(date => {
+        if (!date) return false;
+        const parts = date.split('.');
+        if (parts.length !== 3) return false;
+        return parts[2] === year;
+      });
+    
+    const uniqueDates = [...new Set(dates)];
+    if (uniqueDates.length > 0) {
+      onFilterChange('column6', uniqueDates);
+    } else {
+      onFilterChange('column6', null);
+    }
+  };
+
+  const applyValueFilterWithDate = (columnKey, value, year, month) => {
+    if (!year || !month || !value) return;
+    
+    const filteredData = data.filter(row => {
+      const date = row.column6;
+      if (!date) return false;
+      const parts = date.split('.');
+      if (parts.length !== 3) return false;
+      const dateYear = parts[2];
+      const dateMonth = getMonthsFromDate(date);
+      if (dateYear !== year || dateMonth !== month) return false;
+      
+      const rowValue = row[columnKey] || 'Не указано';
+      return String(rowValue).trim() === value;
+    });
+    
+    const values = filteredData.map(row => row[columnKey]);
+    const uniqueValues = [...new Set(values)];
+    if (uniqueValues.length > 0) {
+      onFilterChange(columnKey, uniqueValues);
+    } else {
+      onFilterChange(columnKey, null);
+    }
+  };
+
+  const applyValueFilterWithYear = (columnKey, value, year) => {
+    if (!year || !value) return;
+    
+    const filteredData = data.filter(row => {
+      const date = row.column6;
+      if (!date) return false;
+      const parts = date.split('.');
+      if (parts.length !== 3) return false;
+      const dateYear = parts[2];
+      if (dateYear !== year) return false;
+      
+      const rowValue = row[columnKey] || 'Не указано';
+      return String(rowValue).trim() === value;
+    });
+    
+    const values = filteredData.map(row => row[columnKey]);
+    const uniqueValues = [...new Set(values)];
+    if (uniqueValues.length > 0) {
+      onFilterChange(columnKey, uniqueValues);
+    } else {
+      onFilterChange(columnKey, null);
     }
   };
 
   const getActiveFiltersCount = () => {
     let count = 0;
     currentFilters.forEach((value) => {
-      if (value) count++;
+      if (value && Array.isArray(value) && value.length > 0) {
+        count++;
+      }
     });
     return count;
   };
@@ -87,138 +164,330 @@ const ColumnFilter = ({
     currentFilters.forEach((_, key) => {
       onFilterChange(key, null);
     });
+    setActiveYear(null);
+    setActiveMonth(null);
   };
 
-  const formatPreparationForm = (value) => {
-    if (!value) return '';
-    if (typeof value === 'number') return String(value);
-    if (typeof value === 'string') {
-      const yearMatch = value.match(/\d{4}/);
-      return yearMatch ? yearMatch[0] : value;
+  const getFilterData = (columnKey, filteredData) => {
+    const stats = new Map();
+    const targetData = filteredData || data;
+    targetData.forEach(row => {
+      let value = row[columnKey] || 'Не указано';
+      if (typeof value === 'object') {
+        value = JSON.stringify(value);
+      }
+      const strValue = String(value).trim() || 'Не указано';
+      stats.set(strValue, (stats.get(strValue) || 0) + 1);
+    });
+    return Array.from(stats.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  };
+
+  const getMonthsFromDate = (dateStr) => {
+    if (!dateStr) return 'Не указан';
+    const parts = dateStr.split('.');
+    if (parts.length === 3) {
+      const month = parseInt(parts[1]);
+      const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+      return monthNames[month - 1] || 'Не указан';
     }
-    return String(value);
+    return 'Не указан';
   };
 
-  // Фильтрация колонок по поиску
-  const filteredColumns = columns.filter(col => 
-    col.label.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // ПОЛУЧЕНИЕ СТРАНЫ ИЗ 5-Й КОЛОНКИ (column5)
-  const getCountryFromRow = (row) => {
-    const countryValue = row.column5 || '';
-    const countryStr = String(countryValue).trim();
-    
-    if (!countryStr) return 'Не указана';
-    
-    // Проверяем на Беларусь (разные варианты написания)
-    if (countryStr.toLowerCase().includes('беларусь') || 
-        countryStr.toLowerCase().includes('belarus') || 
-        countryStr === 'рб' ||
-        countryStr === 'республика беларусь') {
-      return 'Беларусь';
-    }
-    
-    // Все остальные страны
-    return countryStr;
-  };
-
-  // Проверка является ли ординатор из Беларуси
-  const isBelarus = (row) => {
-    return getCountryFromRow(row) === 'Беларусь';
-  };
-
-  // Проверка является ли ординатор иностранцем (не Беларусь)
-  const isForeign = (row) => {
-    const country = getCountryFromRow(row);
-    return country !== 'Беларусь' && country !== 'Не указана';
-  };
-
-  // Получение списка ординаторов по типу
-  const getOrdinatorsByType = (type) => {
-    if (type === 'rb') {
-      return data.filter(row => isBelarus(row));
-    } else if (type === 'in') {
-      // Все, кто не из Беларуси (включая все другие страны)
-      return data.filter(row => !isBelarus(row) && getCountryFromRow(row) !== 'Не указана');
-    }
-    return data;
-  };
-
-  // Получение уникальных стран (для отображения в статистике)
-  const getUniqueCountries = (groupData) => {
-    const countries = new Set();
-    groupData.forEach(row => {
-      const country = getCountryFromRow(row);
-      if (country !== 'Беларусь' && country !== 'Не указана') {
-        countries.add(country);
+  const getUniqueYears = () => {
+    const years = new Set();
+    data.forEach(row => {
+      const date = row.column6;
+      if (date) {
+        const parts = date.split('.');
+        if (parts.length === 3) {
+          years.add(parts[2]);
+        }
       }
     });
-    return Array.from(countries).sort();
+    return Array.from(years).sort();
   };
 
-  // Получение уникальных кафедр для определенной группы
-  const getDepartmentsForGroup = (groupData) => {
-    const depts = new Map();
-    groupData.forEach(row => {
-      const dept = row.column30 || 'Не указана';
-      depts.set(dept, (depts.get(dept) || 0) + 1);
+  const getUniqueMonths = (year) => {
+    const months = new Set();
+    data.forEach(row => {
+      const date = row.column6;
+      if (date) {
+        const parts = date.split('.');
+        if (parts.length === 3 && parts[2] === year) {
+          months.add(getMonthsFromDate(date));
+        }
+      }
     });
-    return Array.from(depts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    const monthOrder = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+    return Array.from(months).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
   };
+
+  const getFilterDataByYearAndMonth = (year, month, columnKey) => {
+    const stats = new Map();
+    data.forEach(row => {
+      const date = row.column6;
+      if (date) {
+        const parts = date.split('.');
+        if (parts.length === 3) {
+          const rowYear = parts[2];
+          const rowMonth = getMonthsFromDate(date);
+          if (rowYear === year && rowMonth === month) {
+            let value = row[columnKey] || 'Не указано';
+            if (typeof value === 'object') {
+              value = JSON.stringify(value);
+            }
+            const strValue = String(value).trim() || 'Не указано';
+            stats.set(strValue, (stats.get(strValue) || 0) + 1);
+          }
+        }
+      }
+    });
+    return Array.from(stats.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  };
+
+  const getFilterDataByYear = (year, columnKey) => {
+    const stats = new Map();
+    data.forEach(row => {
+      const date = row.column6;
+      if (date) {
+        const parts = date.split('.');
+        if (parts.length === 3) {
+          const rowYear = parts[2];
+          if (rowYear === year) {
+            let value = row[columnKey] || 'Не указано';
+            if (typeof value === 'object') {
+              value = JSON.stringify(value);
+            }
+            const strValue = String(value).trim() || 'Не указано';
+            stats.set(strValue, (stats.get(strValue) || 0) + 1);
+          }
+        }
+      }
+    });
+    return Array.from(stats.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  };
+
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+
+  const studyingData = data.filter(row => {
+    const endDate = row.column7;
+    if (!endDate) return true;
+    const formattedEndDate = endDate.split('.').reverse().join('-');
+    return formattedEndDate >= today;
+  });
+
+  const allYears = getUniqueYears();
 
   const activeFiltersCount = getActiveFiltersCount();
-  const rbOrdinators = getOrdinatorsByType('rb');
-  const inOrdinators = getOrdinatorsByType('in');
-  const uniqueCountries = getUniqueCountries(inOrdinators);
 
-  // Обработчик выбора подменю
-  const handleSubMenuOpen = (menu) => {
-    setActiveSubMenu(activeSubMenu === menu ? null : menu);
-    setActiveSubSubMenu(null);
-    setActiveColumn(null);
-  };
-
-  // Обработчик выбора под-подменю (РБ или ИН)
-  const handleSubSubMenuOpen = (subMenu) => {
-    setActiveSubSubMenu(activeSubSubMenu === subMenu ? null : subMenu);
-    setActiveColumn(null);
-  };
-
-  // Применение фильтра по стране
-  const applyCountryFilter = (type) => {
-    if (type === 'rb') {
-      const current = currentFilters.get('column5');
-      if (current === 'Беларусь') {
-        onFilterChange('column5', null);
-      } else {
-        onFilterChange('column5', 'Беларусь');
-      }
-    } else if (type === 'in') {
-      // Для иностранцев - показываем всех, у кого страна не Беларусь
-      // Используем специальный фильтр "Не Беларусь"
-      const current = currentFilters.get('column5');
-      if (current === 'Иностранцы') {
-        onFilterChange('column5', null);
-      } else {
-        onFilterChange('column5', 'Иностранцы');
-      }
+  const categories = [
+    { 
+      id: 'enrollment', 
+      label: '1. Зачислены', 
+      total: data.length
+    },
+    { 
+      id: 'studying', 
+      label: '2. Обучаются', 
+      total: studyingData.length
     }
+  ];
+
+  const subFilters = {
+    enrollment: [
+      { id: 'all', label: 'Все', columnKey: 'column6', type: 'all' },
+      { id: 'country', label: 'Страна', columnKey: 'column5', type: 'value' },
+      { id: 'department', label: 'Кафедра', columnKey: 'column13', type: 'value' },
+      { id: 'specialty', label: 'Специальность', columnKey: 'column14', type: 'value' },
+      { id: 'university', label: 'ВУЗ', columnKey: 'column11', type: 'value' },
+    ],
+    studying: [
+      { id: 'all', label: 'Все', columnKey: null, type: 'direct' },
+      { id: 'country', label: 'По стране', columnKey: 'column5', type: 'direct' },
+      { id: 'department', label: 'По кафедре', columnKey: 'column13', type: 'direct' },
+      { id: 'specialty', label: 'По специальности', columnKey: 'column14', type: 'direct' },
+      { id: 'graduation', label: 'По году окончания', columnKey: 'column12', type: 'direct' },
+      { id: 'current_control', label: 'По текущему контролю', columnKey: 'column30', type: 'direct' },
+    ]
   };
 
-  // Проверка активного фильтра по стране
-  const isCountryFilterActive = (type) => {
-    if (type === 'rb') {
-      return currentFilters.get('column5') === 'Беларусь';
-    } else if (type === 'in') {
-      return currentFilters.get('column5') === 'Иностранцы';
+  const currentCategory = categories.find(c => c.id === activeCategory);
+  const currentSubFilters = activeCategory ? subFilters[activeCategory] || [] : [];
+  const currentSubFilter = activeSubFilter ? currentSubFilters.find(s => s.id === activeSubFilter) : null;
+
+  const currentYears = allYears;
+  const currentMonths = activeYear ? getUniqueMonths(activeYear) : [];
+  const currentValues = activeMonth && currentSubFilter?.type === 'value' 
+    ? getFilterDataByYearAndMonth(activeYear, activeMonth, currentSubFilter.columnKey)
+    : [];
+  const currentValuesByYear = activeYear && !activeMonth && currentSubFilter?.type === 'value'
+    ? getFilterDataByYear(activeYear, currentSubFilter.columnKey)
+    : [];
+
+  const getActiveFilterDisplayValue = (key, values) => {
+    if (!values || !Array.isArray(values) || values.length === 0) return null;
+    
+    if (key === 'column6') {
+      const uniqueMonths = new Set();
+      values.forEach(date => {
+        const parts = date.split('.');
+        if (parts.length === 3) {
+          const month = getMonthsFromDate(date);
+          const year = parts[2];
+          uniqueMonths.add(`${month} ${year}`);
+        }
+      });
+      return Array.from(uniqueMonths).join(', ');
     }
-    return false;
+    
+    return values.join(', ');
+  };
+
+  const activeFiltersList = Array.from(currentFilters.entries()).map(([key, values]) => {
+    if (!values || !Array.isArray(values) || values.length === 0) return null;
+    const columnName = {
+      column6: 'Зачислены',
+      column11: 'ВУЗ',
+      column5: 'Страна',
+      column13: 'Кафедра',
+      column14: 'Специальность',
+      column12: 'Год окончания',
+      column30: 'Текущий контроль'
+    }[key] || key;
+    const displayValue = getActiveFilterDisplayValue(key, values);
+    return { key, columnName, displayValue };
+  }).filter(Boolean);
+
+  const renderFilterList = (items, columnKey) => {
+    if (!items || items.length === 0) {
+      return <div className="ColumnFilter-no-results">Нет данных</div>;
+    }
+
+    const currentValues = currentFilters.get(columnKey) || [];
+
+    return (
+      <div className="ColumnFilter-filter-list">
+        {items.map(([value, count]) => {
+          const isActive = currentValues.includes(value);
+          return (
+            <div 
+              key={value}
+              className={`ColumnFilter-filter-item ${isActive ? 'active' : ''}`}
+              onClick={() => handleValueClick(columnKey, value)}
+            >
+              <span className="ColumnFilter-filter-name">{value}</span>
+              <span className="ColumnFilter-filter-count">{count}</span>
+              {isActive && (
+                <span className="ColumnFilter-filter-check">✓</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderYearList = () => {
+    return (
+      <div className="ColumnFilter-filter-list">
+        {currentYears.map((year) => {
+          const isActive = activeYear === year;
+          return (
+            <div 
+              key={year}
+              className={`ColumnFilter-filter-item ${isActive ? 'active' : ''}`}
+              onClick={() => {
+                if (isActive) {
+                  setActiveYear(null);
+                  setActiveMonth(null);
+                  if (currentSubFilter?.type === 'all') {
+                    onFilterChange('column6', null);
+                  } else if (currentSubFilter?.type === 'value') {
+                    onFilterChange(currentSubFilter.columnKey, null);
+                  }
+                } else {
+                  setActiveYear(year);
+                  setActiveMonth(null);
+                  applyYearFilter(year);
+                }
+              }}
+            >
+              <span className="ColumnFilter-filter-name">{year}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderMonthList = () => {
+    return (
+      <div className="ColumnFilter-filter-list">
+        {currentMonths.map((month) => {
+          const isActive = activeMonth === month;
+          return (
+            <div 
+              key={month}
+              className={`ColumnFilter-filter-item ${isActive ? 'active' : ''}`}
+              onClick={() => {
+                if (isActive) {
+                  setActiveMonth(null);
+                  applyYearFilter(activeYear);
+                } else {
+                  setActiveMonth(month);
+                  applyDateFilter(activeYear, month);
+                }
+              }}
+            >
+              <span className="ColumnFilter-filter-name">{month}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderValueList = (items) => {
+    if (!items || items.length === 0) {
+      return <div className="ColumnFilter-no-results">Нет данных</div>;
+    }
+
+    const columnKey = currentSubFilter?.columnKey;
+    const currentValues = currentFilters.get(columnKey) || [];
+
+    return (
+      <div className="ColumnFilter-filter-list">
+        {items.map(([value, count]) => {
+          const isActive = currentValues.includes(value);
+          return (
+            <div 
+              key={value}
+              className={`ColumnFilter-filter-item ${isActive ? 'active' : ''}`}
+              onClick={() => {
+                if (currentSubFilter) {
+                  if (activeMonth) {
+                    applyValueFilterWithDate(columnKey, value, activeYear, activeMonth);
+                  } else {
+                    applyValueFilterWithYear(columnKey, value, activeYear);
+                  }
+                }
+              }}
+            >
+              <span className="ColumnFilter-filter-name">{value}</span>
+              <span className="ColumnFilter-filter-count">{count}</span>
+              {isActive && (
+                <span className="ColumnFilter-filter-check">✓</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
     <>
-      {/* Кнопка-триггер */}
       <button 
         className="ColumnFilter-trigger-button"
         onClick={() => setIsOpen(true)}
@@ -230,25 +499,23 @@ const ColumnFilter = ({
         )}
       </button>
 
-      {/* Затемнение фона */}
       {isOpen && (
         <div 
           className="ColumnFilter-overlay"
           onClick={() => {
             setIsOpen(false);
-            setActiveSubMenu(null);
-            setActiveSubSubMenu(null);
-            setActiveColumn(null);
+            setActiveCategory(null);
+            setActiveSubFilter(null);
+            setActiveYear(null);
+            setActiveMonth(null);
           }}
         />
       )}
 
-      {/* Боковое меню */}
       <div 
         ref={menuRef}
         className={`ColumnFilter-side-menu ${isOpen ? 'open' : ''}`}
       >
-        {/* Заголовок */}
         <div className="ColumnFilter-menu-header">
           <div className="ColumnFilter-menu-title">
             <Filter size={20} />
@@ -258,21 +525,38 @@ const ColumnFilter = ({
             className="ColumnFilter-close-button"
             onClick={() => {
               setIsOpen(false);
-              setActiveSubMenu(null);
-              setActiveSubSubMenu(null);
-              setActiveColumn(null);
+              setActiveCategory(null);
+              setActiveSubFilter(null);
+              setActiveYear(null);
+              setActiveMonth(null);
             }}
           >
             <X size={24} />
           </button>
         </div>
 
-        {/* Информация о фильтрах */}
         {activeFiltersCount > 0 && (
           <div className="ColumnFilter-active-info">
-            <span className="ColumnFilter-active-count">
-              Активных фильтров: {activeFiltersCount}
-            </span>
+            <div className="ColumnFilter-active-tags">
+              <span className="ColumnFilter-active-label">Активные фильтры:</span>
+              {activeFiltersList.map(({ key, columnName, displayValue }) => (
+                <span key={key} className="ColumnFilter-active-tag">
+                  {columnName}: {displayValue}
+                  <button 
+                    className="ColumnFilter-active-remove"
+                    onClick={() => {
+                      onFilterChange(key, null);
+                      if (key === 'column6') {
+                        setActiveYear(null);
+                        setActiveMonth(null);
+                      }
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
             <button 
               className="ColumnFilter-clear-all-btn"
               onClick={clearAllFilters}
@@ -282,339 +566,242 @@ const ColumnFilter = ({
           </div>
         )}
 
-        {/* Основное меню */}
         <div className="ColumnFilter-main-menu">
-          {/* Пункт 1: Ординаторы */}
-          <div className="ColumnFilter-main-item">
-            <div 
-              className={`ColumnFilter-main-item-header ${activeSubMenu === 'ordinators' ? 'active' : ''}`}
-              onClick={() => handleSubMenuOpen('ordinators')}
-            >
-              <div className="ColumnFilter-main-item-info">
-                <Users size={18} className="ColumnFilter-main-item-icon" />
-                <span className="ColumnFilter-main-item-label">Ординаторы</span>
-                <span className="ColumnFilter-main-item-badge">{data.length}</span>
+          {categories.map((category) => {
+            const isActive = activeCategory === category.id;
+            return (
+              <div key={category.id} className="ColumnFilter-main-item">
+                <div 
+                  className={`ColumnFilter-main-item-header ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    if (isActive) {
+                      setActiveCategory(null);
+                      setActiveSubFilter(null);
+                      setActiveYear(null);
+                      setActiveMonth(null);
+                    } else {
+                      setActiveCategory(category.id);
+                      setActiveSubFilter(null);
+                      setActiveYear(null);
+                      setActiveMonth(null);
+                      setSearchTerm('');
+                    }
+                  }}
+                >
+                  <div className="ColumnFilter-main-item-info">
+                    <span className="ColumnFilter-main-item-label">{category.label}</span>
+                    <span className="ColumnFilter-main-item-badge">{category.total}</span>
+                  </div>
+                  <ChevronRight 
+                    size={18} 
+                    className={`ColumnFilter-main-item-arrow ${isActive ? 'rotated' : ''}`} 
+                  />
+                </div>
               </div>
-              <ChevronRight size={18} className="ColumnFilter-main-item-arrow" />
-            </div>
-          </div>
-
-          {/* Пункт 2: Колонки */}
-          <div className="ColumnFilter-main-item">
-            <div 
-              className={`ColumnFilter-main-item-header ${activeSubMenu === 'columns' ? 'active' : ''}`}
-              onClick={() => handleSubMenuOpen('columns')}
-            >
-              <div className="ColumnFilter-main-item-info">
-                <Columns size={18} className="ColumnFilter-main-item-icon" />
-                <span className="ColumnFilter-main-item-label">Колонки</span>
-                <span className="ColumnFilter-main-item-badge">{columns.length}</span>
-              </div>
-              <ChevronRight size={18} className="ColumnFilter-main-item-arrow" />
-            </div>
-          </div>
+            );
+          })}
         </div>
 
-        {/* Подменю */}
-        {activeSubMenu && (
+        {activeCategory && (
           <div className="ColumnFilter-sub-menu">
-            {/* Кнопка назад */}
             <div 
               className="ColumnFilter-sub-menu-back"
               onClick={() => {
-                setActiveSubMenu(null);
-                setActiveSubSubMenu(null);
+                setActiveCategory(null);
+                setActiveSubFilter(null);
+                setActiveYear(null);
+                setActiveMonth(null);
               }}
             >
               <ChevronLeft size={18} />
               <span>Назад</span>
             </div>
-
-            {/* Подменю: Ординаторы */}
-            {activeSubMenu === 'ordinators' && (
-              <div className="ColumnFilter-sub-menu-content">
-                {/* Подпункт 1: Ординаторы РБ */}
-                <div 
-                  className={`ColumnFilter-sub-sub-item ${activeSubSubMenu === 'rb' ? 'active' : ''}`}
-                  onClick={() => handleSubSubMenuOpen('rb')}
-                >
-                  <div className="ColumnFilter-sub-sub-info">
-                    <span className="ColumnFilter-sub-sub-label">Ординаторы РБ</span>
-                    <span className="ColumnFilter-sub-sub-badge">{rbOrdinators.length}</span>
-                  </div>
-                  <ChevronRight size={16} className="ColumnFilter-sub-sub-arrow" />
-                </div>
-
-                {/* Подпункт 2: Ординаторы ИН (все остальные страны) */}
-                <div 
-                  className={`ColumnFilter-sub-sub-item ${activeSubSubMenu === 'in' ? 'active' : ''}`}
-                  onClick={() => handleSubSubMenuOpen('in')}
-                >
-                  <div className="ColumnFilter-sub-sub-info">
-                    <span className="ColumnFilter-sub-sub-label">Ординаторы ИН</span>
-                    <span className="ColumnFilter-sub-sub-badge">{inOrdinators.length}</span>
-                  </div>
-                  <ChevronRight size={16} className="ColumnFilter-sub-sub-arrow" />
-                </div>
-
-                {/* Под-подменю: РБ */}
-                {activeSubSubMenu === 'rb' && (
-                  <div className="ColumnFilter-sub-sub-menu">
-                    <div 
-                      className="ColumnFilter-sub-sub-back"
-                      onClick={() => setActiveSubSubMenu(null)}
-                    >
-                      <ChevronLeft size={16} />
-                      <span>Назад к ординаторам</span>
-                    </div>
-                    <div className="ColumnFilter-sub-sub-content">
-                      <div className="ColumnFilter-sub-sub-header">
-                        <h4>Ординаторы РБ</h4>
-                        <span className="ColumnFilter-sub-sub-count">{rbOrdinators.length}</span>
-                      </div>
-
-                      {/* Кнопка показать всех */}
-                      <button 
-                        className={`ColumnFilter-quick-filter ${isCountryFilterActive('rb') ? 'active' : ''}`}
-                        onClick={() => applyCountryFilter('rb')}
-                      >
-                        {isCountryFilterActive('rb') ? '✓ ' : ''}Показать всех ординаторов РБ
-                      </button>
-
-                      {/* Статистика */}
-                      <div className="ColumnFilter-stats-grid">
-                        <div className="ColumnFilter-stat-card">
-                          <span className="ColumnFilter-stat-label">Всего</span>
-                          <span className="ColumnFilter-stat-number">{rbOrdinators.length}</span>
-                        </div>
-                        <div className="ColumnFilter-stat-card">
-                          <span className="ColumnFilter-stat-label">На кафедрах</span>
-                          <span className="ColumnFilter-stat-number">
-                            {rbOrdinators.filter(row => row.column30 && row.column30 !== '').length}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Список кафедр */}
-                      <div className="ColumnFilter-sub-menu-divider">Кафедры</div>
-                      <div className="ColumnFilter-department-list">
-                        {getDepartmentsForGroup(rbOrdinators).map(([dept, count]) => {
-                          const isActive = currentFilters.get('column30') === dept;
-                          return (
-                            <div 
-                              key={dept}
-                              className={`ColumnFilter-department-item ${isActive ? 'active' : ''}`}
-                              onClick={() => {
-                                if (isActive) {
-                                  onFilterChange('column30', null);
-                                } else {
-                                  onFilterChange('column30', dept);
-                                }
-                              }}
-                            >
-                              <span className="ColumnFilter-department-name">{dept}</span>
-                              <span className="ColumnFilter-department-count">{count}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Под-подменю: ИН (все остальные страны) */}
-                {activeSubSubMenu === 'in' && (
-                  <div className="ColumnFilter-sub-sub-menu">
-                    <div 
-                      className="ColumnFilter-sub-sub-back"
-                      onClick={() => setActiveSubSubMenu(null)}
-                    >
-                      <ChevronLeft size={16} />
-                      <span>Назад к ординаторам</span>
-                    </div>
-                    <div className="ColumnFilter-sub-sub-content">
-                      <div className="ColumnFilter-sub-sub-header">
-                        <h4>Ординаторы ИН</h4>
-                        <span className="ColumnFilter-sub-sub-count">{inOrdinators.length}</span>
-                      </div>
-
-                      {/* Кнопка показать всех */}
-                      <button 
-                        className={`ColumnFilter-quick-filter ${isCountryFilterActive('in') ? 'active' : ''}`}
-                        onClick={() => applyCountryFilter('in')}
-                      >
-                        {isCountryFilterActive('in') ? '✓ ' : ''}Показать всех иностранцев
-                      </button>
-
-                      {/* Статистика по странам */}
-                      <div className="ColumnFilter-sub-menu-divider">Страны</div>
-                      <div className="ColumnFilter-country-list">
-                        {uniqueCountries.map(country => {
-                          const count = inOrdinators.filter(row => getCountryFromRow(row) === country).length;
-                          const isActive = currentFilters.get('column5') === country;
-                          return (
-                            <div 
-                              key={country}
-                              className={`ColumnFilter-country-item ${isActive ? 'active' : ''}`}
-                              onClick={() => {
-                                if (isActive) {
-                                  onFilterChange('column5', null);
-                                } else {
-                                  onFilterChange('column5', country);
-                                }
-                              }}
-                            >
-                              <span className="ColumnFilter-country-name">{country}</span>
-                              <span className="ColumnFilter-country-count">{count}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Статистика */}
-                      <div className="ColumnFilter-stats-grid">
-                        <div className="ColumnFilter-stat-card">
-                          <span className="ColumnFilter-stat-label">Всего иностранцев</span>
-                          <span className="ColumnFilter-stat-number">{inOrdinators.length}</span>
-                        </div>
-                        <div className="ColumnFilter-stat-card">
-                          <span className="ColumnFilter-stat-label">На кафедрах</span>
-                          <span className="ColumnFilter-stat-number">
-                            {inOrdinators.filter(row => row.column30 && row.column30 !== '').length}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Список кафедр */}
-                      <div className="ColumnFilter-sub-menu-divider">Кафедры</div>
-                      <div className="ColumnFilter-department-list">
-                        {getDepartmentsForGroup(inOrdinators).map(([dept, count]) => {
-                          const isActive = currentFilters.get('column30') === dept;
-                          return (
-                            <div 
-                              key={dept}
-                              className={`ColumnFilter-department-item ${isActive ? 'active' : ''}`}
-                              onClick={() => {
-                                if (isActive) {
-                                  onFilterChange('column30', null);
-                                } else {
-                                  onFilterChange('column30', dept);
-                                }
-                              }}
-                            >
-                              <span className="ColumnFilter-department-name">{dept}</span>
-                              <span className="ColumnFilter-department-count">{count}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
+            <div className="ColumnFilter-sub-menu-content">
+              <div className="ColumnFilter-sub-menu-title">
+                <h4>{categories.find(c => c.id === activeCategory)?.label}</h4>
+                <span className="ColumnFilter-sub-menu-count">
+                  {categories.find(c => c.id === activeCategory)?.total}
+                </span>
               </div>
-            )}
 
-            {/* Подменю: Колонки */}
-            {activeSubMenu === 'columns' && (
-              <div className="ColumnFilter-sub-menu-content">
-                <div className="ColumnFilter-sub-menu-title">
-                  <Columns size={18} />
-                  <h4>Фильтр по колонкам</h4>
-                </div>
-
-                {/* Поиск по колонкам */}
-                <div className="ColumnFilter-search-wrapper">
-                  <Search size={16} className="ColumnFilter-search-icon" />
-                  <input
-                    type="text"
-                    className="ColumnFilter-search-input"
-                    placeholder="Поиск колонки..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-
-                {/* Список колонок */}
-                <div className="ColumnFilter-columns-list">
-                  {filteredColumns.length === 0 ? (
-                    <div className="ColumnFilter-no-results">Колонки не найдены</div>
-                  ) : (
-                    filteredColumns.map((col) => {
-                      const stats = columnStats.get(col.key);
-                      const activeFilter = currentFilters.get(col.key);
-                      const isActive = activeColumn === col.key;
-                      const totalValues = stats ? stats.size : 0;
-
-                      return (
-                        <div key={col.key} className="ColumnFilter-column-item">
-                          <div 
-                            className={`ColumnFilter-column-header ${activeFilter ? 'has-filter' : ''}`}
-                            onClick={() => handleColumnClick(col.key)}
-                          >
-                            <div className="ColumnFilter-column-info">
-                              <span className="ColumnFilter-column-name">{col.label}</span>
-                              {activeFilter && (
-                                <span className="ColumnFilter-column-active-value">
-                                  {activeFilter.length > 20 ? activeFilter.substring(0, 20) + '...' : activeFilter}
-                                </span>
-                              )}
-                              <span className="ColumnFilter-column-count">{totalValues} значений</span>
-                            </div>
-                            <ChevronRight 
-                              size={16} 
-                              className={`ColumnFilter-column-chevron ${isActive ? 'rotated' : ''}`}
-                            />
-                          </div>
-
-                          {isActive && stats && (
-                            <div className="ColumnFilter-column-values">
-                              <div className="ColumnFilter-value-search-wrapper">
-                                <input
-                                  type="text"
-                                  className="ColumnFilter-value-search"
-                                  placeholder="Поиск значений..."
-                                  value={filterSearchTerm}
-                                  onChange={(e) => setFilterSearchTerm(e.target.value)}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              </div>
-                              <div className="ColumnFilter-values-list">
-                                {Array.from(stats.entries())
-                                  .filter(([value]) => 
-                                    value.toLowerCase().includes(filterSearchTerm.toLowerCase())
-                                  )
-                                  .sort((a, b) => a[0].localeCompare(b[0]))
-                                  .map(([value, count]) => {
-                                    const isSelected = activeFilter === value;
-                                    return (
-                                      <div 
-                                        key={value}
-                                        className={`ColumnFilter-value-item ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => handleValueClick(col.key, value)}
-                                      >
-                                        <span className="ColumnFilter-value-name">{value}</span>
-                                        <span className="ColumnFilter-value-count">{count}</span>
-                                        {isSelected && (
-                                          <span className="ColumnFilter-value-check">✓</span>
-                                        )}
-                                      </div>
-                                    );
-                                  })
-                                }
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
+              <div className="ColumnFilter-sub-categories">
+                {currentSubFilters.map((subItem) => {
+                  const isActive = activeSubFilter === subItem.id;
+                  return (
+                    <div 
+                      key={subItem.id}
+                      className={`ColumnFilter-sub-category-item ${isActive ? 'active' : ''}`}
+                      onClick={() => {
+                        if (isActive) {
+                          setActiveSubFilter(null);
+                          setActiveYear(null);
+                          setActiveMonth(null);
+                        } else {
+                          setActiveSubFilter(subItem.id);
+                          setActiveYear(null);
+                          setActiveMonth(null);
+                          setSearchTerm('');
+                        }
+                      }}
+                    >
+                      <span className="ColumnFilter-sub-category-label">{subItem.label}</span>
+                      <ChevronRight size={16} className={`ColumnFilter-sub-category-arrow ${isActive ? 'rotated' : ''}`} />
+                    </div>
+                  );
+                })}
               </div>
-            )}
+
+              {currentSubFilter && (
+                <div className="ColumnFilter-sub-sub-menu">
+                  <div 
+                    className="ColumnFilter-sub-sub-back"
+                    onClick={() => {
+                      setActiveSubFilter(null);
+                      setActiveYear(null);
+                      setActiveMonth(null);
+                    }}
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Назад</span>
+                  </div>
+                  <div className="ColumnFilter-sub-sub-content">
+                    <div className="ColumnFilter-sub-sub-title">
+                      <h5>{currentSubFilter.label}</h5>
+                    </div>
+
+                    {currentSubFilter.type === 'all' && !activeYear && (
+                      <div className="ColumnFilter-filter-list-wrapper">
+                        <div className="ColumnFilter-search-wrapper">
+                          <Search size={14} className="ColumnFilter-search-icon" />
+                          <input
+                            type="text"
+                            className="ColumnFilter-search-input"
+                            placeholder="Поиск года..."
+                            value={yearSearchTerm}
+                            onChange={(e) => setYearSearchTerm(e.target.value)}
+                          />
+                        </div>
+                        {renderYearList()}
+                      </div>
+                    )}
+
+                    {currentSubFilter.type === 'all' && activeYear && !activeMonth && (
+                      <div className="ColumnFilter-filter-list-wrapper">
+                        <div className="ColumnFilter-breadcrumb">
+                          <span className="ColumnFilter-breadcrumb-item" onClick={() => setActiveYear(null)}>
+                            {activeYear}
+                          </span>
+                          <span className="ColumnFilter-breadcrumb-separator">/</span>
+                          <span className="ColumnFilter-breadcrumb-item active">Месяц</span>
+                        </div>
+                        <div className="ColumnFilter-search-wrapper">
+                          <Search size={14} className="ColumnFilter-search-icon" />
+                          <input
+                            type="text"
+                            className="ColumnFilter-search-input"
+                            placeholder="Поиск месяца..."
+                            value={monthSearchTerm}
+                            onChange={(e) => setMonthSearchTerm(e.target.value)}
+                          />
+                        </div>
+                        {renderMonthList()}
+                      </div>
+                    )}
+
+                    {currentSubFilter.type === 'value' && !activeYear && (
+                      <div className="ColumnFilter-filter-list-wrapper">
+                        <div className="ColumnFilter-search-wrapper">
+                          <Search size={14} className="ColumnFilter-search-icon" />
+                          <input
+                            type="text"
+                            className="ColumnFilter-search-input"
+                            placeholder="Поиск года..."
+                            value={yearSearchTerm}
+                            onChange={(e) => setYearSearchTerm(e.target.value)}
+                          />
+                        </div>
+                        {renderYearList()}
+                      </div>
+                    )}
+
+                    {currentSubFilter.type === 'value' && activeYear && !activeMonth && (
+                      <div className="ColumnFilter-filter-list-wrapper">
+                        <div className="ColumnFilter-breadcrumb">
+                          <span className="ColumnFilter-breadcrumb-item" onClick={() => setActiveYear(null)}>
+                            {activeYear}
+                          </span>
+                          <span className="ColumnFilter-breadcrumb-separator">/</span>
+                          <span className="ColumnFilter-breadcrumb-item active">Месяц</span>
+                        </div>
+                        <div className="ColumnFilter-search-wrapper">
+                          <Search size={14} className="ColumnFilter-search-icon" />
+                          <input
+                            type="text"
+                            className="ColumnFilter-search-input"
+                            placeholder="Поиск месяца..."
+                            value={monthSearchTerm}
+                            onChange={(e) => setMonthSearchTerm(e.target.value)}
+                          />
+                        </div>
+                        {renderMonthList()}
+                      </div>
+                    )}
+
+                    {currentSubFilter.type === 'value' && activeYear && activeMonth && (
+                      <div className="ColumnFilter-filter-list-wrapper">
+                        <div className="ColumnFilter-breadcrumb">
+                          <span className="ColumnFilter-breadcrumb-item" onClick={() => setActiveYear(null)}>
+                            {activeYear}
+                          </span>
+                          <span className="ColumnFilter-breadcrumb-separator">/</span>
+                          <span className="ColumnFilter-breadcrumb-item" onClick={() => setActiveMonth(null)}>
+                            {activeMonth}
+                          </span>
+                          <span className="ColumnFilter-breadcrumb-separator">/</span>
+                          <span className="ColumnFilter-breadcrumb-item active">{currentSubFilter.label}</span>
+                        </div>
+                        <div className="ColumnFilter-search-wrapper">
+                          <Search size={14} className="ColumnFilter-search-icon" />
+                          <input
+                            type="text"
+                            className="ColumnFilter-search-input"
+                            placeholder={`Поиск по ${currentSubFilter.label.toLowerCase()}...`}
+                            value={valueSearchTerm}
+                            onChange={(e) => setValueSearchTerm(e.target.value)}
+                          />
+                        </div>
+                        {renderValueList(
+                          currentValues.filter(([value]) => value.toLowerCase().includes(valueSearchTerm.toLowerCase()))
+                        )}
+                      </div>
+                    )}
+
+                    {currentSubFilter.type === 'direct' && (
+                      <div className="ColumnFilter-filter-list-wrapper">
+                        <div className="ColumnFilter-search-wrapper">
+                          <Search size={14} className="ColumnFilter-search-icon" />
+                          <input
+                            type="text"
+                            className="ColumnFilter-search-input"
+                            placeholder="Поиск..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                          />
+                        </div>
+                        {renderFilterList(
+                          getFilterData(currentSubFilter.columnKey)
+                            .filter(([value]) => value.toLowerCase().includes(searchTerm.toLowerCase())),
+                          currentSubFilter.columnKey
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Footer */}
         <div className="ColumnFilter-menu-footer">
           <span>Всего: {data.length} ординаторов</span>
           <span>Активных фильтров: {activeFiltersCount}</span>

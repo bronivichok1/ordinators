@@ -160,7 +160,7 @@ const EditableTable = () => {
 
   const handleColumnFilterChange = (columnKey, value) => {
     const newFilters = new Map(columnFilters);
-    if (value === null) {
+    if (value === null || (Array.isArray(value) && value.length === 0)) {
       newFilters.delete(columnKey);
     } else {
       newFilters.set(columnKey, value);
@@ -563,7 +563,6 @@ const EditableTable = () => {
     }
   };
 
-  // Фильтрация данных по выбранной группе
   const groupFilteredData = useMemo(() => {
     if (!selectedGroup) return [];
     return data.filter(row => {
@@ -575,7 +574,6 @@ const EditableTable = () => {
     });
   }, [data, selectedGroup]);
 
-  // Применение остальных фильтров к уже отфильтрованным по группе данным
   const filteredData = useMemo(() => {
     let result = [...groupFilteredData];
     
@@ -601,7 +599,12 @@ const EditableTable = () => {
           }
           
           const strValue = String(cellValue).trim() || 'Не указано';
-          return strValue === filterValue;
+          
+          if (Array.isArray(filterValue) && filterValue.length > 0) {
+            return filterValue.includes(strValue);
+          } else {
+            return strValue === filterValue;
+          }
         });
       });
     }
@@ -916,7 +919,7 @@ const EditableTable = () => {
   return (
     <div className="table-page">
       <ColumnFilter 
-        data={data}
+        data={groupFilteredData}
         onFilterChange={handleColumnFilterChange}
         currentFilters={columnFilters}
         columns={allColumns}
@@ -1029,9 +1032,29 @@ const EditableTable = () => {
             {Array.from(columnFilters.entries()).map(([key, value]) => {
               const columnNumber = parseInt(key.replace('column', ''));
               const columnName = COLUMN_NAMES[columnNumber] || key;
+              
+              let displayValue = Array.isArray(value) ? value.join(', ') : value;
+              
+              if (key === 'column6' && Array.isArray(value)) {
+                const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+                const uniqueMonths = new Set();
+                value.forEach(date => {
+                  if (date && typeof date === 'string') {
+                    const parts = date.split('.');
+                    if (parts.length === 3) {
+                      const monthIndex = parseInt(parts[1]) - 1;
+                      const month = monthNames[monthIndex] || parts[1];
+                      const year = parts[2];
+                      uniqueMonths.add(`${month} ${year}`);
+                    }
+                  }
+                });
+                displayValue = Array.from(uniqueMonths).join(', ');
+              }
+              
               return (
                 <span key={key} className="filter-tag">
-                  {columnName}: {value}
+                  {columnName}: {displayValue}
                   <button 
                     className="remove-filter"
                     onClick={() => handleColumnFilterChange(key, null)}
@@ -1041,12 +1064,6 @@ const EditableTable = () => {
                 </span>
               );
             })}
-            <button 
-              className="clear-all-filters-btn"
-              onClick={clearAllColumnFilters}
-            >
-              Сбросить все
-            </button>
           </div>
         )}
 
@@ -1147,112 +1164,132 @@ const EditableTable = () => {
                         </div>
                       </td>
                       {columns.map((column) => {
-                        const columnNumber = parseInt(column.replace('column', ''));
-                        const fieldName = COLUMN_NAMES[columnNumber];
-                        if (!fieldName || fieldName === '') return null;
-                        if (!visibleColumns.has(columnNumber)) return null;
+                      const columnNumber = parseInt(column.replace('column', ''));
+                      const fieldName = COLUMN_NAMES[columnNumber];
+                      if (!fieldName || fieldName === '') return null;
+                      if (!visibleColumns.has(columnNumber)) return null;
 
-                        let cellValue = row[column] || '';
-                        const isEditing = editingCell.rowId === row.id && editingCell.column === column;
-                        const fieldType = getFieldType(columnNumber);
+                      let cellValue = row[column] || '';
+                      const isEditing = editingCell.rowId === row.id && editingCell.column === column;
+                      const fieldType = getFieldType(columnNumber);
+                      const isPasswordColumn = columnNumber === 32;
 
-                        if (fieldType === 'date' && cellValue) {
-                          cellValue = formatDateToDisplay(cellValue);
-                        }
+                      if (fieldType === 'date' && cellValue) {
+                        cellValue = formatDateToDisplay(cellValue);
+                      }
 
-                        if (column === 'column16') {
-                          cellValue = formatPreparationForm(cellValue);
-                        }
+                      if (column === 'column16') {
+                        cellValue = formatPreparationForm(cellValue);
+                      }
 
-                        if (isEditing && !['column9', 'column32'].includes(column)) {
+                      if (isEditing && !['column9', 'column32'].includes(column)) {
+                        if (isPasswordColumn) {
                           return (
-                            <InlineCellEditor
-                              key={`cell-${row.id}-${column}`}
-                              editingCell={editingCell}
-                              editValue={editValue}
-                              setEditValue={setEditValue}
-                              onSave={handleCellSave}
-                              onCancel={handleCellCancel}
-                              selectData={selectData}
-                              addCustomOption={addCustomOption}
-                              selectOptions={selectOptions}
-                            />
-                          );
-                        }
-
-                        if (column === 'column9') {
-                          return (
-                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
-                              <NestedSocialLeaveRenderer 
-                                rowId={row.id} 
-                                value={row[column]} 
-                                data={data}
-                                setData={setData}
-                                userData={userData}
+                            <td key={`cell-${row.id}-${column}`}>
+                              <input
+                                type="password"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => handleCellSave(editValue)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleCellSave(editValue);
+                                  if (e.key === 'Escape') handleCellCancel();
+                                }}
+                                autoFocus
+                                className="inline-edit-input"
+                                placeholder="Введите пароль"
                               />
                             </td>
                           );
                         }
-
-                        if (column === 'column33') {
-                          return (
-                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
-                              <NestedSupervisorsRenderer 
-                                rowId={row.id} 
-                                value={row[column]} 
-                                data={data}
-                                setData={setData}
-                                userData={userData}
-                              />
-                            </td>
-                          );
-                        }
-
-                        if (column === 'column27') {
-                          return (
-                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
-                              <ExtensionsRenderer 
-                                rowId={row.id} 
-                                value={row[column]} 
-                                data={data}
-                                setData={setData}
-                                userData={userData}
-                              />
-                            </td>
-                          );
-                        }
-
-                        if (column === 'column36') {
-                          return (
-                            <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
-                              <AllowanceRenderer 
-                                rowId={row.id} 
-                                value={row[column]} 
-                                data={data}
-                                setData={setData}
-                                userData={userData}
-                              />
-                            </td>
-                          );
-                        }
-
-                        const isDateInvalid = fieldType === 'date' && cellValue && !isValidDate(cellValue);
-
                         return (
-                          <td
+                          <InlineCellEditor
                             key={`cell-${row.id}-${column}`}
-                            onDoubleClick={() => handleCellDoubleClick(row.id, column, cellValue, rowIndex)}
-                            className={permissions.canEditRow() ? 'editable-cell' : ''}
-                          >
-                            <span className={`cell-value ${isDateInvalid ? 'date-error' : ''}`} title={cellValue}>
-                              {cellValue}
-                            </span>
-                            {isDateInvalid && (
-                              <span className="date-error-message-inline">Неверный формат даты. Используйте ДД.ММ.ГГГГ</span>
-                            )}
+                            editingCell={editingCell}
+                            editValue={editValue}
+                            setEditValue={setEditValue}
+                            onSave={handleCellSave}
+                            onCancel={handleCellCancel}
+                            selectData={selectData}
+                            addCustomOption={addCustomOption}
+                            selectOptions={selectOptions}
+                          />
+                        );
+                      }
+
+                      if (column === 'column9') {
+                        return (
+                          <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
+                            <NestedSocialLeaveRenderer 
+                              rowId={row.id} 
+                              value={row[column]} 
+                              data={data}
+                              setData={setData}
+                              userData={userData}
+                            />
                           </td>
                         );
-                      })}
+                      }
+
+                      if (column === 'column33') {
+                        return (
+                          <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
+                            <NestedSupervisorsRenderer 
+                              rowId={row.id} 
+                              value={row[column]} 
+                              data={data}
+                              setData={setData}
+                              userData={userData}
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (column === 'column27') {
+                        return (
+                          <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
+                            <ExtensionsRenderer 
+                              rowId={row.id} 
+                              value={row[column]} 
+                              data={data}
+                              setData={setData}
+                              userData={userData}
+                            />
+                          </td>
+                        );
+                      }
+
+                      if (column === 'column36') {
+                        return (
+                          <td key={`cell-${row.id}-${column}`} className="nested-cell-td">
+                            <AllowanceRenderer 
+                              rowId={row.id} 
+                              value={row[column]} 
+                              data={data}
+                              setData={setData}
+                              userData={userData}
+                            />
+                          </td>
+                        );
+                      }
+
+                      const isDateInvalid = fieldType === 'date' && cellValue && !isValidDate(cellValue);
+
+                      return (
+                        <td
+                          key={`cell-${row.id}-${column}`}
+                          onDoubleClick={() => handleCellDoubleClick(row.id, column, cellValue, rowIndex)}
+                          className={permissions.canEditRow() ? 'editable-cell' : ''}
+                        >
+                          <span className={`cell-value ${isDateInvalid ? 'date-error' : ''}`} title={cellValue}>
+                            {isPasswordColumn ? '••••••••' : cellValue}
+                          </span>
+                          {isDateInvalid && (
+                            <span className="date-error-message-inline">Неверный формат даты. Используйте ДД.ММ.ГГГГ</span>
+                          )}
+                        </td>
+                      );
+                    })}
                     </tr>
                   );
                 })
