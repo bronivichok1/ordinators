@@ -801,7 +801,6 @@ const ColumnFilter = ({
             </div>
           </div>
         )}
-
         <div className="ColumnFilter-menu-footer">
           <span>Всего: {data.length} ординаторов</span>
           <span>Активных фильтров: {activeFiltersCount}</span>
